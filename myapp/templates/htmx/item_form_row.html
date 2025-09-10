@@ -1,0 +1,52 @@
+<tr>
+    <td>
+        <select 
+           name="form-__prefix__-category"
+            id="id_form-__prefix__-category"
+            hx-get="{% url 'htmx_get_services' %}"
+            hx-target="#id_form-__prefix__-service"
+            hx-trigger="change"
+            hx-include="[name='form-__prefix__-category']"
+            hx-swap="innerHTML"
+            class="form-select"
+        >
+            <option value="">---------</option>
+            {% for category in form.fields.category.queryset %}
+                <option value="{{ category.id }}">{{ category.name }}</option>
+            {% endfor %}
+        </select>
+    </td>
+    <td>
+
+<select
+    name="{{ form.prefix }}-service" 
+    id="id_{{ form.prefix }}-service"
+    hx-get="{% url 'htmx_get_service_details' %}"
+    hx-target="#price-delivery-{{ form.prefix }}"
+    hx-trigger="change"
+    hx-swap="innerHTML"
+    hx-include="[name='{{ form.prefix }}-service']"
+    class="form-select"
+>
+    <option value="">---------</option>
+    {% for service in form.fields.service.queryset %}
+        <option value="{{ service.id }}">{{ service.get_service_type_display }}</option>
+    {% endfor %}
+</select>
+
+    </td>
+    <td>{{ form.name }}</td>
+    <td>{{ form.color }}</td>
+    <td colspan="2" id="price-delivery-{{ form.prefix }}">
+        {% if form.instance.service %}
+            {{ form.instance.service.price }}<br>{{ form.instance.service.delivery_time_days }} days
+        {% else %}
+            N/A<br>N/A
+        {% endif %}
+    </td>
+    <td>
+        {% if form.instance.pk %}
+            {{ form.DELETE }}
+        {% endif %}
+    </td>
+</tr>

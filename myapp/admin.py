@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, CustomerRequest,LaundryItem,WorkflowHistory
+from .models import CustomUser, CustomerRequest,LaundryItem,WorkflowHistory, Category,Service
 
 # class CustomUserAdmin(UserAdmin):
 #     model = CustomUser
@@ -14,3 +14,5 @@ admin.site.register(CustomUser)
 admin.site.register(CustomerRequest)
 admin.site.register(LaundryItem)
 admin.site.register(WorkflowHistory)
+admin.site.register(Category)
+admin.site.register(Service)

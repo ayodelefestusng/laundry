@@ -1,0 +1,111 @@
+    {% extends 'base.html' %}
+
+    {% block content %}
+    <h2>Review Order #{{ order.id }}</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ formset.management_form }}
+        
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Service Type</th>
+                    <th>Item Name</th>
+                    <th>Color</th>
+                    <th>Price</th>
+                    <th>Delivery Time</th>
+                    <th>Remove</th>
+                </tr>
+            </thead>
+            <tbody id="form-container">
+                {% for form in formset %}
+                    {% include "myapp/htmx/item_form_row.html" %}
+                {% endfor %}
+            </tbody>
+        </table>
+
+
+    <button type="button" 
+        class="btn btn-secondary" 
+        hx-post="{% url 'htmx_add_item_form' %}"
+        hx-target="#form-container" 
+        hx-swap="beforeend"
+        hx-on::after-swap="updateNewFormHxAttrs(event);"
+    >
+        Add Another Item
+    </button>
+        
+        <button type="button" class="btn btn-danger" id="remove-item-btn">
+            Remove an Item
+        </button>
+        
+        <button type="submit" class="btn btn-primary">Save Changes & Send to Customer</button>
+    </form>
+
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const formContainer = document.getElementById('form-container');
+    const totalFormsInput = document.getElementById('id_form-TOTAL_FORMS');
+
+    if (!formContainer || !totalFormsInput) return;
+
+    // Update the total number of forms
+    function updateFormCount() {
+        totalFormsInput.value = formContainer.children.length;
+    }
+
+    // Remove the last form row
+    const removeBtn = document.getElementById('remove-item-btn');
+    if (removeBtn) {
+        removeBtn.addEventListener('click', function () {
+            if (formContainer.children.length > 1) {
+                formContainer.lastElementChild.remove();
+                updateFormCount();
+            }
+        });
+    }
+});
+
+// Called after HTMX injects a new form row
+function updateNewFormHxAttrs(event) {
+    const newFormRow = event.detail.elt;
+    const formContainer = document.getElementById('form-container');
+    const totalFormsInput = document.getElementById('id_form-TOTAL_FORMS');
+
+    if (!newFormRow || !formContainer || !totalFormsInput) return;
+
+    const formCount = formContainer.children.length;
+    const basePrefix = 'form';
+    const placeholder = `${basePrefix}-__prefix__`;
+    const newPrefix = `${basePrefix}-${formCount - 1}`;
+
+    // Replace all relevant attributes
+    newFormRow.querySelectorAll('[id*="__prefix__"], [name*="__prefix__"], [hx-target*="__prefix__"], [hx-include*="__prefix__"]').forEach(element => {
+        if (element.id) {
+            element.id = element.id.replace(placeholder, newPrefix);
+        }
+        if (element.name) {
+            element.name = element.name.replace(placeholder, newPrefix);
+        }
+        if (element.hasAttribute('hx-target')) {
+            element.setAttribute('hx-target', element.getAttribute('hx-target').replace(placeholder, newPrefix));
+        }
+        if (element.hasAttribute('hx-include')) {
+            element.setAttribute('hx-include', element.getAttribute('hx-include').replace(placeholder, newPrefix));
+        }
+    });
+
+    // Update the form count
+    totalFormsInput.value = formCount;
+
+    // Optional: log for debugging
+    console.log(`New form added with prefix: ${newPrefix}`);
+}
+</script>
+
+
+
+    {% endblock %}
