@@ -1,0 +1,14 @@
+{% extends 'laundry/base.html' %}
+
+{% block title %}My Profile{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="jumbotron text-center">
+        <h1 class="display-4">Welcome, {{ user.username }}!</h1>
+        <p class="lead">This is your personal profile page.</p>
+        <hr class="my-4">
+        <p>You can view and manage your account details here.</p>
+    </div>
+</div>
+{% endblock %}

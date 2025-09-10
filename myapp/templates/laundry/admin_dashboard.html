@@ -1,0 +1,92 @@
+{% extends 'laundry/base.html' %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="mb-4">Admin Dashboard</h1>
+
+    <div class="card mb-4">
+        <div class="card-header bg-warning text-dark">
+            <h4 class="mb-0">Pending Customer Requests</h4>
+        </div>
+        <div class="card-body">
+            {% if pending_requests %}
+            <ul class="list-group">
+                {% for request in pending_requests %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Order #{{ request.id }}</strong> by {{ request.user.username }}
+                        <br>
+                        <small>Submitted on {{ request.created_at|date:"F d, Y" }}</small>
+                    </div>
+                    <a href="{% url 'admin_review_request' request.id %}" class="btn btn-sm btn-primary">Review & Process</a>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-muted">No new requests pending review.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-danger text-white">
+            <h4 class="mb-0">Orders with Customer Comments</h4>
+        </div>
+        <div class="card-body">
+            {% if commented_orders %}
+            <ul class="list-group">
+                {% for order in commented_orders %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Order #{{ order.id }}</strong> by {{ order.user.username }}
+                        <br>
+                        <small>Comment: "{{ order.comment|truncatechars:50 }}"</small>
+                    </div>
+                    <a href="{% url 'admin_review_request' order.id %}" class="btn btn-sm btn-info text-white">View Comment & Edit</a>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-muted">No orders with pending comments.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header bg-success text-white">
+            <h4 class="mb-0">In Progress Orders</h4>
+        </div>
+        <div class="card-body">
+            {% if in_progress_orders %}
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Batch ID</th>
+                        <th>Customer</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in in_progress_orders %}
+                    <tr>
+                        <td>{{ order.batch_id }}</td>
+                        <td>{{ order.user.username }}</td>
+                        <td>{{ order.get_status_display }}</td>
+                        <td>
+                            <a href="{% url 'admin_review_request' order.id %}" class="btn btn-sm btn-outline-secondary">View Details</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-muted">No orders are currently in progress.</p>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}

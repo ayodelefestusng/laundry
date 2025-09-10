@@ -1,0 +1,4 @@
+<form hx-post="{% url 'htmx_submit_comment' order_id %}" hx-target="#response-area">
+    <textarea name="comment" placeholder="Enter your comments..."></textarea>
+    <button type="submit">Submit Comment</button>
+</form>
