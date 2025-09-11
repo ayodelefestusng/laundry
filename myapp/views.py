@@ -17,7 +17,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from .models import (
     Order, OrderItem, Service, ServiceCategory,
-    Comment, CustomUser, ORDER_STATUS, ITEM_STATUS
+    Comment, CustomUser, ORDER_STATUS, 
 )
 from .forms import (
     OrderForm, OrderItemForm, CommentForm, CustomUserCreationForm
@@ -32,7 +32,7 @@ from django.db.models import F
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
-from .models import Order, OrderItem, Service, ServiceCategory, Comment, ORDER_STATUS, ITEM_STATUS
+from .models import Order, OrderItem, Service, ServiceCategory, Comment, ORDER_STATUS
 from .forms import OrderForm, OrderItemForm, CommentForm
 from .utils import is_admin
 

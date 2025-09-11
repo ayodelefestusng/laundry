@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
-from .models import CustomUser, ServiceCategory, ServiceType, Service, Order, OrderItem, Comment
+from .models import CustomUser, ServiceCategory, Service, Order, OrderItem, Comment
 
 # Unregister the default User model
 # admin.site.unregister(User)
@@ -35,9 +35,9 @@ class ServiceAdmin(admin.ModelAdmin):
     """
     Admin configuration for the Service model.
     """
-    list_display = ('name', 'category', 'service_type', 'price', 'delivery_time_days')
+    list_display = ( 'category', 'service_type', 'price', 'delivery_time_days')
     list_filter = ('category', 'service_type')
-    search_fields = ('name',)
+    search_fields = ('category',)
 
 class OrderItemInline(admin.TabularInline):
     """
@@ -45,8 +45,8 @@ class OrderItemInline(admin.TabularInline):
     """
     model = OrderItem
     extra = 0
-    fields = ('service', 'name', 'color', 'price', 'delivery_time_days')
-    readonly_fields = ('price', 'delivery_time_days')
+    fields = ('service', 'name', 'color',)
+    readonly_fields = ('color',)
 
 class OrderAdmin(admin.ModelAdmin):
     """
@@ -90,7 +90,6 @@ class CommentAdmin(admin.ModelAdmin):
 # Register your models with the admin site
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(ServiceCategory, ServiceCategoryAdmin)
-admin.site.register(ServiceType, ServiceTypeAdmin)
 admin.site.register(Service, ServiceAdmin)
 admin.site.register(Order, OrderAdmin)
 admin.site.register(Comment, CommentAdmin)

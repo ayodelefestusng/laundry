@@ -5,12 +5,7 @@ from django.contrib.auth.models import AbstractUser
 #  Choice Tuples
 # ==============================================================================
 
-# Service Choices
-SERVICE_CHOICES = (
-    ('wash', 'Washing'),
-    ('iron', 'Ironing'),
-    ('dry_clean', 'Dry Cleaning'),
-)
+
 
 # Workflow Stages for a single laundry item
 WORKFLOW_STAGES = (
