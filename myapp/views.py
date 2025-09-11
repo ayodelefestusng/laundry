@@ -1,145 +1,62 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.views.decorators.http import require_POST
-from django.contrib.auth import login
-from django.forms import modelformset_factory
-from django.core.mail import send_mail
-from django.conf import settings
-from django.db.models import Max
+import datetime
 import uuid
-from django.shortcuts import render, get_object_or_404
-from .models import Service
-# ... other imports
-
-from django.shortcuts import get_object_or_404
-from .models import Service
-from django.http import HttpResponse
-
-
-from .models import CustomerRequest, LaundryItem, WorkflowHistory, CustomUser, Service
-from .forms import ServiceRequestForm, AdminItemForm, CustomUserCreationForm
-from .utils import generate_qr_base64
-
-from django.shortcuts import get_object_or_404
-from .models import Service
-
-from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse
-from django.contrib.auth.decorators import user_passes_test
-from django.views.decorators.http import require_POST, require_http_methods
-from django.db.models import F, Sum, Max
-from datetime import date, timedelta
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
-
-from .models import CustomerRequest, LaundryItem, Service, Category, ServiceType
-from .forms import LaundryItemForm
-from .utils import is_admin
-
 import stripe
-from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse, JsonResponse
-from django.conf import settings
-from django.contrib.auth.decorators import user_passes_test
-from django.views.decorators.http import require_POST, require_http_methods
-from django.db.models import F, Sum, Max
-from datetime import date, timedelta
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
-
-from .models import CustomerRequest, LaundryItem, Service, Category, ServiceType
-from .forms import LaundryItemForm, CommentForm
-from .utils import is_admin
-
-from django.shortcuts import get_object_or_404
-from .models import LaundryItem
-from .forms import AdminItemForm
-from django.contrib.auth.decorators import user_passes_test
-
-import stripe
-from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse, JsonResponse
-from django.conf import settings
-from django.contrib.auth.decorators import user_passes_test
-from django.views.decorators.http import require_POST, require_http_methods
-from django.db.models import F, Sum, Max
-from datetime import date, timedelta
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
-from django.views.decorators.csrf import csrf_exempt
-from django.urls import reverse
-
-from .models import CustomerRequest, LaundryItem, Service, Category, ServiceType
-from .forms import LaundryItemForm, CommentForm
-from .utils import is_admin
-
-import stripe
-from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse, JsonResponse
-from django.conf import settings
-from django.contrib.auth.decorators import user_passes_test
-from django.views.decorators.http import require_POST, require_http_methods
-from django.db.models import F, Sum, Max
-from datetime import date, timedelta
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
-from django.views.decorators.csrf import csrf_exempt
-
-from .models import CustomerRequest, LaundryItem, Service, Category, ServiceType
-from .forms import LaundryItemForm, CommentForm
-from .utils import is_admin
-
-
-# import paypalrestsdk
 import paypalrestsdk
-from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse, JsonResponse
-from django.conf import settings
-from django.contrib.auth.decorators import user_passes_test
-from django.views.decorators.http import require_POST, require_http_methods
-from django.db.models import F, Sum, Max
-from datetime import date, timedelta
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
-from django.views.decorators.csrf import csrf_exempt
-from django.urls import reverse
 
-from .models import CustomerRequest, LaundryItem, Service, Category, ServiceType
-from .forms import LaundryItemForm, CommentForm
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.db import IntegrityError
+from django.db.models import Sum, F
+from django.http import HttpResponse, HttpResponseBadRequest
+from django.shortcuts import render, redirect, get_object_or_404
+from django.template.loader import render_to_string
+from django.urls import reverse
+from django.views.decorators.csrf import csrf_exempt
+
+from .models import (
+    Order, OrderItem, Service, ServiceCategory,
+    Comment, CustomUser, ORDER_STATUS, ITEM_STATUS
+)
+from .forms import (
+    OrderForm, OrderItemForm, CommentForm, CustomUserCreationForm
+)
+from .utils import is_admin
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import HttpResponse, HttpResponseBadRequest
+from django.db import IntegrityError
+from django.template.loader import render_to_string
+from django.core.mail import EmailMessage
+from django.db.models import F
+from django.contrib.auth import get_user_model
+from django.utils import timezone
+
+from .models import Order, OrderItem, Service, ServiceCategory, Comment, ORDER_STATUS, ITEM_STATUS
+from .forms import OrderForm, OrderItemForm, CommentForm
 from .utils import is_admin
 
-# Configure PayPal SDK
-# Note: You should set PAYPAL_MODE, PAYPAL_CLIENT_ID, and PAYPAL_CLIENT_SECRET
-# in your settings.py file.
-paypalrestsdk.configure({
-    "mode": settings.PAYPAL_MODE,
-    "client_id": settings.PAYPAL_CLIENT_ID,
-    "client_secret": settings.PAYPAL_CLIENT_SECRET
-})
+from django.core.mail import send_mail
 
 
 
-
-
-
-
-# Initialize Stripe
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
-# ... other imports
-# A custom decorator to restrict access to admin users.
 def is_admin(user):
-    return user.is_authenticated and user.is_staff
+    """
+    Checks if a user is an administrator.
+    """
+    return user.is_staff
 
-# ==============================================================================
-#  Customer-facing Views
-# ==============================================================================
+# Customer-facing views
 
 def home(request):
     """
-    Renders the home page.
+    Renders the homepage.
     """
     return render(request, 'home.html')
+
+
 
 def register(request):
     """
@@ -155,276 +72,296 @@ def register(request):
         form = CustomUserCreationForm()
     return render(request, 'register.html', {'form': form})
 
-@login_required
-def service_request(request):
+def customer_order(request):
     """
-    Allows a customer to submit a new laundry service request.
+    Handles the creation of a new customer order.
     """
     if request.method == 'POST':
-        form = ServiceRequestForm(request.POST)
+        form = OrderForm(request.POST)
         if form.is_valid():
-            new_request = form.save(commit=False)
-            new_request.user = request.user
-            new_request.save()
+            order = form.save(commit=False)
+            # Fix: Ensure the user is a CustomUser instance before assigning
+            CustomUser = get_user_model()
+            order.user = get_object_or_404(CustomUser, pk=request.user.pk)
+            order.user = request.user  # 
+
+
+            # order.user = User.objects.get(pk=request.user.pk)
+            order.save()
             send_mail(
                 'Laundry Service Request Confirmation',
-                'Your request has been received. A dispatch agent will visit shortly.',
+                f'Your request has been received. A dispatch agent will visit on {request.POST["pickup_date"]}',
                 settings.DEFAULT_FROM_EMAIL,
                 [request.user.email],
                 fail_silently=False,
             )
-            return redirect('order_detail', order_id=new_request.id)
+        
+            return redirect('order_detail', order_id=order.id)
     else:
-        initial_data = {
-            'address': request.user.address,
-            'contact_number': request.user.phone_number,
-        }
-        form = ServiceRequestForm(initial=initial_data)
-    return render(request, 'customer_order.html', {'form': form})
+        form = OrderForm()
 
-@login_required
-def order_detail1(request, order_id):
+    context = {
+        'form': form,
+    }
+    return render(request, 'customer_order.html', context)
+
+
+
+def order_detail(request, order_id):
     """
     Displays the details of a specific order.
     """
-    order = get_object_or_404(CustomerRequest, id=order_id, user=request.user)
-    return render(request, 'order_detail.html', {'order': order})
+    order = get_object_or_404(Order, id=order_id)
+    order_items = OrderItem.objects.filter(order=order)
+    order_summary = calculate_order_summary(order)
+    add_item_form = OrderItemForm()
+    all_categories = ServiceCategory.objects.all()
 
-@login_required
-def order_review(request, order_id):
-    """
-    Allows a customer to review a finalized order from the admin.
-    """
-    order = get_object_or_404(CustomerRequest, id=order_id, user=request.user)
-    context = {'order': order}
-    return render(request, 'customer_review.html', context)
-
-@require_POST
-@login_required
-def accept_order(request, order_id):
-    """
-    Handles a customer accepting a finalized order.
-    """
-    order = get_object_or_404(CustomerRequest, id=order_id, user=request.user)
-    if not order.batch_id:
-        order.batch_id = str(uuid.uuid4())[:8].upper()
-    order.status = 'accepted'
-    order.save()
-    return render(request, 'batch_id_display.html', {'batch_id': order.batch_id})
-
-@require_POST
-@login_required
-def comment_order(request, order_id):
-    """
-    Allows a customer to leave a comment on a finalized order.
-    """
-    order = get_object_or_404(CustomerRequest, id=order_id, user=request.user)
-    comment = request.POST.get('comment')
-    order.comment = comment
-    order.status = 'commented'
-    order.save()
-    return render(request, 'comment_success.html')
-
-# ==============================================================================
-#  Admin-facing Views
-# ==============================================================================
-
-
-@user_passes_test(is_admin)
-def admin_dashboard1(request):
-    """
-    Displays the main admin dashboard with categorized requests.
-    """
-    pending_requests = CustomerRequest.objects.filter(status='pending_review')
-    in_progress_orders = CustomerRequest.objects.filter(status='in_progress')
-    commented_orders = CustomerRequest.objects.filter(status='commented')
-    return render(request, 'admin_dashboard.html', {
-        'pending_requests': pending_requests,
-        'in_progress_orders': in_progress_orders,
-        'commented_orders': commented_orders,
-    })
-
-@user_passes_test(is_admin)
-def admin_review_request1(request, order_id):
-    """
-    Allows an admin to review and finalize a customer's request.
-    """
-    order = get_object_or_404(CustomerRequest, id=order_id)
-    AdminItemFormSet = modelformset_factory(
-        LaundryItem,
-        form=AdminItemForm,
-        extra=5,
-        fields=('name', 'service', 'color')
-    )
-    if request.method == 'POST':
-        formset = AdminItemFormSet(request.POST, queryset=order.items.all())
-        if formset.is_valid():
-            order.items.all().delete()
-            for form in formset:
-                if form.cleaned_data:
-                    item = form.save(commit=False)
-                    item.request = order
-                    item.save()
-            total_price = sum(item.price for item in order.items.all() if item.price is not None)
-            max_delivery_time = order.items.all().aggregate(Max('service__delivery_time_days'))['service__delivery_time_days__max']
-            send_mail(
-                'Your Laundry Order is Ready for Review',
-                f'Please review your order details. Total price: ${total_price}. Expected delivery date: {max_delivery_time} days. Use this link: http://your-domain.com/order-review/{order_id}/',
-                settings.DEFAULT_FROM_EMAIL,
-                [order.user.email],
-                fail_silently=False,
-            )
-            return redirect('admin_dashboard')
-    else:
-        formset = AdminItemFormSet(queryset=order.items.all())
-    return render(request, 'admin_review_request.html', {
+    context = {
         'order': order,
-        'item_forms': formset
-    })
+        'order_items': order_items,
+        'summary': order_summary,
+        'add_item_form': add_item_form,
+        'all_categories': all_categories,
+    }
+    return render(request, 'order_detail.html', context)
 
-@user_passes_test(is_admin)
-def generate_qr_codes(request, order_id):
+def htmx_add_item(request, order_id):
     """
-    Generates QR codes for each item in an order.
+    Handles adding a new item to an order via HTMX.
     """
-    order = get_object_or_404(CustomerRequest, id=order_id)
-    for item in order.items.all():
-        if not item.qr_code_base64:
-            qr_data = f'laundry-item-{item.id}'
-            item.qr_code_base64 = generate_qr_base64(qr_data)
-            item.save()
-    return redirect('admin_review_request', order_id=order_id)
-
-@user_passes_test(is_admin)
-def update_workflow_stage(request, item_id):
-    """
-    Updates the workflow stage of a single item.
-    """
-    item = get_object_or_404(LaundryItem, id=item_id)
-    new_stage = request.POST.get('stage')
-    if new_stage in dict(item.WORKFLOW_STAGES):
-        item.current_stage = new_stage
-        item.save()
-        WorkflowHistory.objects.create(item=item, stage=new_stage)
-        order = item.request
-        if all(i.current_stage == 'ready_for_pickup' for i in order.items.all()):
-            order.status = 'ready_for_delivery'
-            order.save()
-            send_mail(
-                'Your Laundry Order is Ready',
-                f'Order {order.batch_id} is ready for pickup or dispatch.',
-                settings.DEFAULT_FROM_EMAIL,
-                [order.user.email],
-                fail_silently=False,
-            )
-    return render(request, 'htmx/workflow_status.html', {'item': item})
-
-@user_passes_test(is_admin)
-def admin_approve_comment(request, order_id):
-    """
-    Allows an admin to approve a customer's comment and accept the order.
-    """
-    order = get_object_or_404(CustomerRequest, id=order_id)
-    order.batch_id = str(uuid.uuid4())[:8].upper()
-    order.status = 'accepted'
-    order.save()
-    return redirect('admin_dashboard')
-
-
-# In your views.py file
-
-def is_admin(user):
-    return user.is_authenticated and user.is_staff
-
-@user_passes_test(is_admin)
-def update_item_details(request, item_id):
-    item = get_object_or_404(LaundryItem, id=item_id)
     if request.method == 'POST':
-        form = AdminItemForm(request.POST, instance=item)
+        order = get_object_or_404(Order, id=order_id)
+        form = OrderItemForm(request.POST)
+
         if form.is_valid():
-            form.save()
-            # Assuming you are using HTMX to update a single row
-            return render(request, 'htmx/item_row.html', {'item': item})
+            service = form.cleaned_data['service']
+            new_item = form.save(commit=False)
+            new_item.order = order
+            new_item.name = form.cleaned_data['name']
+            new_item.color = form.cleaned_data['color']
+            new_item.price = service.price
+            new_item.delivery_time_days = service.delivery_time_days
+            new_item.save()
+
+            # Update order total and delivery date
+            order.total_price = sum(item.price for item in order.items.all())
+            order.estimated_delivery_date = order.pickup_date + timezone.timedelta(
+                days=max(item.delivery_time_days for item in order.items.all())
+            )
+            order.save()
+
+            item_summary = calculate_order_summary(order)
+            
+            # Render new item row and updated summary
+            return HttpResponse(
+                render_to_string(
+                    'htmx/item_table_row.html', {'item': new_item}
+                ) + render_to_string(
+                    'htmx/order_summary.html', {'summary': item_summary}
+                )
+            )
+    return HttpResponseBadRequest("Invalid form submission")
+
+def htmx_get_services(request):
+    """
+    Returns a list of services based on the selected category via HTMX.
+    """
+    category_id = request.GET.get('category')
+    if category_id:
+        services = Service.objects.filter(category_id=category_id)
     else:
-        form = AdminItemForm(instance=item)
-    return render(request, 'htmx/item_edit_form.html', {'form': form, 'item': item})
+        services = Service.objects.none()
+    
+    return render(request, 'htmx/service_options.html', {'services': services})
 
-
-
-# ==============================================================================
-#  HTMX-specific Views
-# ==============================================================================
-
-def htmx_get_service_details1(request, service_id):
+def htmx_get_service_details(request):
     """
-    HTMX view to return a template fragment with price and delivery time.
+    Returns the price and delivery time for a selected service via HTMX.
     """
-    service = get_object_or_404(Service, id=service_id)
+    service_id = request.GET.get('service')
+    service = get_object_or_404(Service, id=service_id) if service_id else None
     return render(request, 'htmx/service_details.html', {'service': service})
 
-def htmx_order_summary(request, order_id):
+def htmx_edit_item(request, item_id):
     """
-    HTMX view to render a summary of an order.
+    Handles editing an order item via HTMX.
     """
-    order = get_object_or_404(CustomerRequest, id=order_id)
-    return render(request, 'htmx/order_summary.html', {'order': order})
-
-def htmx_comment_form(request, order_id):
-    """
-    HTMX view to render a comment form.
-    """
-    return render(request, 'htmx/comment_form.html', {'order_id': order_id})
-
-def htmx_submit_comment(request, order_id):
-    """
-    HTMX view to submit a comment.
-    """
-    order = get_object_or_404(CustomerRequest, id=order_id)
-    order.comment = request.POST.get('comment')
-    order.status = 'commented'
-    order.save()
-    return render(request, 'htmx/comment_submitted.html')
-
-
-
-
-# Eniyan
-from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse
-from django.contrib.auth.decorators import user_passes_test
-from django.views.decorators.http import require_POST, require_http_methods
-from django.db.models import F, Sum, Max
-from datetime import date, timedelta
-
-from .models import CustomerRequest, LaundryItem, Service, Category, ServiceType
-from .forms import LaundryItemForm
-from .utils import is_admin
-
-
-# Helper function to calculate order summary
-def get_order_summary(order):
-    total_price = order.items.aggregate(total=Sum('service__price'))['total'] or 0
-    # Corrected: Use Max() to get the latest delivery time
-    latest_delivery_days = order.items.aggregate(max_days=Max('service__delivery_time_days'))['max_days']
+    item = get_object_or_404(OrderItem, id=item_id)
+    if request.method == 'GET':
+        form = OrderItemForm(instance=item)
+        all_categories = ServiceCategory.objects.all()
+        context = {
+            'item': item,
+            'form': form,
+            'all_categories': all_categories,
+        }
+        return render(request, 'htmx/edit_item_form_row.html', context)
     
-    delivery_date = None
-    if latest_delivery_days:
-        delivery_date = date.today() + timedelta(days=latest_delivery_days)
-        
-    return {
-        'total_items': order.items.count(),
-        'total_price': total_price,
-        'delivery_date': delivery_date
-    }
+    elif request.method == 'POST':
+        form = OrderItemForm(request.POST, instance=item)
+        if form.is_valid():
+            service = form.cleaned_data['service']
+            item = form.save(commit=False)
+            item.price = service.price
+            item.delivery_time_days = service.delivery_time_days
+            item.save()
+            order = item.order
+            
+            # Update order total and delivery date
+            order.total_price = sum(item.price for item in order.items.all())
+            order.estimated_delivery_date = order.pickup_date + timezone.timedelta(
+                days=max(item.delivery_time_days for item in order.items.all())
+            )
+            order.save()
+            
+            return render(request, 'htmx/item_table_row.html', {'item': item})
 
-@user_passes_test(is_admin)
+    return HttpResponseBadRequest("Invalid request method.")
+
+def htmx_delete_item(request, item_id):
+    """
+    Handles deleting an order item via HTMX.
+    """
+    if request.method == 'DELETE':
+        item = get_object_or_404(OrderItem, id=item_id)
+        order = item.order
+        item.delete()
+        
+        # Update order total and delivery date
+        order.total_price = sum(item.price for item in order.items.all())
+        if order.items.exists():
+            order.estimated_delivery_date = order.pickup_date + timezone.timedelta(
+                days=max(item.delivery_time_days for item in order.items.all())
+            )
+        else:
+            order.estimated_delivery_date = None
+        order.save()
+        
+        return HttpResponse(status=204) # 204 No Content
+
+
+def htmx_get_order_summary(request, order_id):
+    """
+    Returns the updated order summary via HTMX.
+    """
+    order = get_object_or_404(Order, id=order_id)
+    summary = calculate_order_summary(order)
+    return render(request, 'htmx/order_summary.html', {'summary': summary})
+
+
+def htmx_send_invoice(request, order_id):
+    """
+    Sends an invoice email to the customer and updates the order status.
+    """
+    if request.method == 'POST':
+        order = get_object_or_404(Order, id=order_id)
+        
+        # Recalculate summary before sending
+        order_summary = calculate_order_summary(order)
+        order.total_price = order_summary['total_price']
+        order.estimated_delivery_date = order_summary['delivery_date']
+        order.save()
+        
+        # Create the email content
+        email_content = render_to_string(
+            'htmx/invoice_email.html', 
+            {'order': order, 'items': order.items.all(), 'summary': order_summary, 'customer_name': order.customer_name}
+        )
+        
+        email = EmailMessage(
+            f'Invoice for your Laundry Order #{order.id}',
+            email_content,
+            'from@example.com',
+            [order.customer_email],
+        )
+        email.content_subtype = "html"
+        email.send()
+
+        # Update order status
+        order.status = 'invoice_sent'
+        order.save()
+        
+        return render(request, 'htmx/invoice_sent_message.html')
+
+    return HttpResponseBadRequest("Invalid request method.")
+
+def comment_order(request, order_id):
+    """
+    Handles the comment form submission.
+    """
+    order = get_object_or_404(Order, id=order_id)
+    if request.method == 'POST':
+        form = CommentForm(request.POST)
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.order = order
+            comment.save()
+            return redirect('comment_success')
+    else:
+        form = CommentForm()
+    
+    context = {
+        'form': form,
+        'order': order,
+    }
+    return render(request, 'add_comment.html', context)
+
+def comment_success(request):
+    return render(request, 'comment_success.html')
+
+def create_stripe_checkout(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
+    # This is where you would integrate with Stripe's API
+    # For now, it's a placeholder view
+    # In a real app, you would create a Stripe checkout session here
+    
+    # Placeholder: redirect to a success page
+    return render(request, 'stripe_success.html')
+
+
+def create_paypal_payment(request, order_id):
+    """
+    Handles the creation of a PayPal payment.
+    """
+    order = get_object_or_404(Order, id=order_id)
+    # This is where you would integrate with the PayPal API.
+    # For now, it's a placeholder view. In a real application, you would:
+    # 1. Create a PayPal Order.
+    # 2. Redirect the user to the PayPal approval URL.
+    
+    # Placeholder: redirect to a success page
+    return render(request, 'paypal_success.html')
+
+
+def paypal_success(request):
+    """
+    Handles the redirect after a successful PayPal payment.
+    """
+    return render(request, 'paypal_success.html')
+
+def stripe_success(request):
+    # This view would be the success URL for Stripe checkout
+    return render(request, 'stripe_success.html')
+
+def stripe_cancel(request):
+    # This view would be the cancel URL for Stripe checkout
+    return render(request, 'stripe_cancel.html')
+
+
+
 def admin_dashboard(request):
     """
-    Renders the admin dashboard with lists of pending, in-progress, and commented requests.
+    Displays the admin dashboard with various order statuses.
     """
-    pending_requests = CustomerRequest.objects.filter(status='pending_review')
-    in_progress_orders = CustomerRequest.objects.filter(status='Accepted')
-    commented_orders = CustomerRequest.objects.filter(comment__isnull=False)
+    if not request.user.is_authenticated or not is_admin(request.user):
+        return redirect('home')
+
+    # pending_requests = Order.objects.filter(status=ORDER_STATUS.PENDING)
+    # in_progress_orders = Order.objects.filter(status=ORDER_STATUS.IN_PROGRESS)
+    pending_requests = Order.objects.filter(status='pending_invoice')
+    in_progress_orders = Order.objects.filter(status='invoice_sent')
+    commented_orders = Order.objects.filter(comments__isnull=False).distinct()
 
     context = {
         'pending_requests': pending_requests,
@@ -434,377 +371,57 @@ def admin_dashboard(request):
     return render(request, 'admin_dashboard.html', context)
 
 
-
-
-@user_passes_test(is_admin)
 def admin_review_request(request, order_id):
     """
-    Renders the main admin review page with a single form to add a new item
-    and a list of existing items.
+    Allows an admin to review and process a pending order request.
     """
-    order = get_object_or_404(CustomerRequest, id=order_id)
-    form = LaundryItemForm()
-    all_categories = Category.objects.all()
-    
+    if not request.user.is_authenticated or not is_admin(request.user):
+        return redirect('home')
+
+    order = get_object_or_404(Order, id=order_id)
+    order_items = OrderItem.objects.filter(order=order)
+    comments = Comment.objects.filter(order=order).order_by('-created_at')
+
     context = {
         'order': order,
-        'form': form,
-        'all_categories': all_categories,
-        'order_summary': get_order_summary(order)
+        'order_items': order_items,
+        'comments': comments,
     }
-    return render(request, 'admin_review_request.html', context)
+    return render(request, 'admin_review.html', context)
 
-@require_POST
-@user_passes_test(is_admin)
-def htmx_add_item(request, order_id):
-    """
-    Handles HTMX POST request to add a new laundry item to an order.
-    Returns a rendered table row for the newly created item.
-    """
-    order = get_object_or_404(CustomerRequest, id=order_id)
-    form = LaundryItemForm(request.POST)
 
-    if form.is_valid():
-        new_item = form.save(commit=False)
-        new_item.request = order
-        new_item.save()
-        
-        # Return the new table row to be appended to the list
-        return render(request, 'htmx/item_table_row.html', {'item': new_item})
+def admin_approve_comment(request, order_id):
+    """
+    Allows an admin to approve a comment and update the order status.
+    """
+    if not request.user.is_authenticated or not is_admin(request.user):
+        return redirect('home')
+
+    order = get_object_or_404(Order, id=order_id)
     
-    # If the form is not valid, you can return a response with errors
-    return HttpResponse("<p class='text-danger'>Form is not valid.</p>", status=400)
-
-
-@require_http_methods(["GET", "POST"])
-@user_passes_test(is_admin)
-def htmx_edit_item(request, item_id):
-    """
-    Handles HTMX GET/POST requests for editing a laundry item.
-    GET: Returns a form to edit the item.
-    POST: Saves the changes and returns the updated table row.
-    """
-    item = get_object_or_404(LaundryItem, id=item_id)
-    all_categories = Category.objects.all()
-    
-    if request.method == 'POST':
-        form = LaundryItemForm(request.POST, instance=item)
-        if form.is_valid():
-            updated_item = form.save()
-            return render(request, 'htmx/item_table_row.html', {'item': updated_item})
-        else:
-            # Pass the form with errors back to the template
-            return render(request, 'htmx/edit_item_form_row.html', {'form': form, 'item': item, 'all_categories': all_categories})
-    else: # GET request
-        form = LaundryItemForm(instance=item)
-        return render(request, 'htmx/edit_item_form_row.html', {'form': form, 'item': item, 'all_categories': all_categories})
-
-
-@require_http_methods(["DELETE"])
-@user_passes_test(is_admin)
-def htmx_delete_item(request, item_id):
-    """
-    Handles HTMX DELETE request to remove a laundry item.
-    """
-    item = get_object_or_404(LaundryItem, id=item_id)
-    item.delete()
-    return HttpResponse(status=200) # Returns an empty response with a success status code
-
-
-# Eniyan2
-@require_POST
-@user_passes_test(is_admin)
-def htmx_send_invoice(request, order_id):
-    """
-    Calculates the final summary, updates the order, and sends the invoice to the customer.
-    """
-    order = get_object_or_404(CustomerRequest, id=order_id)
-    
-    # Calculate order summary
-    summary = get_order_summary(order)
-    order.total_price = summary['total_price']
-    order.delivery_date = summary['delivery_date']
-    order.status = 'pending_review'
+    # Logic to approve the comment or change order status
+    # For now, let's just update the order status
+    # order.status = ORDER_STATUS.IN_PROGRESS
+    order.status = 'in_progress'
     order.save()
-
-    # Get all items related to the order
-    items = order.items.all()
     
-    # Render the invoice email HTML content
-    email_html_content = render_to_string('htmx/invoice_email.html', {
-        'order': order,
-        'summary': summary,
-        'items': items,
-        'customer_name': request.user.first_name or "Valued Customer"
-    })
-    
-    try:
-        subject = f"Invoice for your Laundry Order #{order.id}"
-        from_email = settings.DEFAULT_FROM_EMAIL
-        # from_email="ayodelefestusng@gmail.com"
-        # Using a dummy email as we don't have a real customer model with an email field
-        recipient_list = ["ayodelefestusng@gmail.com"]
-        
-        # Send the email
-        send_mail(
-            subject,
-            '',  # Empty message body as we're using html_message
-            from_email,
-            recipient_list,
-            html_message=email_html_content,
-        )
-        
-        # Return success message to the frontend
-        return render(request, 'htmx/invoice_sent_message.html')
-    except Exception as e:
-        # Return an error message to the frontend if email sending fails
-        return HttpResponse(f"<div class='alert alert-danger mt-3'>Failed to send invoice: {e}</div>", status=500)
+    # Redirect back to the admin dashboard or a success page
+    return redirect('admin_dashboard')
 
 
-def htmx_get_services(request):
+def calculate_order_summary(order):
     """
-    HTMX view to fetch services based on the selected category.
+    Calculates the total price, number of items, and estimated delivery date for an order.
     """
-    category_id = request.GET.get('category')
-    services = Service.objects.filter(category_id=category_id).order_by('service_type') if category_id else Service.objects.none()
-    return render(request, 'htmx/service_options.html', {'services': services})
+    total_price = sum(item.price for item in order.items.all())
+    total_items = order.items.count()
+    delivery_date = None
+    if order.items.exists():
+        max_delivery_days = max(item.delivery_time_days for item in order.items.all())
+        delivery_date = order.pickup_date + timezone.timedelta(days=max_delivery_days)
 
-def htmx_get_service_details(request):
-    """
-    HTMX view to fetch the service price and delivery time.
-    """
-    service_id = request.GET.get('service')
-    service = get_object_or_404(Service, id=service_id) if service_id else None
-    return render(request, 'htmx/service_details.html', {'service': service})
-
-def htmx_get_order_summary(request, order_id):
-    """
-    HTMX view to fetch and render the live order summary.
-    """
-    order = get_object_or_404(CustomerRequest, id=order_id)
-    summary = get_order_summary(order)
-    return render(request, 'htmx/order_summary.html', {'summary': summary})
-
-
-@csrf_exempt
-def stripe_checkout1(request, order_id):
-    """
-    Creates a Stripe Checkout Session for the order and redirects the user to it.
-    """
-    order = get_object_or_404(CustomerRequest, id=order_id)
-    
-    # In a real application, you would create a list of line items from the order.
-    # For this example, we'll create a single line item.
-    line_item = {
-        'price_data': {
-            'currency': 'usd',
-            'product_data': {
-                'name': f'Laundry Order #{order.id}',
-            },
-            'unit_amount': int(order.total_price * 100), # Stripe requires amount in cents
-        },
-        'quantity': 1,
+    return {
+        'total_price': total_price,
+        'total_items': total_items,
+        'delivery_date': delivery_date
     }
-    
-    try:
-        checkout_session = stripe.checkout.Session.create(
-            payment_method_types=['card'],
-            line_items=[line_item],
-            mode='payment',
-            success_url=request.build_absolute_uri('stripe/success/') + '?session_id={CHECKOUT_SESSION_ID}',
-            cancel_url=request.build_absolute_uri('stripe/cancel/'),
-            client_reference_id=order.id,
-        )
-        return redirect(checkout_session.url, code=303)
-    except stripe.error.StripeError as e:
-        return HttpResponse(f"An error occurred during payment processing: {e}", status=400)
-
-@csrf_exempt
-def stripe_checkout(request, order_id):
-    """
-    Creates a Stripe Checkout Session for the order and redirects the user to it.
-    """
-    order = get_object_or_404(CustomerRequest, id=order_id)
-    
-    # Construct the absolute URLs using the new SITE_URL setting
-    success_url = settings.SITE_URL + reverse('stripe_success') + '?session_id={CHECKOUT_SESSION_ID}'
-    cancel_url = settings.SITE_URL + reverse('stripe_cancel')
-    
-    # In a real application, you would create a list of line items from the order.
-    # For this example, we'll create a single line item.
-    line_item = {
-        'price_data': {
-            'currency': 'usd',
-            'product_data': {
-                'name': f'Laundry Order #{order.id}',
-            },
-            'unit_amount': int(order.total_price * 100), # Stripe requires amount in cents
-        },
-        'quantity': 1,
-    }
-    
-    try:
-        checkout_session = stripe.checkout.Session.create(
-            payment_method_types=['card'],
-            line_items=[line_item],
-            mode='payment',
-            success_url=success_url,
-            cancel_url=cancel_url,
-            client_reference_id=order.id,
-        )
-        return redirect(checkout_session.url, code=303)
-    except stripe.error.StripeError as e:
-        return HttpResponse(f"An error occurred during payment processing: {e}", status=400)
-
-
-
-def add_comment1(request, order_id):
-    """
-    View for the customer to leave a comment on the order.
-    """
-    order = get_object_or_404(CustomerRequest, id=order_id)
-    
-    if request.method == 'POST':
-        form = CommentForm(request.POST)
-        if form.is_valid():
-            # Process the comment, e.g., save it to the database
-            # This is a placeholder for the actual comment saving logic
-            comment_text = form.cleaned_data['comment']
-            # You would likely save this comment to a Comment model
-            
-            return render(request, 'comment_success.html') # Redirect to a success page
-    else:
-        form = CommentForm()
-    
-    return render(request, 'add_comment.html', {'form': form, 'order': order})
-
-def stripe_success(request):
-    """
-    Handles the redirect from a successful Stripe payment.
-    Updates the order status and renders the success page.
-    """
-    session_id = request.GET.get('session_id')
-    
-    if not session_id:
-        return HttpResponse("Session ID not found.", status=400)
-
-    try:
-        session = stripe.checkout.Session.retrieve(session_id)
-        order_id = session.client_reference_id
-        order = get_object_or_404(CustomerRequest, id=order_id)
-        
-        # Get the payment intent ID from the session. This is the official payment reference.
-        payment_intent_id = session.payment_intent
-        
-        # Update order status to 'Accepted' and save the payment reference
-        order.status = 'Accepted'
-        # IMPORTANT: You must add a 'payment_reference' field to your CustomerRequest model for this to work.
-        order.payment_reference = payment_intent_id
-        order.save()
-        
-        return render(request, 'stripe_success.html')
-    
-    except stripe.error.StripeError as e:
-        return HttpResponse(f"An error occurred: {e}", status=500)
-    except Exception as e:
-        return HttpResponse("An internal server error occurred.", status=500)
-
-def stripe_cancel(request):
-    """
-    Handles the redirect from a canceled Stripe payment.
-    Renders the cancel page.
-    """
-    return render(request, 'stripe_cancel.html')
-
-
-
-# PayPal
-
-def paypal_checkout(request, order_id):
-    """
-    Creates a PayPal payment and redirects the user to the approval URL.
-    """
-    order = get_object_or_404(CustomerRequest, id=order_id)
-    
-    payment = paypalrestsdk.Payment({
-        "intent": "sale",
-        "payer": {
-            "payment_method": "paypal"},
-        "redirect_urls": {
-            # Use SITE_URL to build absolute URLs
-            "return_url": settings.SITE_URL + reverse('paypal_success') + '?orderId=' + str(order.id),
-            "cancel_url": settings.SITE_URL + reverse('paypal_cancel') + '?orderId=' + str(order.id)},
-        "transactions": [{
-            "amount": {
-                "total": f"{order.total_price:.2f}",
-                "currency": "USD" },
-            "description": f"Laundry Order #{order.id}"}]})
-    
-    if payment.create():
-        for link in payment.links:
-            if link.rel == "approval_url":
-                return redirect(link.href)
-    else:
-        return HttpResponse(f"PayPal payment creation failed: {payment.error}", status=400)
-
-def paypal_success(request):
-    """
-    Handles the redirect from a successful PayPal payment.
-    Verifies the payment and updates the order status.
-    """
-    payment_id = request.GET.get('paymentId')
-    payer_id = request.GET.get('PayerID')
-    order_id = request.GET.get('orderId')
-    
-    payment = paypalrestsdk.Payment.find(payment_id)
-
-    try:
-        if payment.execute({"payer_id": payer_id}):
-            order = get_object_or_404(CustomerRequest, id=order_id)
-            order.status = 'Accepted'
-            order.payment_reference = payment_id
-            order.save()
-            return render(request, 'paypal_success.html')
-        else:
-            return HttpResponse(f"PayPal payment failed: {payment.error}", status=400)
-    except Exception as e:
-        return HttpResponse(f"An error occurred: {e}", status=500)
-
-def paypal_cancel(request):
-    """
-    Handles the redirect from a canceled PayPal payment.
-    Renders the cancel page.
-    """
-    return render(request, 'paypal_cancel.html')
-
-
-
-
-
-def add_comment(request, order_id):
-    """
-    View for the customer to leave a comment on the order.
-    """
-    order = get_object_or_404(CustomerRequest, id=order_id)
-    
-    if request.method == 'POST':
-        form = CommentForm(request.POST)
-        if form.is_valid():
-            # Process the comment, e.g., save it to the database
-            # This is a placeholder for the actual comment saving logic
-            comment_text = form.cleaned_data['comment']
-            # You would likely save this comment to a Comment model
-            
-            return render(request, 'comment_success.html') # Redirect to a success page
-    else:
-        form = CommentForm()
-    
-    return render(request, 'add_comment.html', {'form': form, 'order': order})
-
-def order_detail(request, order_id):
-    """
-    Placeholder view for displaying order details.
-    """
-    order = get_object_or_404(CustomerRequest, id=order_id)
-    return HttpResponse(f"Order details for {order.id}")
-

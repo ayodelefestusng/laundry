@@ -1,48 +1,19 @@
 {% extends 'base.html' %}
-
-{% block title %}Place a New Order{% endblock %}
+{% load static %}
 
 {% block content %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h3 class="mb-0">Place a New Laundry Order</h3>
-                </div>
-                <div class="card-body">
-                    <p class="card-text">Please provide your details below. A dispatch agent will visit to collect your items shortly.</p>
-                    <form method="post">
-                        {% csrf_token %}
-                        
-                        <div class="mb-3">
-                            <label for="{{ form.address.id_for_label }}" class="form-label">Full Address</label>
-                            <textarea class="form-control" id="{{ form.address.id_for_label }}" name="{{ form.address.name }}" rows="3" required>{{ form.address.value|default_if_none:'' }}</textarea>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="{{ form.contact_number.id_for_label }}" class="form-label">Contact Number</label>
-                            <input type="text" class="form-control" id="{{ form.contact_number.id_for_label }}" name="{{ form.contact_number.name }}" value="{{ form.contact_number.value|default_if_none:'' }}" required>
-                        </div>
-                        
-                        {% if form.errors %}
-                            <div class="alert alert-danger mt-3">
-                                {% for field, errors in form.errors.items %}
-                                    <strong>{{ field|title }}:</strong>
-                                    <ul>
-                                    {% for error in errors %}
-                                        <li>{{ error }}</li>
-                                    {% endfor %}
-                                    </ul>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-
-                        <button type="submit" class="btn btn-primary w-100">Submit Request</button>
-                    </form>
-                </div>
+<div class="container my-5">
+    <div class="card shadow p-4 mx-auto" style="max-width: 600px;">
+        <h2 class="text-center mb-4">Place a New Order</h2>
+        <p class="text-center text-muted">Please fill out the form below to start your laundry order. We will contact you to confirm the details and provide an invoice.</p>
+        
+        <form method="post" class="mt-4">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <div class="d-grid mt-4">
+                <button type="submit" class="btn btn-primary btn-lg">Submit Order</button>
             </div>
-        </div>
+        </form>
     </div>
 </div>
 {% endblock %}

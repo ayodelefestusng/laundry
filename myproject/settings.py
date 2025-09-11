@@ -45,6 +45,9 @@ INSTALLED_APPS = [
 
     # My apps
     'myapp', # Correct app name
+
+  'django_bootstrap5',
+    # 'htmx_messages',
 ]
 
 MIDDLEWARE = [
@@ -89,7 +92,9 @@ DATABASES = {
     }
 }
 
-AUTH_USER_MODEL = 'myapp.CustomUser' # Correct user model reference
+# AUTH_USER_MODEL = 'myapp.CustomUser' # Correct user model reference
+AUTH_USER_MODEL = 'myapp.CustomUser'
+
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},

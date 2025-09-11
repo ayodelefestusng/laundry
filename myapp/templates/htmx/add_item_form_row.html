@@ -16,7 +16,18 @@
         </select>
     </td>
     <td>
-        {{ form.service }}
+        <select 
+            name="service" 
+            id="id_service"
+            hx-get="{% url 'htmx_get_service_details' %}"
+            hx-target="#price-delivery-details"
+            hx-trigger="change"
+            hx-swap="innerHTML"
+            hx-include="[name='category'], [name='service']"
+            class="form-select"
+        >
+            <option value="">---------</option>
+        </select>
     </td>
     <td>
         {{ form.name }}
@@ -28,18 +39,3 @@
         N/A<br>N/A
     </td>
 </tr>
-<script>
-    // This script enables HTMX behavior for the add form
-    document.addEventListener('DOMContentLoaded', function() {
-        const categorySelect = document.getElementById('id_category');
-        const serviceSelect = document.getElementById('id_service');
-
-        if (serviceSelect) {
-            serviceSelect.setAttribute('hx-get', "{% url 'htmx_get_service_details' %}");
-            serviceSelect.setAttribute('hx-target', "#price-delivery-details");
-            serviceSelect.setAttribute('hx-trigger', "change");
-            serviceSelect.setAttribute('hx-swap', "innerHTML");
-            serviceSelect.setAttribute('hx-include', "[name='category'], [name='service']");
-        }
-    });
-</script>

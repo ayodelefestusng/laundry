@@ -1,7 +1,27 @@
 {% extends "base.html" %}
+{% block title %}Review Your Order{% endblock %}
 
 {% block content %}
-    <h1>Review Your Order</h1>
-    <div hx-get="{% url 'htmx_order_summary' order.id %}" hx-trigger="load">
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <h1 class="text-center mb-4">Review Your Order</h1>
+            <div id="order-summary-container" 
+                hx-get="{% url 'htmx_order_summary' order.id %}" 
+                hx-trigger="load"
+                hx-swap="innerHTML"
+            >
+                <!-- The order summary will be loaded here via HTMX -->
+            </div>
+            
+            <div class="card shadow-sm mt-4 p-4">
+                <p>Please review the details of your order. If you have any comments or questions, you can add a comment before accepting.</p>
+                <div class="mt-4 text-center">
+                    <a href="{% url 'accept_order' order.id %}" class="btn btn-success me-2">Accept Order</a>
+                    <a href="{% url 'comment_order' order.id %}" class="btn btn-warning">Add a Comment</a>
+                </div>
+            </div>
         </div>
+    </div>
+</div>
 {% endblock %}

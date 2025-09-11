@@ -17,7 +17,7 @@
                     <span class="fs-4">🧺 QuickWash</span>
                 </a>
                 <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
-                    <li><a href="{% url 'service_request' %}" class="nav-link px-2 link-secondary">Request Service</a></li>
+                    <li><a href="{% url 'home' %}" class="nav-link px-2 link-secondary">Request Service</a></li>
                     {% if user.is_authenticated and user.is_staff %}
                         <li><a href="{% url 'admin_dashboard' %}" class="nav-link px-2 link-secondary">Admin Dashboard</a></li>
                     {% endif %}
