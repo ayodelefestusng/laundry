@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="card shadow p-4 mx-auto" style="max-width: 500px;">
+        <h2 class="text-center mb-4">Leave a Comment</h2>
+        <p class="text-center text-muted">Please provide any feedback or questions you have regarding your order #{{ order.id }}.</p>
+        
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <div class="d-grid mt-4">
+                <button type="submit" class="btn btn-primary btn-lg">Submit Comment</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

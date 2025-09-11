@@ -147,3 +147,22 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 SITE_ID = 1
+
+STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+# Base URL of your application, used for absolute URL generation.
+# Replace with your actual domain when deploying.
+SITE_URL = 'http://localhost:8000'
+
+
+
+# settings.py
+# ... other settings
+
+# PayPal API Settings
+PAYPAL_MODE = 'sandbox' # Use 'live' for production
+PAYPAL_CLIENT_ID = os.getenv("PAYPAL_CLIENT_ID")
+PAYPAL_CLIENT_SECRET = os.getenv("PAYPAL_CLIENT_SECRET")
+
+# Base URL of your application, used for absolute URL generation.
+SITE_URL = 'http://localhost:8000'

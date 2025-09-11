@@ -70,7 +70,7 @@ from .models import LaundryItem
 from django import forms
 from .models import LaundryItem
 
-class LaundryItemForm(forms.ModelForm):
+class LaundryItemForm1(forms.ModelForm):
     class Meta:
         model = LaundryItem
         fields = ['service', 'name', 'color']
@@ -79,3 +79,45 @@ class LaundryItemForm(forms.ModelForm):
             'color': forms.TextInput(attrs={'class': 'form-control'}),
             'service': forms.Select(attrs={'class': 'form-select'}),
         }
+
+
+
+
+from django import forms
+from .models import LaundryItem, ServiceType, CustomerRequest, Service
+
+class LaundryItemForm(forms.ModelForm):
+    class Meta:
+        model = LaundryItem
+        fields = ['service', 'name', 'color']
+        widgets = {
+            'service': forms.Select(attrs={'class': 'form-select'}),
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'color': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+    # Add a category field to the form for HTMX dynamic rendering
+    category = forms.ModelChoiceField(
+        queryset=Service.objects.values_list('category', flat=True).distinct(),
+        empty_label="---------",
+        label="Category",
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'service' in self.initial:
+            category_id = self.initial['service'].category.id
+            self.fields['category'].initial = category_id
+            self.fields['service'].queryset = Service.objects.filter(category_id=category_id)
+
+class CommentForm(forms.Form):
+    """
+    A simple form for a customer to submit a comment or question about their order.
+    """
+    comment = forms.CharField(
+        label="Your Comment",
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+        required=True
+    )

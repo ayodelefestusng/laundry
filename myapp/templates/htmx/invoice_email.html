@@ -67,6 +67,25 @@
             font-size: 20px;
             font-weight: bold;
         }
+        .button-group {
+            text-align: center;
+            margin-top: 30px;
+        }
+        .button-group .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            border-radius: 5px;
+            text-decoration: none;
+            color: #ffffff;
+            font-weight: bold;
+            margin: 0 10px;
+        }
+        .button-group .btn-accept {
+            background-color: #28a745;
+        }
+        .button-group .btn-comment {
+            background-color: #6c757d;
+        }
         .footer {
             background-color: #eeeeee;
             padding: 20px;
@@ -114,6 +133,11 @@
             <div class="total-summary">
                 <p><strong>Total Items:</strong> {{ summary.total_items }}</p>
                 <p class="total"><strong>Total Amount:</strong> ${{ summary.total_price|floatformat:2 }}</p>
+            </div>
+
+            <div class="button-group">
+                <a href="{% url 'paypal_checkout' order.id %}" class="btn btn-accept">Accept & Pay</a>
+                <a href="{% url 'add_comment' order.id %}" class="btn btn-comment">Leave a Comment</a>
             </div>
             
             <p style="margin-top: 20px;">If you have any questions about this invoice, please do not hesitate to contact us.</p>

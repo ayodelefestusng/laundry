@@ -1,6 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-
+from django.db import models
+from django.contrib.auth.models import User
+from django.urls import reverse
+import uuid
 # ==============================================================================
 #  Choice Tuples
 # ==============================================================================
@@ -83,16 +86,48 @@ class Service(models.Model):
         return f"{self.category.name} - {self.service_type.name}"
 
 # CustomerRequest model to store the overall order details
-class CustomerRequest(models.Model):
+class CustomerRequest1(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     address = models.TextField()
     contact_number = models.CharField(max_length=15)
     created_at = models.DateTimeField(auto_now_add=True)
+    payment_reference = models.CharField(max_length=50, null=True, blank=True)
     status = models.CharField(max_length=50, choices=ORDER_STATUS, default='pending_review')
     comment = models.TextField(blank=True, null=True)
     batch_id = models.CharField(max_length=20, unique=True, blank=True, null=True)
     is_active = models.BooleanField(default=True)
 
+
+
+
+
+class CustomerRequest(models.Model):
+    # STATUS_CHOICES = [
+    #     ('New', 'New'),
+    #     ('Pending Review', 'Pending Review'),
+    #     ('Accepted', 'Accepted'),
+    #     ('Completed', 'Completed'),
+    #     ('Canceled', 'Canceled'),
+    # ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    address = models.TextField()
+    contact_number = models.CharField(max_length=15)
+    created_at = models.DateTimeField(auto_now_add=True)
+    payment_reference = models.CharField(max_length=255, null=True, blank=True)
+    status = models.CharField(max_length=50, choices=ORDER_STATUS, default='pending_review')
+
+    # status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='New')
+    
+    comment = models.TextField(blank=True, null=True)
+    total_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    delivery_date = models.DateField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"Request ID: {self.id} - Status: {self.status}"
+\
 # LaundryItem model to represent individual items within a request
 class LaundryItem(models.Model):
     request = models.ForeignKey(CustomerRequest, related_name='items', on_delete=models.CASCADE)
