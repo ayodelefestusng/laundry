@@ -61,3 +61,21 @@ class CustomUserCreationForm(UserCreationForm):
     class Meta(UserCreationForm.Meta):
         model = CustomUser
         fields = UserCreationForm.Meta.fields + ('email', 'phone_number', 'address')
+
+
+# POST AJADI
+from django import forms
+from .models import LaundryItem
+
+from django import forms
+from .models import LaundryItem
+
+class LaundryItemForm(forms.ModelForm):
+    class Meta:
+        model = LaundryItem
+        fields = ['service', 'name', 'color']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'color': forms.TextInput(attrs={'class': 'form-control'}),
+            'service': forms.Select(attrs={'class': 'form-select'}),
+        }

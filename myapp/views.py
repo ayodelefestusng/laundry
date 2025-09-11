@@ -22,6 +22,20 @@ from .utils import generate_qr_base64
 
 from django.shortcuts import get_object_or_404
 from .models import Service
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.http import HttpResponse
+from django.contrib.auth.decorators import user_passes_test
+from django.views.decorators.http import require_POST, require_http_methods
+from django.db.models import F, Sum, Max
+from datetime import date, timedelta
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+
+from .models import CustomerRequest, LaundryItem, Service, Category, ServiceType
+from .forms import LaundryItemForm
+from .utils import is_admin
+
 # ... other imports
 # A custom decorator to restrict access to admin users.
 def is_admin(user):
@@ -226,7 +240,7 @@ def admin_approve_comment(request, order_id):
     return redirect('admin_dashboard')
 
 
-# In your myapp/views.py file
+# In your views.py file
 
 from django.shortcuts import get_object_or_404
 from .models import LaundryItem
@@ -287,156 +301,399 @@ def htmx_submit_comment(request, order_id):
 
 
 
+# # views.py
 
-# myapp/views.py
+# from django.shortcuts import render, redirect, get_object_or_404
+# from django.contrib.auth.decorators import user_passes_test
+# from django.forms import modelformset_factory
+# from .models import CustomerRequest, LaundryItem, Service, Category
+# from .forms import AdminItemForm
+# # ... (other imports)
 
-from django.shortcuts import render, redirect, get_object_or_404
+# def is_admin(user):
+#     return user.is_authenticated and user.is_staff
+# # views.py
+
+# from django.shortcuts import render, redirect, get_object_or_404
+# from django.contrib.auth.decorators import user_passes_test
+# from django.forms import modelformset_factory
+# from django.db.models import Max
+# from django.forms import formset_factory
+# import uuid
+
+# from .models import CustomerRequest, LaundryItem, WorkflowHistory, Service, Category
+# from .forms import ServiceRequestForm, AdminItemForm, CustomUserCreationForm
+# from .utils import generate_qr_base64
+
+# # ... (all other existing views)
+
+# @user_passes_test(is_admin)
+# def admin_review_request1(request, order_id):
+#     order = get_object_or_404(CustomerRequest, id=order_id)
+    
+#     AdminItemFormSet = modelformset_factory(
+#         LaundryItem,
+#         form=AdminItemForm,
+#         extra=0, # Initially we show existing forms, not extra empty ones
+#         fields=('category', 'service', 'name', 'color'),
+#         can_delete=True
+#     )
+
+#     if request.method == 'POST':
+#         formset = AdminItemFormSet(request.POST, queryset=order.items.all())
+#         if formset.is_valid():
+#             instances = formset.save(commit=False)
+#             for instance in instances:
+#                 instance.request = order
+#                 instance.save()
+#             for obj in formset.deleted_objects:
+#                 obj.delete()
+#             return redirect('admin_dashboard')
+#     else:
+#         formset = AdminItemFormSet(queryset=order.items.all())
+    
+#     return render(request, 'admin_review_request.html', {
+#         'order': order,
+#         'formset': formset
+#     })
+
+
+# @user_passes_test(is_admin)
+# def htmx_add_item_form1(request):
+#     """
+#     HTMX view to render a new empty form row.
+#     """
+#     AdminItemFormSet = modelformset_factory(
+#         LaundryItem,
+#         form=AdminItemForm,
+#         extra=1,
+#         fields=('category', 'service', 'name', 'color'),
+#         can_delete=True
+#     )
+#     print("aluke")
+#     formset = AdminItemFormSet(prefix='form')  # Match the main formset prefix
+#     form = formset.empty_form
+
+
+#     return render(request, 'htmx/item_form_row.html', {'form': form})
+
+
+# def htmx_get_services1(request):
+#     """
+#     HTMX view to fetch services based on the selected category.
+#     """
+#     # Dynamically find the category field from GET params
+#     category_id = None
+#     for key in request.GET:
+#         if key.endswith('-category'):
+#             category_id = request.GET.get(key)
+#             break
+
+#     print("Fetched Category ID:", category_id)
+
+#     services = Service.objects.filter(category_id=category_id).order_by('service_type') if category_id else Service.objects.none()
+
+#     return render(request, 'htmx/service_options.html', {'services': services})
+
+
+
+
+# # views.py
+
+# def htmx_get_service_details1(request):
+#     """
+#     HTMX view to fetch the service price and delivery time.
+#     """
+#     service_id = None
+#     # Dynamically find the service ID regardless of the form prefix
+#     for key in request.GET:
+#         if key.endswith('-service'):
+#             service_id = request.GET.get(key)
+#             break
+    
+#     if service_id:
+#         try:
+#             service = Service.objects.get(id=service_id)
+#             return render(request, 'htmx/service_details.html', {'service': service})
+#         except Service.DoesNotExist:
+#             return HttpResponse("N/A<br>N/A") # Match the template's format
+    
+#     return HttpResponse("N/A<br>N/A") # Match the template's format
+
+
+
+
+# POST AJADI
+
+# from django.shortcuts import render, get_object_or_404, redirect
+# from django.http import HttpResponse
+# from django.contrib.auth.decorators import user_passes_test
+# from django.views.decorators.http import require_POST, require_http_methods
+
+# from .models import CustomerRequest, LaundryItem, Service
+# from .forms import LaundryItemForm # Assuming you have a form for this model
+# from .utils import is_admin
+
+# @user_passes_test(is_admin)
+# def admin_review_request(request, order_id):
+#     """
+#     Renders the main admin review page with a single form to add a new item
+#     and a list of existing items.
+#     """
+#     order = get_object_or_404(CustomerRequest, id=order_id)
+#     form = LaundryItemForm()
+    
+#     context = {
+#         'order': order,
+#         'form': form,
+#     }
+#     return render(request, 'admin_review_request.html', context)
+
+# @require_POST
+# @user_passes_test(is_admin)
+# def htmx_add_item(request, order_id):
+#     """
+#     Handles HTMX POST request to add a new laundry item to an order.
+#     Returns a rendered table row for the newly created item.
+#     """
+#     order = get_object_or_404(CustomerRequest, id=order_id)
+#     form = LaundryItemForm(request.POST)
+
+#     if form.is_valid():
+#         new_item = form.save(commit=False)
+#         new_item.request = order
+#         new_item.save()
+        
+#         # Return the new table row to be appended to the list
+#         return render(request, 'htmx/item_table_row.html', {'item': new_item})
+    
+#     # If the form is not valid, you can return a response with errors
+#     return HttpResponse("<p class='text-danger'>Form is not valid.</p>", status=400)
+
+
+# @require_http_methods(["GET", "POST"])
+# @user_passes_test(is_admin)
+# def htmx_edit_item(request, item_id):
+#     """
+#     Handles HTMX GET/POST requests for editing a laundry item.
+#     GET: Returns a form to edit the item.
+#     POST: Saves the changes and returns the updated table row.
+#     """
+#     item = get_object_or_404(LaundryItem, id=item_id)
+    
+#     if request.method == 'POST':
+#         form = LaundryItemForm(request.POST, instance=item)
+#         if form.is_valid():
+#             updated_item = form.save()
+#             return render(request, 'htmx/item_table_row.html', {'item': updated_item})
+#         else:
+#             return render(request, 'htmx/edit_item_form_row.html', {'form': form, 'item': item})
+#     else: # GET request
+#         form = LaundryItemForm(instance=item)
+#         return render(request, 'htmx/edit_item_form_row.html', {'form': form, 'item': item})
+
+
+# @require_POST
+# @user_passes_test(is_admin)
+# def htmx_delete_item(request, item_id):
+#     """
+#     Handles HTMX DELETE request to remove a laundry item.
+#     """
+#     item = get_object_or_404(LaundryItem, id=item_id)
+#     item.delete()
+#     return HttpResponse(status=200) # Returns an empty response with a success status code
+
+
+# def htmx_get_services(request):
+#     """
+#     HTMX view to fetch services based on the selected category.
+#     """
+#     category_id = request.GET.get('category')
+#     services = Service.objects.filter(category_id=category_id).order_by('service_type') if category_id else Service.objects.none()
+#     return render(request, 'htmx/service_options.html', {'services': services})
+
+# def htmx_get_service_details(request):
+#     """
+#     HTMX view to fetch the service price and delivery time.
+#     """
+#     service_id = request.GET.get('service_id')
+#     service = get_object_or_404(Service, id=service_id) if service_id else None
+#     return render(request, 'htmx/service_details.html', {'service': service})
+
+
+
+
+# Eniyan
+from django.shortcuts import render, get_object_or_404, redirect
+from django.http import HttpResponse
 from django.contrib.auth.decorators import user_passes_test
-from django.forms import modelformset_factory
-from .models import CustomerRequest, LaundryItem, Service, Category
-from .forms import AdminItemForm
-# ... (other imports)
+from django.views.decorators.http import require_POST, require_http_methods
+from django.db.models import F, Sum, Max
+from datetime import date, timedelta
 
-def is_admin(user):
-    return user.is_authenticated and user.is_staff
-# myapp/views.py
+from .models import CustomerRequest, LaundryItem, Service, Category, ServiceType
+from .forms import LaundryItemForm
+from .utils import is_admin
 
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import user_passes_test
-from django.forms import modelformset_factory
-from django.db.models import Max
-from django.forms import formset_factory
-import uuid
-
-from .models import CustomerRequest, LaundryItem, WorkflowHistory, Service, Category
-from .forms import ServiceRequestForm, AdminItemForm, CustomUserCreationForm
-from .utils import generate_qr_base64
-
-# ... (all other existing views)
+# Helper function to calculate order summary
+def get_order_summary(order):
+    total_price = order.items.aggregate(total=Sum('service__price'))['total'] or 0
+    # Corrected: Use Max() to get the latest delivery time
+    latest_delivery_days = order.items.aggregate(max_days=Max('service__delivery_time_days'))['max_days']
+    
+    delivery_date = None
+    if latest_delivery_days:
+        delivery_date = date.today() + timedelta(days=latest_delivery_days)
+        
+    return {
+        'total_items': order.items.count(),
+        'total_price': total_price,
+        'delivery_date': delivery_date
+    }
 
 @user_passes_test(is_admin)
 def admin_review_request(request, order_id):
+    """
+    Renders the main admin review page with a single form to add a new item
+    and a list of existing items.
+    """
+    order = get_object_or_404(CustomerRequest, id=order_id)
+    form = LaundryItemForm()
+    all_categories = Category.objects.all()
+    
+    context = {
+        'order': order,
+        'form': form,
+        'all_categories': all_categories,
+        'order_summary': get_order_summary(order)
+    }
+    return render(request, 'admin_review_request.html', context)
+
+@require_POST
+@user_passes_test(is_admin)
+def htmx_add_item(request, order_id):
+    """
+    Handles HTMX POST request to add a new laundry item to an order.
+    Returns a rendered table row for the newly created item.
+    """
+    order = get_object_or_404(CustomerRequest, id=order_id)
+    form = LaundryItemForm(request.POST)
+
+    if form.is_valid():
+        new_item = form.save(commit=False)
+        new_item.request = order
+        new_item.save()
+        
+        # Return the new table row to be appended to the list
+        return render(request, 'htmx/item_table_row.html', {'item': new_item})
+    
+    # If the form is not valid, you can return a response with errors
+    return HttpResponse("<p class='text-danger'>Form is not valid.</p>", status=400)
+
+
+@require_http_methods(["GET", "POST"])
+@user_passes_test(is_admin)
+def htmx_edit_item(request, item_id):
+    """
+    Handles HTMX GET/POST requests for editing a laundry item.
+    GET: Returns a form to edit the item.
+    POST: Saves the changes and returns the updated table row.
+    """
+    item = get_object_or_404(LaundryItem, id=item_id)
+    all_categories = Category.objects.all()
+    
+    if request.method == 'POST':
+        form = LaundryItemForm(request.POST, instance=item)
+        if form.is_valid():
+            updated_item = form.save()
+            return render(request, 'htmx/item_table_row.html', {'item': updated_item})
+        else:
+            # Pass the form with errors back to the template
+            return render(request, 'htmx/edit_item_form_row.html', {'form': form, 'item': item, 'all_categories': all_categories})
+    else: # GET request
+        form = LaundryItemForm(instance=item)
+        return render(request, 'htmx/edit_item_form_row.html', {'form': form, 'item': item, 'all_categories': all_categories})
+
+
+@require_http_methods(["DELETE"])
+@user_passes_test(is_admin)
+def htmx_delete_item(request, item_id):
+    """
+    Handles HTMX DELETE request to remove a laundry item.
+    """
+    item = get_object_or_404(LaundryItem, id=item_id)
+    item.delete()
+    return HttpResponse(status=200) # Returns an empty response with a success status code
+
+
+@require_POST
+@user_passes_test(is_admin)
+def htmx_send_invoice(request, order_id):
+    """
+    Calculates the final summary, updates the order, and sends the invoice to the customer.
+    """
     order = get_object_or_404(CustomerRequest, id=order_id)
     
-    AdminItemFormSet = modelformset_factory(
-        LaundryItem,
-        form=AdminItemForm,
-        extra=0, # Initially we show existing forms, not extra empty ones
-        fields=('category', 'service', 'name', 'color'),
-        can_delete=True
-    )
+    # Calculate order summary
+    summary = get_order_summary(order)
+    order.total_price = summary['total_price']
+    order.delivery_date = summary['delivery_date']
+    order.status = 'pending_review'
+    order.save()
 
-    if request.method == 'POST':
-        formset = AdminItemFormSet(request.POST, queryset=order.items.all())
-        if formset.is_valid():
-            instances = formset.save(commit=False)
-            for instance in instances:
-                instance.request = order
-                instance.save()
-            for obj in formset.deleted_objects:
-                obj.delete()
-            return redirect('admin_dashboard')
-    else:
-        formset = AdminItemFormSet(queryset=order.items.all())
+    # Get all items related to the order
+    items = order.items.all()
     
-    return render(request, 'admin_review_request.html', {
+    # Render the invoice email HTML content
+    email_html_content = render_to_string('htmx/invoice_email.html', {
         'order': order,
-        'formset': formset
+        'summary': summary,
+        'items': items,
+        'customer_name': request.user.first_name or "Valued Customer"
     })
-
-
-
-@user_passes_test(is_admin)
-def htmx_add_item_form1(request):
-    """
-    HTMX view to render a new empty form row.
-    """
     
-    AdminItemFormSet = modelformset_factory(
-        LaundryItem,
-        form=AdminItemForm,
-        extra=1,
-        fields=('category', 'service', 'name', 'color'),
-        can_delete=True
-    )
-    # Create an empty form instance
-    form = AdminItemFormSet(prefix='item_form')
-    
-    form = form.empty_form # Get the empty form from the formset
-    
-    return render(request, 'htmx/item_form_row.html', {'form': form})
-
-
-@user_passes_test(is_admin)
-def htmx_add_item_form(request):
-    """
-    HTMX view to render a new empty form row.
-    """
-    AdminItemFormSet = modelformset_factory(
-        LaundryItem,
-        form=AdminItemForm,
-        extra=1,
-        fields=('category', 'service', 'name', 'color'),
-        can_delete=True
-    )
-    print("aluke")
-    formset = AdminItemFormSet(prefix='form')  # Match the main formset prefix
-    form = formset.empty_form
-
-
-    return render(request, 'htmx/item_form_row.html', {'form': form})
+    try:
+        subject = f"Invoice for your Laundry Order #{order.id}"
+        from_email = "ayodelefestusng@gmail.com"
+        # Using a dummy email as we don't have a real customer model with an email field
+        recipient_list = ["ayodelefestusng@gmail.com"]
+        
+        # Send the email
+        send_mail(
+            subject,
+            '',  # Empty message body as we're using html_message
+            from_email,
+            recipient_list,
+            html_message=email_html_content,
+        )
+        
+        # Return success message to the frontend
+        return render(request, 'htmx/invoice_sent_message.html')
+    except Exception as e:
+        # Return an error message to the frontend if email sending fails
+        return HttpResponse(f"<div class='alert alert-danger mt-3'>Failed to send invoice: {e}</div>", status=500)
 
 
 def htmx_get_services(request):
     """
     HTMX view to fetch services based on the selected category.
     """
-    # Dynamically find the category field from GET params
-    category_id = None
-    for key in request.GET:
-        if key.endswith('-category'):
-            category_id = request.GET.get(key)
-            break
-
-    print("Fetched Category ID:", category_id)
-
+    category_id = request.GET.get('category')
     services = Service.objects.filter(category_id=category_id).order_by('service_type') if category_id else Service.objects.none()
-
     return render(request, 'htmx/service_options.html', {'services': services})
-
-
-
-
-
-# myapp/views.py
 
 def htmx_get_service_details(request):
     """
-    HTMX view to return a template fragment with price and delivery time.
+    HTMX view to fetch the service price and delivery time.
     """
-    service_id = None
+    service_id = request.GET.get('service')
+    service = get_object_or_404(Service, id=service_id) if service_id else None
+    return render(request, 'htmx/service_details.html', {'service': service})
 
-    # Dynamically find the service field from GET params
-    for key in request.GET:
-        if key.endswith('-service'):
-            service_id = request.GET.get(key)
-            break
-
-    if service_id:
-        service = get_object_or_404(Service, id=service_id)
-        return render(request, 'htmx/service_details.html', {'service': service})
-
-    return HttpResponse("N/A<br>N/A")
+def htmx_get_order_summary(request, order_id):
     """
-    HTMX view to return a template fragment with price and delivery time.
+    HTMX view to fetch and render the live order summary.
     """
-    service_id = request.GET.get('item_form-__prefix__-service')
-    if not service_id:
-        # Fallback for existing forms
-        service_id = request.GET.get('item_form-0-service')
-    
-    if service_id:
-        service = get_object_or_404(Service, id=service_id)
-        return render(request, 'htmx/service_details.html', {'service': service})
-    
-    return HttpResponse("")
+    order = get_object_or_404(CustomerRequest, id=order_id)
+    summary = get_order_summary(order)
+    return render(request, 'htmx/order_summary.html', {'summary': summary})

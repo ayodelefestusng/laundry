@@ -1,0 +1,38 @@
+<tr>
+    <td>
+        <select 
+            name="form-__prefix__-category"
+            id="id_form-__prefix__-category"
+            class="form-select"
+        >
+            <option value="">---------</option>
+            {% for category in categories %}
+                <option value="{{ category.id }}">{{ category.name }}</option>
+            {% endfor %}
+        </select>
+    </td>
+    <td>
+        <select
+            name="form-__prefix__-service" 
+            id="id_form-__prefix__-service"
+            class="form-select"
+            disabled
+        >
+            <option value="">---------</option>
+        </select>
+    </td>
+    <td>
+        <input type="text" name="form-__prefix__-name" class="form-control">
+    </td>
+    <td>
+        <input type="text" name="form-__prefix__-color" class="form-control">
+    </td>
+    <td colspan="2" id="price-delivery-__prefix__">
+        N/A<br>N/A
+    </td>
+    <td>
+        <button type="button" class="btn btn-danger" onclick="this.closest('tr').remove(); updateFormCount();">
+            Remove
+        </button>
+    </td>
+</tr>

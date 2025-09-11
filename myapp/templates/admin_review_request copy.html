@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Review Order #{{ order.id }}</h2>
+
+<!-- Form to add a new item -->
+<form id="add-item-form" method="post" hx-post="{% url 'htmx_add_item' order.id %}" hx-target="#item-list" hx-swap="beforeend" _="on htmx:afterRequest if event.detail.xhr.status == 200 reset my form">
+    {% csrf_token %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Category</th>
+                <th>Service Type</th>
+                <th>Item Name</th>
+                <th>Color</th>
+                <th colspan="2">Price & Delivery</th>
+            </tr>
+        </thead>
+        <tbody id="add-form-container">
+            {% include "htmx/add_item_form_row.html" with form=form %}
+        </tbody>
+    </table>
+    <button type="submit" class="btn btn-primary mt-3">Add Item</button>
+</form>
+
+<hr class="my-5">
+
+<!-- Table to display existing items -->
+<h3>Existing Items</h3>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Category</th>
+            <th>Service Type</th>
+            <th>Item Name</th>
+            <th>Color</th>
+            <th colspan="2">Price & Delivery</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="item-list">
+        {% for item in order.items.all %}
+            {% include "htmx/item_table_row.html" %}
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

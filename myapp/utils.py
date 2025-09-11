@@ -18,3 +18,12 @@ def generate_qr_base64(data):
     buffer = BytesIO()
     img.save(buffer, format="PNG")
     return base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+
+from .models import CustomUser
+
+def is_admin(user: CustomUser) -> bool:
+    """
+    Checks if a given user is an admin (staff member).
+    """
+    return user.is_staff

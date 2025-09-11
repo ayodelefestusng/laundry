@@ -1,27 +1,19 @@
-<h2>Order #{{ order.id }}</h2>
-<p><strong>Status:</strong> {{ order.get_status_display }}</p>
-<table>
-    <thead>
-        <tr>
-            <th>Item</th>
-            <th>Service</th>
-            <th>Price</th>
-            <th>Est. Delivery Time</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for item in order.items.all %}
-            <tr>
-                <td>{{ item.name }}</td>
-                <td>{{ item.get_service_type_display }}</td>
-                <td>{{ item.price }}</td>
-                <td>{{ item.delivery_time_days }} days</td>
-            </tr>
-        {% endfor %}
-    </tbody>
-</table>
-
-<button hx-post="{% url 'accept_order' order.id %}" hx-target="#response-area" hx-swap="outerHTML">Accept</button>
-<button hx-get="{% url 'htmx_comment_form' order.id %}" hx-target="#response-area" hx-swap="outerHTML">Comment</button>
-
-<div id="response-area"></div>
+<div class="card-header bg-primary text-white">
+    <h5 class="mb-0">Order Summary</h5>
+</div>
+<div class="card-body">
+    <div class="row">
+        <div class="col-md-4">
+            <h6 class="text-muted">Total Items:</h6>
+            <h4>{{ summary.total_items }}</h4>
+        </div>
+        <div class="col-md-4">
+            <h6 class="text-muted">Total Price:</h6>
+            <h4>${{ summary.total_price|floatformat:2 }}</h4>
+        </div>
+        <div class="col-md-4">
+            <h6 class="text-muted">Delivery Date:</h6>
+            <h4>{{ summary.delivery_date|date:"F d, Y" }}</h4>
+        </div>
+    </div>
+</div>

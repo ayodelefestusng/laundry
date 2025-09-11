@@ -1,0 +1,74 @@
+<tr>
+    <!-- The form now handles the submission and CSRF token -->
+    <form hx-post="{% url 'htmx_edit_item' item.id %}"
+          hx-target="#item-row-{{ item.id }}"
+          hx-swap="outerHTML">
+        {% csrf_token %}
+        <td>
+            <select 
+                name="category" 
+                hx-get="{% url 'htmx_get_services' %}"
+                hx-target="#id_service"
+                hx-trigger="change"
+                hx-swap="innerHTML"
+                class="form-select"
+            >
+                <option value="">---------</option>
+                {% for category in all_categories %}
+                    <option value="{{ category.id }}" {% if item.service.category.id == category.id %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </td>
+        <td>
+            <!-- The service select is updated by HTMX when the category changes -->
+            <select
+                name="service"
+                id="id_service"
+                hx-get="{% url 'htmx_get_service_details' %}"
+                hx-target="#price-delivery-details-{{ item.id }}"
+                hx-trigger="change"
+                hx-swap="innerHTML"
+                hx-include="[name='category'], [name='service']"
+                class="form-select"
+            >
+                <option value="">---------</option>
+                {% for service in item.service.category.services.all %}
+                    <option value="{{ service.id }}" {% if item.service.id == service.id %}selected{% endif %}>
+                        {{ service.service_type.name }}
+                    </option>
+                {% endfor %}
+            </select>
+            {% for error in form.service.errors %}
+                <span class="text-danger">{{ error }}</span>
+            {% endfor %}
+        </td>
+        <td>
+            {{ form.name }}
+            {% for error in form.name.errors %}
+                <span class="text-danger">{{ error }}</span>
+            {% endfor %}
+        </td>
+        <td>
+            {{ form.color }}
+            {% for error in form.color.errors %}
+                <span class="text-danger">{{ error }}</span>
+            {% endfor %}
+        </td>
+        <td colspan="2" id="price-delivery-details-{{ item.id }}">
+            Price: ${{ item.price|floatformat:2 }}<br>
+            Delivery: {{ item.delivery_time_days }} days
+        </td>
+        <td>
+            <button type="submit" class="btn btn-sm btn-success">Save</button>
+            <button type="button" class="btn btn-sm btn-secondary" 
+                hx-get="{% url 'htmx_edit_item' item.id %}"
+                hx-target="#item-row-{{ item.id }}"
+                hx-swap="outerHTML"
+            >
+                Cancel
+            </button>
+        </td>
+    </form>
+</tr>

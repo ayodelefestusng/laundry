@@ -1,4 +1,5 @@
 <option value="">---------</option>
 {% for service in services %}
-    <option value="{{ service.id }}">{{ service.get_service_type_display }}</option>
-{% endfor %}
+    <option value="{{ service.id }}">{{ service.service_type }}</option>
+{% endfor %}    
+

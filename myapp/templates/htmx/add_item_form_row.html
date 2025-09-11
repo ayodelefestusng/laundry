@@ -1,0 +1,45 @@
+<tr>
+    <td>
+        <select 
+            name="category" 
+            id="id_category"
+            hx-get="{% url 'htmx_get_services' %}"
+            hx-target="#id_service"
+            hx-trigger="change"
+            hx-swap="innerHTML"
+            class="form-select"
+        >
+            <option value="">---------</option>
+            {% for category in all_categories %}
+                <option value="{{ category.id }}">{{ category.name }}</option>
+            {% endfor %}
+        </select>
+    </td>
+    <td>
+        {{ form.service }}
+    </td>
+    <td>
+        {{ form.name }}
+    </td>
+    <td>
+        {{ form.color }}
+    </td>
+    <td colspan="2" id="price-delivery-details">
+        N/A<br>N/A
+    </td>
+</tr>
+<script>
+    // This script enables HTMX behavior for the add form
+    document.addEventListener('DOMContentLoaded', function() {
+        const categorySelect = document.getElementById('id_category');
+        const serviceSelect = document.getElementById('id_service');
+
+        if (serviceSelect) {
+            serviceSelect.setAttribute('hx-get', "{% url 'htmx_get_service_details' %}");
+            serviceSelect.setAttribute('hx-target', "#price-delivery-details");
+            serviceSelect.setAttribute('hx-trigger', "change");
+            serviceSelect.setAttribute('hx-swap', "innerHTML");
+            serviceSelect.setAttribute('hx-include', "[name='category'], [name='service']");
+        }
+    });
+</script>
