@@ -1,0 +1,41 @@
+<tr>
+    <td>
+        <select 
+            name="category" 
+            id="id_category"
+            hx-get="{% url 'htmx_get_services' %}"
+            hx-target="#id_service"
+            hx-trigger="change"
+            hx-swap="innerHTML"
+            class="form-select"
+        >
+            <option value="">---------</option>
+            {% for category in all_categories %}
+                <option value="{{ category.id }}">{{ category.name }}</option>
+            {% endfor %}
+        </select>
+    </td>
+    <td>
+        <select 
+            name="service" 
+            id="id_service"
+            hx-get="{% url 'htmx_get_service_details' %}"
+            hx-target="#price-delivery-details"
+            hx-trigger="change"
+            hx-swap="innerHTML"
+            hx-include="[name='category'], [name='service']"
+            class="form-select"
+        >
+            <option value="">---------</option>
+        </select>
+    </td>
+    <td>
+        {{ form.name }}
+    </td>
+    <td>
+        {{ form.color }}
+    </td>
+    <td colspan="2" id="price-delivery-details">
+        N/A<br>N/A
+    </td>
+</tr>

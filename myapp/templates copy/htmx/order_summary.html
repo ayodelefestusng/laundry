@@ -1,0 +1,19 @@
+<div class="card-header bg-primary text-white">
+    <h5 class="mb-0">Order Summary</h5>
+</div>
+<div class="card-body">
+    <div class="row">
+        <div class="col-md-4">
+            <h6 class="text-muted">Total Items:</h6>
+            <h4>{{ summary.total_items }}</h4>
+        </div>
+        <div class="col-md-4">
+            <h6 class="text-muted">Total Price:</h6>
+            <h4>${{ summary.total_price|floatformat:2 }}</h4>
+        </div>
+        <div class="col-md-4">
+            <h6 class="text-muted">Delivery Date:</h6>
+            <h4>{{ summary.delivery_date|date:"F d, Y" }}</h4>
+        </div>
+    </div>
+</div>

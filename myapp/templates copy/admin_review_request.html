@@ -5,7 +5,7 @@
 <div class="container my-5">
     <h2 class="mb-4">Review Order #{{ order.id }}</h2>
 
-    <!-- HTMX-powered Order Summary Section -->
+    <!-- Order Summary Section -->
     <div id="order-summary-section" class="card shadow p-4 mb-4" 
         hx-get="{% url 'htmx_get_order_summary' order.id %}" 
         hx-trigger="load, refresh-summary from:body"
@@ -14,7 +14,6 @@
         <!-- The summary will be loaded here via HTMX -->
     </div>
 
-    <!-- Message area for success/error messages, like after sending an invoice -->
     <div id="invoice-message"></div>
     
     <!-- Form to add a new item -->
@@ -22,7 +21,7 @@
         hx-post="{% url 'htmx_add_item' order.id %}" 
         hx-target="#item-list" 
         hx-swap="beforeend" 
-        _="on htmx:afterRequest if event.detail.xhr.status == 200 reset my form then trigger refresh-summary from:body"
+        _="on htmx:afterRequest if event.detail.xhr.status == 200 reset my form"
         class="card shadow p-4 mb-4"
     >
         {% csrf_token %}
