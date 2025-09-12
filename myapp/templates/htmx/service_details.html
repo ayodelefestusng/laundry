@@ -1,0 +1,6 @@
+{% if service %}
+    Price: ${{ service.price|floatformat:2 }}<br>
+    Delivery: {{ service.delivery_time_days }} days
+{% else %}
+    N/A<br>N/A
+{% endif %}

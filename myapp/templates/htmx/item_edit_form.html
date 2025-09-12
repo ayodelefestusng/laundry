@@ -1,0 +1,24 @@
+<form 
+  hx-put="{% url 'htmx_edit_item' item.id %}"
+  hx-target="#item-{{ item.id }}"
+  hx-swap="outerHTML"
+>
+  <td>
+    {{ form.service }}
+  </td>
+  <td>
+    {{ form.price }}
+  </td>
+  <td>
+    <button type="submit" class="btn btn-primary">Save</button>
+    <button 
+      type="button" 
+      class="btn btn-secondary"
+      hx-get="{% url 'htmx_edit_item' item.id %}" 
+      hx-target="#item-{{ item.id }}" 
+      hx-swap="outerHTML"
+    >
+      Cancel
+    </button>
+  </td>
+</form>

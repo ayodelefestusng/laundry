@@ -165,9 +165,17 @@ SITE_URL = 'http://localhost:8000'
 # ... other settings
 
 # PayPal API Settings
+
+
+# Use 'https://api.sandbox.paypal.com' for testing
+# Use 'https://api.paypal.com' for production
+PAYPAL_BASE_URL = 'https://api.sandbox.paypal.com'
 PAYPAL_MODE = 'sandbox' # Use 'live' for production
 PAYPAL_CLIENT_ID = os.getenv("PAYPAL_CLIENT_ID")
 PAYPAL_CLIENT_SECRET = os.getenv("PAYPAL_CLIENT_SECRET")
 
 # Base URL of your application, used for absolute URL generation.
 SITE_URL = 'http://localhost:8000'
+
+
+

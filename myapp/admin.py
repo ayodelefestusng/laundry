@@ -1,10 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from django.contrib.auth.models import User
 from .models import CustomUser, ServiceCategory, Service, Order, OrderItem, Comment
-
-# Unregister the default User model
-# admin.site.unregister(User)
 
 class CustomUserAdmin(UserAdmin):
     """
@@ -24,20 +20,13 @@ class ServiceCategoryAdmin(admin.ModelAdmin):
     list_display = ('name',)
     search_fields = ('name',)
 
-class ServiceTypeAdmin(admin.ModelAdmin):
-    """
-    Admin configuration for the ServiceType model.
-    """
-    list_display = ('name',)
-    search_fields = ('name',)
-
 class ServiceAdmin(admin.ModelAdmin):
     """
     Admin configuration for the Service model.
     """
-    list_display = ( 'category', 'service_type', 'price', 'delivery_time_days')
+    list_display = ('category', 'service_type', 'price', 'delivery_time_days')
     list_filter = ('category', 'service_type')
-    search_fields = ('category',)
+    search_fields = ('category__name', 'service_type')
 
 class OrderItemInline(admin.TabularInline):
     """

@@ -1,0 +1,25 @@
+<tr id="item-row-{{ item.id }}">
+    <td>{{ item.service.category.name }}</td>
+    <td>{{ item.service.get_service_type_display }}</td>
+    <td>{{ item.name }}</td>
+    <td>{{ item.color }}</td>
+    <td colspan="2">Price: ${{ item.price|floatformat:2 }}<br>Delivery: {{ item.delivery_time_days }} days</td>
+    <td>
+        <button class="btn btn-sm btn-info" 
+            hx-get="{% url 'htmx_edit_item' item.id %}" 
+            hx-target="#item-row-{{ item.id }}" 
+            hx-swap="outerHTML"
+        >
+            Edit
+        </button>
+        <button class="btn btn-sm btn-danger" 
+            hx-delete="{% url 'htmx_delete_item' item.id %}" 
+            hx-confirm="Are you sure you want to delete this item?"
+            hx-target="#item-row-{{ item.id }}" 
+            hx-swap="outerHTML"
+            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+        >
+            Delete
+        </button>
+    </td>
+</tr>

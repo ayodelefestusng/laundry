@@ -102,12 +102,12 @@
                     <tr>
                         <td>{{ item.service.name }}</td>
                         <td>{{ item.color }}</td>
-                        <td class="text-right">${{ item.service.price|floatformat:2 }}</td>
+                        <td class="text-right"><span>&#8358;</span>{{ item.service.price|floatformat:2 }}</td>
                     </tr>
                     {% endfor %}
                     <tr>
                         <td colspan="2" class="text-right"><strong>Total:</strong></td>
-                        <td class="text-right"><strong>${{ summary.total_price|floatformat:2 }}</strong></td>
+                        <td class="text-right"><strong><span>&#8358;</span>{{ summary.total_price|floatformat:2 }}</strong></td>
                     </tr>
                 </tbody>
             </table>

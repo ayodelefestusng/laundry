@@ -23,7 +23,7 @@ from .forms import (
     CommentForm,
     ServiceForm
 )
-from .models import Order, OrderItem, Service, Comment, CustomUser, ServiceCategory
+from .models import Order, OrderItem, Service, Comment, CustomUser,ServiceCategory
 
 # Set the logging level for debug information
 logging.basicConfig(level=logging.DEBUG)
@@ -43,8 +43,7 @@ def register(request):
         if form.is_valid():
             user = form.save()
             login(request, user)
-            messages.success(
-                request, "Registration successful.")
+            messages.success(request, "Registration successful.")
             return redirect('home')
         messages.error(
             request, "Unsuccessful registration. Invalid information.")
@@ -144,7 +143,6 @@ def htmx_edit_item(request, item_id):
 
     elif request.method == "PUT":
         data = json.loads(request.body)
-        print ("Ale",data)
         form = OrderItemForm(data, instance=item)
         if form.is_valid():
             service = form.cleaned_data['service']
@@ -287,9 +285,6 @@ def admin_review_request(request, order_id):
     items = order.items.all()
     add_item_form = OrderItemForm()
     service_form = ServiceForm()
-    
-    # Pass all service categories to the context
-    all_categories = ServiceCategory.objects.all()
 
     context = {
         'order': order,
@@ -297,7 +292,6 @@ def admin_review_request(request, order_id):
         'items': items,
         'add_item_form': add_item_form,
         'service_form': service_form,
-        'all_categories': all_categories,
     }
     return render(request, 'admin_review.html', context)
 

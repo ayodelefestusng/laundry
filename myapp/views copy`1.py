@@ -2,7 +2,6 @@ import uuid
 import json
 import decimal
 import logging
-import requests
 from datetime import timedelta
 from django.db import IntegrityError
 from django.shortcuts import render, redirect, get_object_or_404
@@ -23,7 +22,7 @@ from .forms import (
     CommentForm,
     ServiceForm
 )
-from .models import Order, OrderItem, Service, Comment, CustomUser, ServiceCategory
+from .models import Order, OrderItem, Service, Comment, CustomUser
 
 # Set the logging level for debug information
 logging.basicConfig(level=logging.DEBUG)
@@ -43,8 +42,7 @@ def register(request):
         if form.is_valid():
             user = form.save()
             login(request, user)
-            messages.success(
-                request, "Registration successful.")
+            messages.success(request, "Registration successful.")
             return redirect('home')
         messages.error(
             request, "Unsuccessful registration. Invalid information.")
@@ -144,7 +142,6 @@ def htmx_edit_item(request, item_id):
 
     elif request.method == "PUT":
         data = json.loads(request.body)
-        print ("Ale",data)
         form = OrderItemForm(data, instance=item)
         if form.is_valid():
             service = form.cleaned_data['service']
@@ -287,9 +284,6 @@ def admin_review_request(request, order_id):
     items = order.items.all()
     add_item_form = OrderItemForm()
     service_form = ServiceForm()
-    
-    # Pass all service categories to the context
-    all_categories = ServiceCategory.objects.all()
 
     context = {
         'order': order,
@@ -297,7 +291,6 @@ def admin_review_request(request, order_id):
         'items': items,
         'add_item_form': add_item_form,
         'service_form': service_form,
-        'all_categories': all_categories,
     }
     return render(request, 'admin_review.html', context)
 
@@ -356,114 +349,15 @@ def comment_success(request):
 
 
 # Payment Views
-def get_paypal_access_token():
-    """Retrieves a PayPal access token."""
-    auth = (settings.PAYPAL_CLIENT_ID, settings.PAYPAL_CLIENT_SECRET)
-    headers = {'Accept': 'application/json', 'Accept-Language': 'en_US'}
-    data = {'grant_type': 'client_credentials'}
-    
-    try:
-        response = requests.post(f"{settings.PAYPAL_BASE_URL}/v1/oauth2/token", auth=auth, headers=headers, data=data)
-        response.raise_for_status()
-        return response.json()['access_token']
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Error getting PayPal access token: {e}")
-        return None
-
-
 def create_paypal_payment(request, order_id):
-    """Initiates a PayPal checkout and redirects the user."""
-    order = get_object_or_404(Order, pk=order_id)
-    items = order.items.all()
-    if not items:
-        messages.error(request, "Cannot create a payment for an empty order.")
-        return redirect('order_detail', order_id=order.id)
-    
-    # Calculate total price
-    total_price = sum(item.service.price for item in items)
-    
-    access_token = get_paypal_access_token()
-    if not access_token:
-        messages.error(request, "Failed to connect to PayPal. Please try again later.")
-        return redirect('order_detail', order_id=order.id)
-
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {access_token}"
-    }
-
-    payload = {
-        "intent": "CAPTURE",
-        "purchase_units": [{
-            "amount": {
-                "currency_code": "USD",
-                "value": str(total_price)
-            }
-        }],
-        "application_context": {
-            "return_url": request.build_absolute_uri(reverse('paypal_success')),
-            "cancel_url": request.build_absolute_uri(reverse('paypal_cancel')),
-        }
-    }
-
-    try:
-        response = requests.post(
-            f"{settings.PAYPAL_BASE_URL}/v2/checkout/orders",
-            headers=headers,
-            data=json.dumps(payload)
-        )
-        response.raise_for_status()
-        
-        # Redirect to PayPal's approval link
-        for link in response.json()['links']:
-            if link['rel'] == 'approve':
-                return redirect(link['href'])
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Error creating PayPal order: {e}")
-        messages.error(request, "Failed to create a PayPal payment. Please try again.")
-
-    return redirect('order_detail', order_id=order.id)
+    return HttpResponse("This view would initiate a PayPal payment. Currently, it's a placeholder.")
 
 
 def paypal_success(request):
-    """Handles a successful PayPal payment."""
-    token = request.GET.get('token')
-    
-    access_token = get_paypal_access_token()
-    if not access_token:
-        messages.error(request, "Failed to confirm payment. Please contact support.")
-        return redirect('home')
-
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {access_token}"
-    }
-    
-    try:
-        # Capture the payment
-        response = requests.post(
-            f"{settings.PAYPAL_BASE_URL}/v2/checkout/orders/{token}/capture",
-            headers=headers
-        )
-        response.raise_for_status()
-
-        # Update order status to 'paid'
-        order_id_from_paypal = response.json()['purchase_units'][0]['reference_id']
-        order = get_object_or_404(Order, pk=order_id_from_paypal)
-        order.status = 'paid'
-        order.save()
-
-        messages.success(request, "Your payment was successful!")
-        return render(request, 'paypal_success.html')
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Error capturing PayPal payment: {e}")
-        messages.error(request, "There was an issue processing your payment. Please contact support.")
-        return redirect('home')
+    return render(request, 'paypal_success.html')
 
 
 def paypal_cancel(request):
-    """Handles a canceled PayPal payment."""
-    messages.warning(request, "Your payment was canceled.")
     return render(request, 'paypal_cancel.html')
 
 
