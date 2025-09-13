@@ -12,7 +12,7 @@
                 <ul class="list-group">
                     {% for request in pending_requests %}
                     <li class="list-group-item">
-                        Request #{{ request.id }} - {{ request.user.username }}
+                        Request #{{ request.id }} - {{ request.user.email }}
                         <a href="{% url 'admin_review_request' request.id %}" class="btn btn-primary btn-sm float-end">Review</a>
                     </li>
                     {% endfor %}

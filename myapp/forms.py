@@ -16,7 +16,7 @@ class CustomUserChangeForm(UserChangeForm):
         model = CustomUser
         fields = ('email', 'phone_number', 'address',)
 class OrderForm(forms.ModelForm):
-    """
+    """ 
     Form for customers to place a new order.
     """
     class Meta:

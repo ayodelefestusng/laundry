@@ -11,6 +11,8 @@ from django.views.decorators.http import require_http_methods
 from .utils import is_admin
 from django.core.mail import send_mail
 import json
+from uuid import UUID
+from uuid import UUID
 from django.db import IntegrityError
 from django.contrib.auth.decorators import user_passes_test
 import logging
@@ -18,6 +20,7 @@ from datetime import timedelta
 from django.utils import timezone
 from django.core.mail import EmailMessage
 from django.conf import settings
+from django.core.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
 import requests
@@ -56,12 +59,13 @@ def custom_logout(request):
 
 @login_required
 @require_http_methods(["GET", "POST"])
-def customer_order(request):
+def customer_order1(request):
     """
     Allows a customer to place a new order.
     """
     if request.method == 'POST':
         form = OrderForm(request.POST)
+        print ("Form Data:", request.POST)
         if form.is_valid():
             try:
                 order = form.save(commit=False)
@@ -82,12 +86,40 @@ def customer_order(request):
                     request, "An error occurred while placing the order. Please try again.")    
             # Redirect to the admin review page for now for testing
             
+        else:
+            print("Form errors:", form.errors)
+        
     else:
         form = OrderForm()
     return render(request, 'customer_order.html', {'form': form})
 
 
 
+@login_required
+def customer_order(request):
+    if request.method == 'POST':
+        form = OrderForm(request.POST)
+        if form.is_valid():
+            try:
+                order = form.save(commit=False)
+                order.user = request.user
+                order.save()
+                messages.success(
+                    request, 'Order placed successfully! We will contact you shortly.')
+                send_mail(
+                'Laundry Service Request Confirmation',
+                'Your request has been received. A dispatch agent will visit shortly.',
+                settings.DEFAULT_FROM_EMAIL,
+                [request.user.email],
+                fail_silently=False,
+            )
+                return redirect('order_detail', order_id=order.id)
+            except IntegrityError:
+                messages.error(
+                    request, "An error occurred while placing the order. Please try again.")
+    else:
+        form = OrderForm()
+    return render(request, 'customer_order.html', {'form': form})
 
 
 @login_required
@@ -104,7 +136,9 @@ def order_detail(request, order_id):
     """
     Displays the details of a specific order.
     """
-    order = get_object_or_404(Order, id=order_id, customer=request.user)
+    # order = get_object_or_404(Order, id=order_id, customer=request.user)
+    order = get_object_or_404(Order, id=order_id)
+    print ("Order ID:", order)
     context = {'order': order}
     return render(request, 'order_detail.html', context)
 
@@ -161,9 +195,13 @@ def admin_dashboard(request):
     """
     Admin dashboard to view pending, in-progress, and commented orders.
     """
-    pending_requests = Order.objects.filter(status='pending')
-    in_progress_orders = Order.objects.filter(status='in_progress')
-    commented_orders = Order.objects.filter(has_comment=True, comment__is_approved=False).distinct()
+    # pending_requests = Order.objects.filter(status='pending')
+    # in_progress_orders = Order.objects.filter(status='in_progress')
+    # commented_orders = Order.objects.filter(has_comment=True, comment__is_approved=False).distinct()
+    
+    pending_requests = Order.objects.filter(status='pending').order_by('created_at')
+    in_progress_orders = Order.objects.filter(status='in_progress').order_by('-created_at')
+    commented_orders = Order.objects.filter(status='commented').order_by('-created_at')
     
     context = {
         'pending_requests': pending_requests,
@@ -348,8 +386,8 @@ def htmx_send_invoice1(request, order_id):
 @require_http_methods(["POST"])
 def htmx_send_invoice(request, order_id):
     order = get_object_or_404(Order, id=order_id)
-    order.status = 'in_progress' # Mark as in progress after invoicing
-    order.save()
+    # order.status = 'in_progress' # Mark as in progress after invoicing
+    # order.save()
 
     items = order.items.all()
     if not items:
@@ -430,7 +468,9 @@ def create_paypal_payment(request, order_id):
         return redirect('order_detail', order_id=order.id)
     
     # Calculate total price
-    total_price = sum(item.service.price for item in items)
+    # total_price = sum(item.service.price for item in items)
+    total_price = sum(item.price for item in items)
+    print ("Total Price:", total_price)
     
     access_token = get_paypal_access_token()
     if not access_token:
@@ -445,6 +485,7 @@ def create_paypal_payment(request, order_id):
     payload = {
         "intent": "CAPTURE",
         "purchase_units": [{
+            "reference_id": str(order.id), 
             "amount": {
                 "currency_code": "USD",
                 "value": str(total_price)
@@ -482,7 +523,7 @@ def paypal_success(request):
     access_token = get_paypal_access_token()
     if not access_token:
         messages.error(request, "Failed to confirm payment. Please contact support.")
-        return redirect('home')
+        return redirect('homepage')
 
     headers = {
         "Content-Type": "application/json",
@@ -498,7 +539,22 @@ def paypal_success(request):
         response.raise_for_status()
 
         # Update order status to 'paid'
-        order_id_from_paypal = response.json()['purchase_units'][0]['reference_id']
+        # order_id_from_paypal = response.json()['purchase_units'][0]['reference_id']
+        # order = get_object_or_404(Order, pk=order_id_from_paypal)
+        
+        order_id_from_paypal = response.json()['purchase_units'][0].get('reference_id')
+        if not order_id_from_paypal:
+            messages.error(request, "Order reference not found in PayPal response.")
+            return redirect('homepage')
+        
+        
+        # Validate that the reference_id is a valid UUID before trying to look it up
+        try:
+            UUID(order_id_from_paypal)
+        except ValueError:
+            messages.error(request, f"Invalid order reference received from PayPal: {order_id_from_paypal}.")
+            return redirect('homepage')
+        print ("Order ID from PayPal:", order_id_from_paypal)
         order = get_object_or_404(Order, pk=order_id_from_paypal)
         order.status = 'paid'
         order.save()
@@ -508,7 +564,7 @@ def paypal_success(request):
     except requests.exceptions.RequestException as e:
         logging.error(f"Error capturing PayPal payment: {e}")
         messages.error(request, "There was an issue processing your payment. Please contact support.")
-        return redirect('home')
+        return redirect('homepage')
 
 
 def paypal_cancel(request):
@@ -519,16 +575,6 @@ def paypal_cancel(request):
 
 
 
-# Payment redirects
-def paypal_success1(request):
-    """ Handles successful PayPal payments. """
-    # You may want to get the order ID from the session or request parameters
-    # and update the order status here.
-    return render(request, 'paypal_success.html')
-
-def paypal_cancel1(request):
-    """ Handles canceled PayPal payments. """
-    return render(request, 'paypal_cancel.html')
 
 def stripe_success(request):
     """ Handles successful Stripe payments. """

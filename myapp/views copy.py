@@ -264,10 +264,8 @@ def htmx_send_invoice(request, order_id):
 @user_passes_test(is_admin)
 def admin_dashboard(request):
     pending_requests = Order.objects.filter(status='pending').order_by('created_at')
-    in_progress_orders = Order.objects.filter(
-        status='in_progress').order_by('-created_at')
-    commented_orders = Order.objects.filter(
-        status='commented').order_by('-created_at')
+    in_progress_orders = Order.objects.filter(status='in_progress').order_by('-created_at')
+    commented_orders = Order.objects.filter(status='commented').order_by('-created_at')
     
     context = {
         'pending_requests': pending_requests,
