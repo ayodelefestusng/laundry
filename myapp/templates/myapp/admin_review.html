@@ -22,8 +22,7 @@
         hx-post="{% url 'htmx_add_item' order.id %}" 
         hx-target="#item-list" 
         hx-swap="beforeend" 
-        _="on htmx:afterRequest if event.detail.xhr.status == 200 window.location.reload()"
-
+        _="on htmx:afterRequest if event.detail.xhr.status == 200 reset my form then trigger refresh-summary from:body"
         class="card shadow p-4 mb-4"
     >
         {% csrf_token %}
@@ -37,6 +36,7 @@
                         <th scope="col">Item Name</th>
                         <th scope="col">Color</th>
                         <th scope="col" colspan="2">Price & Delivery</th>
+                        <th scope="col">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="add-form-container">

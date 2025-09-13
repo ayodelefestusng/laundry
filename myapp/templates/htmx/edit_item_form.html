@@ -58,7 +58,7 @@
         <button 
             type="submit" 
             class="btn btn-primary btn-sm"
-            hx-put="{% url 'htmx_edit_item' item.id %}"
+            hx-post="{% url 'htmx_edit_item' item.id %}"
             hx-include="closest tr"
             _="on htmx:afterRequest if event.detail.xhr.status == 200 trigger refresh-summary from:body"
         >

@@ -12,6 +12,9 @@ class CustomUserAdmin(UserAdmin):
     add_fieldsets = UserAdmin.add_fieldsets + (
         (None, {'fields': ('phone_number', 'address')}),
     )
+    list_display = ('email', 'phone_number', 'address', 'is_staff')
+    search_fields = ('email', 'phone_number', 'address')
+    ordering = ('email',)
 
 class ServiceCategoryAdmin(admin.ModelAdmin):
     """
@@ -46,7 +49,7 @@ class OrderAdmin(admin.ModelAdmin):
         'estimated_delivery_date'
     )
     list_filter = ('status', 'created_at')
-    search_fields = ('id', 'user__username', 'customer_name', 'customer_phone')
+    search_fields = ('id', 'user__email', 'customer_name', 'customer_phone')
     inlines = [OrderItemInline]
     readonly_fields = ('created_at',)
     fieldsets = (

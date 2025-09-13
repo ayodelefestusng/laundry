@@ -1,24 +1,70 @@
-<form 
-  hx-put="{% url 'htmx_edit_item' item.id %}"
-  hx-target="#item-{{ item.id }}"
-  hx-swap="outerHTML"
->
-  <td>
-    {{ form.service }}
-  </td>
-  <td>
-    {{ form.price }}
-  </td>
-  <td>
-    <button type="submit" class="btn btn-primary">Save</button>
-    <button 
-      type="button" 
-      class="btn btn-secondary"
-      hx-get="{% url 'htmx_edit_item' item.id %}" 
-      hx-target="#item-{{ item.id }}" 
-      hx-swap="outerHTML"
+<div class="card shadow p-4">
+    <h5 class="mb-3">Edit Item</h5>
+    <form 
+        id="edit-item-form-{{ item.id }}"
+        hx-put="{% url 'htmx_edit_item' item.id %}" 
+        hx-target="#item-row-{{ item.id }}"
+        hx-swap="outerHTML"
+        _="on htmx:afterRequest if event.detail.xhr.status == 200 trigger refresh-summary from:body"
     >
-      Cancel
-    </button>
-  </td>
-</form>
+        {% csrf_token %}
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="id_category" class="form-label">Category</label>
+                <select 
+                    name="category" 
+                    id="id_category"
+                    hx-get="{% url 'htmx_get_services' %}"
+                    hx-target="#id_service"
+                    hx-trigger="change"
+                    hx-swap="innerHTML"
+                    class="form-select"
+                >
+                    <option value="">---------</option>
+                    {% for category in all_categories %}
+                        <option value="{{ category.id }}" {% if item.service.category.id == category.id %}selected{% endif %}>{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="id_service" class="form-label">Service Type</label>
+                <select 
+                    name="service" 
+                    id="id_service"
+                    hx-get="{% url 'htmx_get_service_details' %}"
+                    hx-target="#price-delivery-details-{{ item.id }}"
+                    hx-trigger="change"
+                    hx-swap="innerHTML"
+                    hx-include="[name='category'], [name='service']"
+                    class="form-select"
+                >
+                    <option value="{{ item.service.id }}" selected>{{ item.service.name }}</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="id_name" class="form-label">Item Name</label>
+                <input type="text" name="name" id="id_name" value="{{ item.name }}" class="form-control">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="id_color" class="form-label">Color</label>
+                <input type="text" name="color" id="id_color" value="{{ item.color }}" class="form-control">
+            </div>
+        </div>
+        
+        <div class="card p-3 my-3">
+            <h6 class="card-title">Price & Delivery</h6>
+            <div id="price-delivery-details-{{ item.id }}">
+                Price: ${{ item.price|floatformat:2 }} <br>
+                Delivery: {{ item.delivery_time_days }} days
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2">
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <button type="button" class="btn btn-secondary" hx-get="{% url 'htmx_edit_item' item.id %}" hx-target="closest div" hx-swap="outerHTML">Cancel</button>
+        </div>
+    </form>
+</div>

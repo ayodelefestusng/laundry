@@ -9,6 +9,8 @@ import qrcode
 import base64
 from io import BytesIO
 
+
+
 def generate_qr_base64(data):
     """Generates a base64 encoded QR code image string."""
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
@@ -20,10 +22,20 @@ def generate_qr_base64(data):
     return base64.b64encode(buffer.getvalue()).decode('utf-8')
 
 
+import functools
+from django.shortcuts import redirect
+from django.urls import reverse
 from .models import CustomUser
 
-def is_admin(user: CustomUser) -> bool:
+def is_admin(view_func):
     """
-    Checks if a given user is an admin (staff member).
+    Decorator to check if the user is an admin (staff member).
+    If not, it redirects them to the homepage.
     """
-    return user.is_staff
+    @functools.wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if request.user.is_authenticated and request.user.is_staff:
+            return view_func(request, *args, **kwargs)
+        else:
+            return redirect(reverse('homepage'))
+    return wrapper
