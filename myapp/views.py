@@ -103,6 +103,7 @@ def customer_order(request):
             try:
                 order = form.save(commit=False)
                 order.user = request.user
+                print ("alll", request.user.email)
                 order.save()
                 messages.success(
                     request, 'Order placed successfully! We will contact you shortly.')
