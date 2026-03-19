@@ -55,6 +55,24 @@
                 <p>No commented orders.</p>
             {% endif %}
         </div>  
+
+
+         <div class="col-md-4">
+            <h3>Confirmed Orders</h3>
+            {% if confirmed_orders %}
+                <ul class="list-group">
+                    {% for order in confirmed_orders %}
+                    <li class="list-group-item">
+                        Order #{{ order.order_code }} - {{ order.notes }}
+                        <a href="{% url 'laundry:admin_approve_comment' order.id %}" class="btn btn-success btn-sm float-end">Assign QR to Order</a>
+
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No confirmed orders.</p>
+            {% endif %}
+        </div>  
     </div>
 </div>
 {% endblock %}

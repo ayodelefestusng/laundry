@@ -1,7 +1,9 @@
 # Create your models here.
 import logging
+from pyclbr import Class
 import random
 import uuid
+from attr import has
 from django.db import models, transaction
 
 from django.conf import settings
@@ -28,6 +30,8 @@ import logging
 import sys
 import os
 from logging.handlers import RotatingFileHandler
+
+from matplotlib.pylab import qr
 
 
 
@@ -384,14 +388,15 @@ class Package(TenantModel):
 def generate_order_code():
     return get_random_string(8).upper()
   
-    
+class QR(TenantModel):
+    code = models.CharField(max_length=100, unique=True)
+    order_item = models.OneToOneField('OrderItem', on_delete=models.CASCADE, related_name='qr_codes')
 
 class Order(TenantModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     # user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     # order_code = models.CharField(max_length=12, unique=False, editable=True, default=get_random_string(8).upper)
     # order_code = models.CharField(max_length=12, unique=True, blank=True, null=True)
-    order_code = models.CharField(max_length=12, unique=False, editable=False, default=generate_order_code)
     # user = models.ForeignKey(CustomUser, on_delete=models.SET_DEFAULT, default="missing_id",related_name='laundry_orders')
     status = models.CharField(max_length=20, choices=ORDER_STATUS, default='pending')
     customer_name = models.CharField(max_length=100, blank=True, null=True)
@@ -407,7 +412,11 @@ class Order(TenantModel):
     notes = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    has_comment=models.BooleanField(default=False)
+    has_confirmation_received=models.BooleanField(default=False)
+    has_invoice_sent=models.BooleanField(default=False)
+    has_payment_received=models.BooleanField(default=False)
+    has_comment_from_customer=models.BooleanField(default=False)
+    
     
     def __str__(self):
         return f"Order #{self.order_code} for {self.customer_email}"
@@ -421,6 +430,7 @@ class OrderItem(TenantModel):
     price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     delivery_time_days = models.IntegerField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=WORKFLOW_STAGES, default='pending_dispatch')
+    qr_code = models.CharField(max_length=100, unique=True, blank=True, null=True)
     def __str__(self):
         return f"{self.name}  in Order #{self.order.id}"
 
@@ -610,9 +620,7 @@ class WorkflowInstance(TenantModel):
     closure_ref = models.CharField(
         max_length=100, unique=True, blank=True, null=True, editable=False
     )
-    job_status = models.CharField(
-        max_length=50, choices=STATUS_CHOICES, default="closed"
-    )
+ 
 
     def save(self, *args, **kwargs):
         # Apply the unique reference logic from your project

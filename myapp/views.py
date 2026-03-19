@@ -201,11 +201,27 @@ def comment_order(request, order_id):
             # comment.author = order.customer_email or request.user.email  
             comment.body = form.cleaned_data['body']
             comment.save()
-            order.has_comment = True
-            order.notes=comment.body
+            order.is_confirmed = False
+            # order.notes=comment.body
             order.save()
             logger.info(f"Comment added successfully: {comment}")
             return redirect('laundry:comment_success')
+    else:
+        form = CommentForm()
+    context = {'order': order, 'form': form}
+    return render(request, 'add_comment.html', context)
+@login_required
+def confirm_order(request, order_id):
+    """
+    Allows a customer to leave a comment on their order.
+    """
+    logger.info(f"User {request.user} is confirming order {order_id}.")
+    order = get_object_or_404(Order, id=order_id)
+    if request.method == 'POST':
+            order.is_confirmed = True
+            order.save()
+            logger.info(f"Order {order_id} confirmed successfully.")
+            return redirect('laundry:admin_dashboard')
     else:
         form = CommentForm()
     context = {'order': order, 'form': form}
@@ -218,6 +234,26 @@ def comment_success(request):
     logger.info(f"User {request.user} is viewing comment success page.")
     return render(request, 'comment_success.html')
 
+def confirm_success(request):
+    """
+    Renders a success page after a confirmation is submitted.
+    """
+    logger.info(f"User {request.user} is viewing confirm success page.")
+    return render(request, 'confirm_success.html')
+
+def assign_qr_code(request, order_id):
+    """
+    Assigns a QR code to an order for tracking purposes.
+    """
+    logger.info(f"User {request.user} is assigning a QR code to order {order_id}.")
+    order = get_object_or_404(Order, id=order_id)
+    if not order.qr_code:
+        order.qr_code = str(uuid.uuid4())
+        order.save()
+        logger.info(f"QR code assigned successfully: {order.qr_code}")
+    else:
+        logger.info(f"Order already has a QR code: {order.qr_code}")
+    return redirect('laundry:order_detail', order_id=order.id)
 # Admin-facing views
 
 def admin_dashboard(request):
@@ -231,7 +267,9 @@ def admin_dashboard(request):
     
     pending_requests = Order.objects.filter(status='pending').order_by('created_at')
     in_progress_orders = Order.objects.filter(status='in_progress').order_by('-created_at')
-    commented_orders = Order.objects.filter(has_comment=True).order_by('-created_at')
+    commented_orders = Order.objects.filter(has_comment_from_customer=True).order_by('-created_at')
+    confirmed_orders = Order.objects.filter(has_confirmation_received=True).order_by('-created_at')
+
     logger.info(f"Pending requests: {pending_requests}")
     logger.info(f"In-progress orders: {in_progress_orders}")
     logger.info(f"Commented orders: {commented_orders}")
@@ -239,6 +277,7 @@ def admin_dashboard(request):
         'pending_requests': pending_requests,
         'in_progress_orders': in_progress_orders,
         'commented_orders': commented_orders,
+        'confirmed_orders': confirmed_orders,
     }
     return render(request, 'admin_dashboard.html', context)
 
@@ -452,6 +491,7 @@ def htmx_send_invoice1(request, order_id):
     # Generate absolute URLs for the email links
     paypal_url = request.build_absolute_uri(reverse('laundry:paypal_checkout', args=[order.id]))
     comment_url = request.build_absolute_uri(reverse('laundry:comment_order', args=[order.id]))
+    confirm_url = request.build_absolute_uri(reverse('laundry:confirm_order', args=[order.id]))
     print ("Ajadi URL",paypal_url)
     # Render email template as a string
     email_html_content = render_to_string('htmx/invoice_email.html', {
@@ -462,6 +502,7 @@ def htmx_send_invoice1(request, order_id):
         'customer_name':  order.customer_name or order.customer.email,
         'paypal_url': paypal_url,
         'comment_url': comment_url,
+        'confirm_url': confirm_url,
     })
 
     # Send email
@@ -663,8 +704,95 @@ def initiate_paystack_transaction(request, email, amount, order_id):
         logger.exception(f"Paystack initialization network error for order {order_id}: {e}")
         return None, None
 
+from django.core.exceptions import ObjectDoesNotExist
 
 def htmx_send_invoice(request, order_id):
+    logger.info(f"User {request.user} is sending invoice for order {order_id}.")
+    order = get_object_or_404(Order, id=order_id)
+
+    items = order.items.all()
+    if not items:
+        logger.error(f"User {request.user} tried to send an invoice for an empty order.")
+        return HttpResponse("No items to invoice.", status=400)
+
+    # Calculate totals
+    total_price = sum(item.price for item in items)
+    max_delivery_days = max(item.delivery_time_days for item in items) if items else 0
+    estimated_delivery_date = timezone.now().date() + timedelta(days=max_delivery_days)
+
+    order.total_price = total_price
+    order.estimated_delivery_date = estimated_delivery_date
+    order.status = 'invoice_sent'
+    order.save()
+
+    # Build URLs
+    comment_url = request.build_absolute_uri(reverse('laundry:comment_order', args=[order.id]))
+    confirm_url = request.build_absolute_uri(reverse('laundry:confirm_order', args=[order.id]))
+
+    # Check if customer is PremiumClient
+    try:
+        premium_client = PremiumClient.objects.get(email=order.customer_email)
+        is_premium = True
+    except ObjectDoesNotExist:
+        is_premium = False
+
+    # If not premium, initialize Paystack
+    paystack_url = None
+    reference = None
+    if not is_premium:
+        paystack_url, reference = initiate_paystack_transaction(
+            request=request,
+            email=order.customer_email,
+            amount=order.total_price,
+            order_id=order.id
+        )
+        if not paystack_url or not reference:
+            messages.error(request, 'Failed to initialize payment with Paystack.')
+            return HttpResponse("Failed to initialize payment.", status=500)
+
+        Payment.objects.create(
+            order=order,
+            amount=order.total_price,
+            reference=reference,
+            verified=False
+        )
+        logger.info(f"Payment record created for Order {order.id} with reference {reference}")
+
+    # Prepare email content
+    summary = {
+        'total_items': items.count(),
+        'total_price': total_price,
+        'delivery_date': estimated_delivery_date,
+    }
+
+    email_html_content = render_to_string('htmx/invoice_email.html', {
+        'order': order,
+        'items': items,
+        'summary': summary,
+        'customer_name': order.customer_name or order.customer_email,
+        'paystack_url': paystack_url,
+        'comment_url': comment_url,
+        'confirm_url': confirm_url,
+        'is_premium': is_premium,  # pass flag to template
+    })
+
+    # Send email
+    try:
+        email = EmailMessage(
+            f'Invoice for Order #{order.order_code}',
+            email_html_content,
+            settings.DEFAULT_FROM_EMAIL,
+            [order.customer_email],
+        )
+        email.content_subtype = "html"
+        email.send()
+        logger.info(f"Invoice email sent successfully to {order.customer_email} for Order {order.id}.")
+        return render(request, 'htmx/invoice_sent_message.html')
+    except Exception as e:
+        logger.error(f"Email send error for Order {order.id}: {e}")
+        messages.error(request, f'Failed to send email: {e}')
+        return HttpResponse("Failed to send invoice.", status=500)
+def htmx_send_invoicev2(request, order_id):
     logger.info(f"User {request.user} is sending invoice for order {order_id}.")
     order = get_object_or_404(Order, id=order_id)
     
@@ -737,6 +865,7 @@ def htmx_send_invoice(request, order_id):
     }
     
     comment_url = request.build_absolute_uri(reverse('laundry:comment_order', args=[order.id]))
+    confirm_url = request.build_absolute_uri(reverse('laundry:confirm_order', args=[order.id]))
     
     # The URL sent in the email is the Paystack checkout URL, NOT the callback URL
     email_html_content = render_to_string('htmx/invoice_email.html', {
@@ -746,6 +875,7 @@ def htmx_send_invoice(request, order_id):
         'customer_name': order.customer_name or order.customer.email,
         'paystack_url': paystack_url, # ✅ Use the actual Paystack checkout URL
         'comment_url': comment_url,
+        'confirm_url': confirm_url,
     })
 
     try:
@@ -779,7 +909,7 @@ def paystack_callback_view(request, order_id):
     It verifies the payment using the reference from the URL query params.
     """
     # 1. Retrieve the Order
-    order = get_object_or_404(Order, id=order_id, user=request.user)
+    order = get_object_or_404(Order, id=order_id)
 
     # 2. Get the reference from the Paystack redirect
     ref = request.GET.get('reference')
@@ -789,7 +919,7 @@ def paystack_callback_view(request, order_id):
 
     # 3. Find the existing Payment record
     try:
-        payment = Payment.objects.get(reference=ref, order=order, user=request.user)
+        payment = Payment.objects.get(reference=ref, order=order)
         logger.debug("Payment record found for reference: %s | Order: %s", ref, order_id)
     except Payment.DoesNotExist:
         logger.error("Payment record not found for reference: %s or does not match Order %s.", ref, order_id)

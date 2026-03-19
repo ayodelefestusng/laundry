@@ -115,8 +115,12 @@
             </table>
 
             <div class="text-center" style="margin-top: 20px;">
-                <p>To proceed with payment, please use the link below:</p>
-                <a href="{{ paystack_url }}" class="button">Pay </a>
+                <p>To proceed with your order, please use the link below:</p>
+                {% if is_premium %}
+                    <a href="{{ confirm_url }}" class="button">Confirm Order</a>
+                {% else %}
+                    <a href="{{ paystack_url }}" class="button">Pay</a>
+                {% endif %}
                 <p style="margin-top: 20px;">If you have any questions or concerns, please leave us a comment:</p>
                 <a href="{{ comment_url }}" class="button" style="background-color: #555;">Leave a Comment</a>
             </div>

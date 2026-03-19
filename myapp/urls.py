@@ -15,7 +15,12 @@ urlpatterns = [
     path('customer/order/<uuid:order_id>/review/', views.customer_review, name='customer_review'),
     path('customer/order/<uuid:order_id>/accept/', views.accept_order, name='accept_order'),
     path('customer/order/<uuid:order_id>/comment/', views.comment_order, name='comment_order'),
+    path('customer/order/<uuid:order_id>/confirm/', views.confirm_order, name='confirm_order'),
     path('comment/success/', views.comment_success, name='comment_success'),
+    path('customer/assign_qr/<uuid:order_id>/', views.assign_qr_code, name='assign_qr_code'),
+   
+   
+    
 
     # Admin views
     path('dashboard/', views.admin_dashboard, name='admin_dashboard'),
