@@ -1,13 +1,16 @@
 from django.urls import path
+
 from . import views
+
+app_name = 'laundry'
 
 urlpatterns = [
     # General app views
-    path('', views.homepage, name='homepage'),
+    path('homes2/', views.homepage, name='homepage'),
     path('register/', views.register, name='register'),
     path('logout/', views.custom_logout, name='logout'),
-    path('customer/order/', views.customer_order, name='customer_order'),
-    path('customer/dashboard/', views.customer_dashboard, name='customer_dashboard'),
+    path('', views.customer_order, name='customer_order'),
+    # path('customer/dashboard/', views.customer_dashboard, name='customer_dashboard'),
     path('customer/order/<uuid:order_id>/', views.order_detail, name='order_detail'),
     path('customer/order/<uuid:order_id>/review/', views.customer_review, name='customer_review'),
     path('customer/order/<uuid:order_id>/accept/', views.accept_order, name='accept_order'),
@@ -20,8 +23,8 @@ urlpatterns = [
     path('approve_comment/<uuid:order_id>/', views.admin_approve_comment, name='admin_approve_comment'),
 
     # HTMX endpoints
-    path('htmx/get_services/', views.htmx_get_services, name='htmx_get_services'),
-    path('htmx/get_service_details/', views.htmx_get_service_details, name='htmx_get_service_details'),
+    path('htmx/get_services/', views.htmx_get_package_options, name='htmx_get_package_options'),
+    path('htmx/get_service_details/', views.htmx_get_package_details, name='htmx_get_package_details'),
     path('htmx/add_item/<uuid:order_id>/', views.htmx_add_item, name='htmx_add_item'),
     path('htmx/edit_item/<int:item_id>/', views.htmx_edit_item, name='htmx_edit_item'),
     path('htmx/delete_item/<int:item_id>/', views.htmx_delete_item, name='htmx_delete_item'),
@@ -29,9 +32,28 @@ urlpatterns = [
     path('htmx/send_invoice/<uuid:order_id>/', views.htmx_send_invoice, name='htmx_send_invoice'),
 
     # Payment redirects
-    path('paypal/success/', views.paypal_success, name='paypal_success'),
-    path('paypal/cancel/', views.paypal_cancel, name='paypal_cancel'),
-   path('paypal/checkout/<uuid:order_id>/', views.create_paypal_payment, name='paypal_checkout'),
-    path('stripe/success/', views.stripe_success, name='stripe_success'),
-    path('stripe/cancel/', views.stripe_cancel, name='stripe_cancel'),
+#     path('paypal/success/', views.paypal_success, name='paypal_success'),
+#     path('paypal/cancel/', views.paypal_cancel, name='paypal_cancel'),
+#    path('paypal/checkout/<uuid:order_id>/', views.create_paypal_payment, name='paypal_checkout'),
+#     path('stripe/success/', views.stripe_success, name='stripe_success'),
+#     path('stripe/cancel/', views.stripe_cancel, name='stripe_cancel'),
+
+
+
+
+    #Paystack 
+path('paystack-callback/<uuid:order_id>/', views.paystack_callback_view, name='paystack_callback'),
+    # 🎯 2. LIVE WEBHOOK URL (Server-to-server confirmation)
+    path('paystack-webhook/', views.paystack_webhook_view, name='paystack_webhook'),
+path('paystack/success/', views.paystack_success, name='paystack_success'),
+    path('paystack/cancel/', views.paystack_cancel, name='paystack_cancel'),
+
+
+
+
+
+    path('send_email/', views.laundry_request_confirmation, name='confirm_laundry'),
+
+
+
 ]

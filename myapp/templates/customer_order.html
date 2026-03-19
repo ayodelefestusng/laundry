@@ -1,19 +1,64 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load crispy_forms_tags %}
 
 {% block content %}
 <div class="container my-5">
-    <div class="card shadow p-4 mx-auto" style="max-width: 600px;">
-        <h2 class="text-center mb-4">Place a New Order</h2>
-        <p class="text-center text-muted">Please fill out the form below to start your laundry order. We will contact you to confirm the details and provide an invoice.</p>
-        
-        <form method="post" class="mt-4">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <div class="d-grid mt-4">
-                <button type="submit" class="btn btn-primary btn-lg">Submit Order</button>
-            </div>
-        </form>
-    </div>
+  <div class="card shadow p-4 mx-auto" style="max-width: 600px;">
+    <h2 class="text-center mb-4">Place a New Order</h2>
+    <p class="text-center text-muted">
+      Please fill out the form below to start your laundry order. We will contact you to confirm the details and provide an invoice.
+    </p>
+
+    <form method="post" class="mt-4">
+      {% csrf_token %}
+      {{ form|crispy }}
+      <div class="text-center mt-4">
+        <button type="submit" class="btn btn-primary btn-sm">Submit Order</button>
+      </div>
+    </form>
+  </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // Calculate the max date by counting 5 valid business days (skipping Sunday)
+    let maxDate = new Date();
+    let validDays = 0;
+    while (validDays < 5) {
+        maxDate.setDate(maxDate.getDate() + 1);
+        // If not Sunday (0), it counts as a valid day
+        if (maxDate.getDay() !== 0) {
+            validDays++;
+        }
+    }
+
+    flatpickr("#pickup-calendar", {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i",
+        
+        minDate: "today",
+        maxDate: maxDate,
+        disable: [
+            function(date) {
+                // Disable Sundays (0 = Sunday)
+                return (date.getDay() === 0);
+            }
+        ],
+        minTime: "08:00",
+        maxTime: "17:00",
+    });
+});
+</script>
+
+<style>
+/* Target all placeholders inside form-control inputs/textarea */
+.form-control::placeholder {
+    font-style: italic;
+    color: #6c757d; /* Bootstrap’s muted gray */
+    opacity: 0.8;   /* Slightly lighter */
+}
+</style>
 {% endblock %}

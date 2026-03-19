@@ -4,7 +4,7 @@
         <select 
             name="category" 
             id="edit-category-{{ item.id }}"
-            hx-get="{% url 'htmx_get_services' %}"
+            hx-get="{% url 'laundry:htmx_get_services' %}"
             hx-target="#edit-service-{{ item.id }}"
             hx-trigger="change"
             hx-swap="innerHTML"
@@ -21,7 +21,7 @@
         <select 
             name="service" 
             id="edit-service-{{ item.id }}"
-            hx-get="{% url 'htmx_get_service_details' %}"
+            hx-get="{% url 'laundry:htmx_get_service_details' %}"
             hx-target="#edit-price-delivery-details-{{ item.id }}"
             hx-trigger="change"
             hx-swap="innerHTML"
@@ -51,14 +51,14 @@
     </td>
     <td colspan="2" id="edit-price-delivery-details-{{ item.id }}">
         <!-- Price and delivery details, dynamically loaded -->
-        ${{ item.price|floatformat:2 }}<br>{{ item.delivery_time_days }} days
+        </strong> &#8358;{{ item.price|floatformat:2 }}<br>{{ item.delivery_time_days }} days
     </td>
     <td>
         <!-- Action buttons to save or cancel the edit -->
         <button 
             type="submit" 
             class="btn btn-primary btn-sm"
-            hx-post="{% url 'htmx_edit_item' item.id %}"
+            hx-post="{% url 'laundry:htmx_edit_item' item.id %}"
             hx-include="closest tr"
             _="on htmx:afterRequest if event.detail.xhr.status == 200 trigger refresh-summary from:body"
         >
@@ -66,7 +66,7 @@
         </button>
         <button 
             class="btn btn-secondary btn-sm"
-            hx-get="{% url 'htmx_edit_item' item.id %}"
+            hx-get="{% url 'laundry:htmx_edit_item' item.id %}"
             hx-target="closest tr"
             hx-swap="outerHTML"
         >

@@ -23,7 +23,14 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 # DEBUG = os.getenv("DEBUG", "True") == "True"
 DEBUG="true"
 
-ALLOWED_HOSTS = ['*'] # Change to specific domain names in production
+# ALLOWED_HOSTS = ['*'] # Change to specific domain names in production
+ALLOWED_HOSTS = [
+    '*',  # Allow all hosts (not recommended for production)
+    "tenant1.com",
+    "tenant2.com",
+    "tenant3.com",
+    "yourmainapp.com",
+]
 
 # ==============================================================================
 #  Application Definition
@@ -59,6 +66,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "myapp.tenant_middleware.TenantMiddleware"
 ]
 
 ROOT_URLCONF = 'myproject.urls'

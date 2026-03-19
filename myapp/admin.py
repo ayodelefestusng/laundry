@@ -1,6 +1,11 @@
+# Register your models here.
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, ServiceCategory, Service, Order, OrderItem, Comment
+
+from .models import (Comment, CustomUser, Order, OrderItem, Package,
+                     ServiceCategory,Tenant, Workflow, WorkflowStage, WorkflowInstance,Employee,
+                     ServiceChoices,PremiumClient)
+
 
 class CustomUserAdmin(UserAdmin):
     """
@@ -23,11 +28,12 @@ class ServiceCategoryAdmin(admin.ModelAdmin):
     list_display = ('name',)
     search_fields = ('name',)
 
-class ServiceAdmin(admin.ModelAdmin):
+class PackageAdmin(admin.ModelAdmin):
     """
-    Admin configuration for the Service model.
+    Admin configuration for the Package model.fpackage
+    
     """
-    list_display = ('category', 'service_type', 'price', 'delivery_time_days')
+    list_display = ('id', 'category', 'service_type', 'price', 'delivery_time_days')
     list_filter = ('category', 'service_type')
     search_fields = ('category__name', 'service_type')
 
@@ -37,7 +43,7 @@ class OrderItemInline(admin.TabularInline):
     """
     model = OrderItem
     extra = 0
-    fields = ('service', 'name', 'color',)
+    fields = ('package', 'name', 'color',)
     readonly_fields = ('color',)
 
 class OrderAdmin(admin.ModelAdmin):
@@ -45,7 +51,7 @@ class OrderAdmin(admin.ModelAdmin):
     Customizes the Django admin to manage the Order model.
     """
     list_display = (
-        'id', 'user', 'status', 'created_at', 'total_price',
+        'id', 'status', 'created_at', 'total_price',
         'estimated_delivery_date'
     )
     list_filter = ('status', 'created_at')
@@ -54,7 +60,7 @@ class OrderAdmin(admin.ModelAdmin):
     readonly_fields = ('created_at',)
     fieldsets = (
         ('Order Information', {
-            'fields': ('user', 'status', 'created_at', 'total_price', 'estimated_delivery_date', 'notes')
+            'fields': ( 'status', 'created_at', 'total_price', 'estimated_delivery_date', 'notes')
         }),
         ('Customer Details', {
             'fields': ('customer_name', 'customer_phone', 'customer_email', 'address', 'pickup_date', 'special_instructions')
@@ -79,9 +85,52 @@ class CommentAdmin(admin.ModelAdmin):
     approve_comments.short_description = "Approve selected comments"
 
 
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+# admin.site.unregister(User)
+# admin.site.register(User, CustomUserAdmin)
 # Register your models with the admin site
-admin.site.register(CustomUser, CustomUserAdmin)
+# admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(ServiceCategory, ServiceCategoryAdmin)
-admin.site.register(Service, ServiceAdmin)
+admin.site.register(Package, PackageAdmin)
 admin.site.register(Order, OrderAdmin)
 admin.site.register(Comment, CommentAdmin)
+admin.site.site_header = "Laundry Service Admin"
+admin.site.site_title = "Laundry Service Admin Portal"
+admin.site.index_title = "Welcome to the Laundry Service Admin Portal"
+admin.site.register(CustomUser)
+admin.site.register(Employee)
+admin.site.register(ServiceChoices)
+admin.site.register(Tenant, admin.ModelAdmin)
+admin.site.register(PremiumClient, admin.ModelAdmin)
+
+class WorkflowStepInline(admin.TabularInline):
+    model = WorkflowStage
+    extra = 1
+@admin.register(Workflow)
+class WorkflowAdmin(admin.ModelAdmin):
+    list_display = ("name",)
+    inlines = [WorkflowStepInline]
+
+
+
+
+
+
+@admin.register(WorkflowInstance)
+class WorkflowInstanceAdmin(admin.ModelAdmin):
+
+    list_display = ("id", "workflow", "object_id", "content_type", "target", "created_at", "current_stage")
+    # inlines = [WorkflowStageInstanceInline]
+
+    @admin.display(description="Target Object")
+    def target_info(self, obj):
+        return f"{obj.content_type} (ID: {obj.object_id})"
+
+    @admin.display(description="Workflow Stages")
+    def stages(self, obj): 
+        return ", ".join([f"Stage {s.sequence}" for s in obj.workflow.stages.all()]) 
+    readonly_fields = ("stages",)
+
+

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Payment Failed{% endblock %}
+
+{% block content %}
+<div class="container text-center py-5">
+    <div class="card shadow-sm mx-auto" style="max-width: 600px; border: 2px solid #dc3545;">
+        <div class="card-body">
+            <h2 class="card-title text-danger mb-4">Payment Unsuccessful ❌</h2>
+            
+            <p class="lead">We were unable to confirm your payment.</p>
+            
+            {% if order %}
+                <p class="text-muted">The payment attempt for Order #{{ order.id }} was not completed or failed verification.</p>
+            {% else %}
+                <p class="text-muted">We apologize, but your transaction could not be completed at this time.</p>
+            {% endif %}
+
+            <hr class="my-4">
+            
+            <div class="mb-4">
+                <p>Please check your payment details and try again.</p>
+                <p>If the issue persists, contact us at **{{ support_email }}** for assistance.</p>
+            </div>
+
+            {% if order %}
+                <a href="{% url 'laundry:htmx_send_invoice' order.id %}" class="btn btn-warning btn-lg me-2">Retry Payment</a>
+            {% endif %}
+            <a href="{% url 'laundry:dashboard' %}" class="btn btn-outline-secondary btn-lg">Go to Dashboard</a>
+            
+        </div>
+    </div>
+</div>
+{% endblock %}

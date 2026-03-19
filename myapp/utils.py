@@ -1,13 +1,13 @@
-from datetime import timedelta, date
+from datetime import date, timedelta
+
+import base64
+from io import BytesIO
+import qrcode
+
 
 def calculate_expected_delivery(items):
     max_days = max(item.delivery_days for item in items)
     return date.today() + timedelta(days=max_days)
-
-
-import qrcode
-import base64
-from io import BytesIO
 
 
 
@@ -23,9 +23,12 @@ def generate_qr_base64(data):
 
 
 import functools
+
 from django.shortcuts import redirect
 from django.urls import reverse
+
 from .models import CustomUser
+
 
 def is_admin(view_func):
     """

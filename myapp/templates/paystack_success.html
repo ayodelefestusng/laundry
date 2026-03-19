@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Payment Successful{% endblock %}
+
+{% block content %}
+<div class="container text-center py-5">
+    <div class="card shadow-sm mx-auto" style="max-width: 600px; border: 2px solid #28a745;">
+        <div class="card-body">
+            <h2 class="card-title text-success mb-4">Payment Confirmed! ✅</h2>
+            
+            {% if order %}
+                <p class="lead">Thank you for your payment, **{{ order.customer_name|default:order.customer.email }}**.</p>
+                <p class="lead">Your transaction for **Order #{{ order.id }}** was successfully processed.</p>
+                
+                <hr class="my-4">
+                
+                <div class="mb-4">
+                    <p><strong>Total Amount Paid:</strong> ₦{{ order.total_price|floatformat:2 }}</p>
+                    <p>Your order status has been updated. We will proceed with your laundry service shortly.</p>
+                </div>
+
+                <a href="{% url 'laundry:order_detail' order.id %}" class="btn btn-success btn-lg">View Order Details</a>
+            {% else %}
+                <p class="lead">{{ message }}</p>
+                <a href="{% url 'laundry:dashboard' %}" class="btn btn-primary btn-lg">Go to Dashboard</a>
+            {% endif %}
+            
+        </div>
+    </div>
+</div>
+{% endblock %}

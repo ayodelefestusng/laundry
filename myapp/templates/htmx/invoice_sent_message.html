@@ -75,7 +75,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h2>Invoice for Your Laundry Order</h2>
+            <h2>Invoice for Your Laundry Order </h2>
         </div>
         <div class="content">
             <p>Dear {{ customer_name }},</p>
@@ -84,7 +84,7 @@
             <div class="summary-box">
                 <h3 class="text-center">Order Summary</h3>
                 <p><strong>Total Items:</strong> {{ summary.total_items }}</p>
-                <p><strong>Total Price:</strong> ${{ summary.total_price|floatformat:2 }}</p>
+                <p><strong>Total Price:</strong> #{{ summary.total_price|floatformat:2 }}</p>
                 <p><strong>Estimated Delivery Date:</strong> {{ summary.delivery_date|date:"F j, Y" }}</p>
             </div>
             
@@ -116,7 +116,7 @@
 
             <div class="text-center" style="margin-top: 20px;">
                 <p>To proceed with payment, please use the link below:</p>
-                <a href="{{ paypal_url }}" class="button">Pay with PayPal</a>
+                <a href="{{ paystack_url }}" class="button">Pay with PayStack</a>
                 <p style="margin-top: 20px;">If you have any questions or concerns, please leave us a comment:</p>
                 <a href="{{ comment_url }}" class="button" style="background-color: #555;">Leave a Comment</a>
             </div>
