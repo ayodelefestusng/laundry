@@ -1,6 +1,6 @@
 <tr id="item-row-{{ item.id }}">
-    <td>{{ item.service.category.name }}</td>
-    <td>{{ item.service.get_service_type_display }}</td>
+    <td>{{ item.package.category.name }}</td>
+    <td>{{ item.package.get_service_type_display }}</td>
     <td>{{ item.name }}</td>
     <td>{{ item.color }}</td>
     <td colspan="2">Price: </strong> &#8358;{{ item.price|floatformat:2 }}<br>Delivery: {{ item.delivery_time_days }} days</td>

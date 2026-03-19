@@ -422,7 +422,7 @@ class OrderItem(TenantModel):
     delivery_time_days = models.IntegerField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=WORKFLOW_STAGES, default='pending_dispatch')
     def __str__(self):
-        return f"{self.name} ({self.service.get_service_type_display()}) in Order #{self.order.id}"
+        return f"{self.name}  in Order #{self.order.id}"
 
 
 

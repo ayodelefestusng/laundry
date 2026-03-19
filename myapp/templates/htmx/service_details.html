@@ -1,8 +1,9 @@
 
-
-{% if service %}
-    Price: </strong> &#8358;{{ service.price|floatformat:2 }}<br>
-    Delivery: {{ service.delivery_time_days }} days
+{% if package %}
+    <strong>Service:</strong> {{ package.get_service_type_display }}<br>
+{% if package %}
+    Price: </strong> &#8358;{{ package.price|floatformat:2 }}<br>
+    Delivery: {{ package.delivery_time_days }} days
 {% else %}
     N/A<br>N/A
 {% endif %}

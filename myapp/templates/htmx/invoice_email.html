@@ -101,10 +101,10 @@
                 <tbody>
                     {% for item in items %}
                     <tr>
-                        <td>{{item.service.service_type}}</td>
+                        <td>{{item.package.service_type}}</td>
                         <td>{{ item.name }}</td>
                         <td>{{ item.color }}</td>
-                        <td class="text-right"><span>&#8358;</span>{{ item.service.price|floatformat:2 }}</td>
+                        <td class="text-right"><span>&#8358;</span>{{ item.package.price|floatformat:2 }}</td>
                     </tr>
                     {% endfor %}
                     <tr>

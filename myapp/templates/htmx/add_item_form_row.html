@@ -4,22 +4,22 @@
             name="category" 
             id="id_category"
             hx-get="{% url 'laundry:htmx_get_package_options' %}"
-            hx-target="#id_service"
+            hx-target="#id_package"
             hx-trigger="change"
             hx-swap="innerHTML"
             class="form-select"
         >
 
             <option value="">---------</option>
-            {% for package in packages %}
-                <option value="{{ package.id }}">{{ package.category.name }}</option>
+            {% for category in categories %}
+                <option value="{{ category.id }}">{{ category.name }}</option>
             {% endfor %}
         </select>
     </td>
     <td>
         <select 
-            name="service" 
-            id="id_service"
+            name="package" 
+            id="id_package"
             hx-get="{% url 'laundry:htmx_get_package_details' %}"
             hx-target="#price-delivery-details"
             hx-trigger="change"

@@ -1,0 +1,9 @@
+<div class="alert alert-danger p-2 mb-0">
+    <ul class="mb-0">
+        {% for field_name, field_errors in errors.items %}
+            {% for error in field_errors %}
+                <li><strong>{{ field_name|title }}:</strong> {{ error }}</li>
+            {% endfor %}
+        {% endfor %}
+    </ul>
+</div>

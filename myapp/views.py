@@ -1,4 +1,5 @@
 import logging
+from math import log
 import uuid
 import json
 import hmac
@@ -190,13 +191,14 @@ def comment_order(request, order_id):
     Allows a customer to leave a comment on their order.
     """
     logger.info(f"User {request.user} is commenting on order {order_id}.")
-    order = get_object_or_404(Order, id=order_id, user=request.user)
+    order = get_object_or_404(Order, id=order_id)
     if request.method == 'POST':
         form = CommentForm(request.POST)
         if form.is_valid():
             comment = form.save(commit=False)
             comment.order = order
-            comment.author = request.user
+            comment.author = order.customer_email
+            # comment.author = order.customer_email or request.user.email  
             comment.body = form.cleaned_data['body']
             comment.save()
             order.has_comment = True
@@ -249,11 +251,13 @@ def admin_review_request(request, order_id):
     order = get_object_or_404(Order, id=order_id)
     form = OrderItemForm()
     packages = Package.objects.all()
+    categories = ServiceCategory.objects.all()
     
     context = {
         'order': order,
         'form': form,
         'packages': packages,
+        'categories': categories,
     }
     return render(request, 'admin_review_request.html', context)
 
@@ -289,8 +293,8 @@ def htmx_get_package_options(request):
         # logger.error(f"User {request.user} is getting packages for category {request.GET.get('category')}.")
         return HttpResponse('')
     
-    package = Package.objects.filter(category_id=category_id)
-    context = {'packages': package}
+    options= Package.objects.filter(category_id=category_id)
+    context = {'options': options}
     return render(request, 'htmx/service_options.html', context)
 
 @require_http_methods(["GET"])
@@ -486,7 +490,7 @@ def htmx_send_invoice1(request, order_id):
 
 
 def get_paypal_access_token():
-    logger.info(f"User {request.user} is getting PayPal access token.")
+    logger.info("Getting PayPal access token.")
     """Retrieves a PayPal access token."""
     auth = (settings.PAYPAL_CLIENT_ID, settings.PAYPAL_CLIENT_SECRET)
     headers = {'Accept': 'application/json', 'Accept-Language': 'en_US'}
@@ -529,8 +533,9 @@ def create_paypal_payment(request, order_id):
     # The full callback URL must be passed from the calling view (htmx_send_invoice)
     # For now, we'll use a placeholder for the callback URL structure
     
+    amount_kobo = int(order.total_price * 100) if order.total_price else 0
     return_data = {
-        "email": email,
+        "email": order.customer_email,
         "amount": amount_kobo,
         "reference": ref,
         # Paystack will redirect the user to this URL after payment attempt
@@ -573,7 +578,7 @@ def verify_paystack_payment(ref):
     }
     
     try:
-        logger.info(f"User {request.user} is verifying PayPal payment for ref {ref}.")
+        logger.info(f"Verifying PayPal payment for ref {ref}.")
         response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status() 
         data = response.json()
@@ -752,7 +757,7 @@ def htmx_send_invoice(request, order_id):
         )
         email.content_subtype = "html"
         email.send()
-        
+        logger.info(f"Invoice email sent successfully to {order.customer_email} for Order {order.id}.")
         return render(request, 'htmx/invoice_sent_message.html')
 
     except Exception as e:
