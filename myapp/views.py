@@ -224,6 +224,7 @@ def accept_order(request, order_id):
     """
     Allows a customer to accept an order.
     """
+    log
     order = get_object_or_404(Order, id=order_id, user=request.user)
     order.status = 'accepted'
     order.save()
@@ -325,27 +326,111 @@ def admin_review_request(request, order_id):
     }
     return render(request, 'admin_review_request.html', context)
 
-# @is_admin
-# @require_http_methods(["POST"])
+@require_http_methods(["POST"])
 def admin_approve_comment(request, order_id):
     """
-    Allows an admin to approve a customer's comment.
+    Handles admin responses to commented orders (Approve vs Review).
+    Persists admin notes into the Comment model.
     """
-    logger.info(f"Admin {request.user} is approving comment for order {order_id}.")
-    order = get_object_or_404(Order, id=order_id)
-    comment = order.comment_set.first()
-    if comment:
-        comment.is_approved = True
-        comment.actor = "staff"
-        comment.save()
-        order.has_comment = False
-        order.status = "confirmed"
-        order.save()
-    logger.info(f"Comment approved successfully: {comment}")
-    messages.success(request, "Comment approved successfully.")
-    return redirect('laundry:admin_dashboard')
+    try:
+        logger.info(f"Admin {request.user} is processing comment for order {order_id}.")
+        order = get_object_or_404(Order, id=order_id)
+        
+        action = request.POST.get('action')
+        admin_note = request.POST.get('admin_note', '').strip()
+        
+        # Persist Admin Comment into the Comment model
+        if admin_note:
+            from myapp.models import Comment
+            Comment.objects.create(
+                order=order,
+                actor="staff",
+                body=admin_note,
+                is_approved=True
+            )
+            logger.info(f"Admin note saved for order {order_id}.")
+            
+        if action == 'approve':
+            customer_comment = order.comment_set.filter(actor='customer').first()
+            if customer_comment:
+                customer_comment.is_approved = True
+                customer_comment.save()
+            
+            order.has_comment = False
+            order.status = "confirmed"
+            order.save()
+            messages.success(request, "Comment approved and order confirmed successfully.")
+            return redirect('laundry:admin_dashboard')
+            
+        elif action == 'review':
+            messages.success(request, "Note saved. Initializing review mode.")
+            return redirect('laundry:admin_review_request', order_id=order.id)
+            
+        else:
+            messages.error(request, "Invalid action requested.")
+            return redirect('laundry:admin_dashboard')
+
+    except Exception as e:
+        logger.error(f"Error handling admin comment for order {order_id}: {e}", exc_info=True)
+        messages.error(request, "An unexpected error occurred while processing the comment.")
+        return redirect('laundry:admin_dashboard')
+
+@require_http_methods(["GET"])
+def view_order_admin(request, order_id):
+    """
+    Renders detailed workflow stages for an order's items for admin tracking.
+    """
+    try:
+        logger.info(f"Admin {request.user} is viewing progress for order {order_id}.")
+        order = get_object_or_404(Order, id=order_id)
+        
+        items = order.items.all()
+        from django.contrib.contenttypes.models import ContentType
+        from myapp.models import WorkflowInstance
+        ct = ContentType.objects.get_for_model(OrderItem)
+        
+        items_data = []
+        for item in items:
+            instance = WorkflowInstance.objects.filter(content_type=ct, object_id=item.id).first()
+            stage_chain = []
+            current_stage = None
+            
+            if instance and instance.workflow:
+                stage_chain = instance.workflow.stages.order_by('sequence')
+                current_stage = instance.current_stage
+
+            items_data.append({
+                'item': item,
+                'workflow_instance': instance,
+                'stage_chain': stage_chain,
+                'current_stage': current_stage
+            })
+            
+        context = {
+            'order': order,
+            'items_data': items_data
+        }
+        return render(request, 'view_order_admin.html', context)
+    except Exception as e:
+        logger.error(f"Error fetching extended admin order view {order_id}: {e}", exc_info=True)
+        messages.error(request, "Could not load the workflow tracker.")
+        return redirect('laundry:admin_dashboard')
 
 # HTMX endpoints
+@require_http_methods(["GET"])
+def htmx_check_email(request):
+    """
+    Checks if a user already has a pending order based on email.
+    """
+    logger.info(f"Checking for pending orders for email: {request.GET.get('customer_email', '').strip()}")
+    email = request.GET.get('customer_email', '').strip()
+    if email:
+        # Check if they have an order that hasn't been picked up/processed yet
+        pending_exists = Order.objects.filter(customer_email=email, status='pending').exists()
+        if pending_exists:
+            return HttpResponse('<div class="text-danger small fw-bold mb-3"><i class="fas fa-exclamation-circle me-1"></i>You already have a pending request to be picked up.</div>')
+    return HttpResponse('')
+
 @require_http_methods(["GET"])
 def htmx_get_package_options(request):
     """
@@ -487,6 +572,7 @@ def htmx_get_order_summary(request, order_id):
 @csrf_exempt
 @require_http_methods(["POST"])
 def htmx_send_invoice1(request, order_id):
+    logger.info(f"User {request.user} is sending invoice for order {order_id}.")
     order = get_object_or_404(Order, id=order_id)
     # order.status = 'in_progress' # Mark as in progress after invoicing
     # order.save()
@@ -678,6 +764,7 @@ def initiate_paystack_transaction(request, email, amount, order_id):
                or (None, None) on failure.
     """
     # Paystack requires amount in kobo/cent (integer), so multiply by 100
+    logger.info(f"Initiating Paystack transaction for order {order_id} with email {email} and amount {amount}.")
     try:
         amount_kobo = int(amount * 100)
     except (TypeError, ValueError):
@@ -996,6 +1083,7 @@ def paystack_webhook_view(request):
     Handles asynchronous notifications from Paystack (Webhook URL).
     Verifies the request signature before processing the event.
     """
+    logger.info("Received Paystack webhook notification.")
     if request.method != 'POST':
         # Paystack only sends POST requests
         return HttpResponseBadRequest("Invalid request method.")
@@ -1100,6 +1188,7 @@ def paystack_cancel(request):
 
 @csrf_exempt
 def laundry_request_confirmation(request):
+    logger.info(f"User {request.user} is sending laundry request confirmation email.")
     send_mail(
         'Laundry Service Request Confirmation',
         'Your request has been received. A dispatch agent will visit shortly.',
@@ -1113,6 +1202,7 @@ from django.db import transaction
 @is_admin
 @require_http_methods(["GET"])
 def assign_qr_to_order_view(request, order_id):
+    logger.info(f"User {request.user} is accessing QR assignment page for order {order_id}.")
     order = get_object_or_404(Order, id=order_id)
     items = order.items.all()
     context = {
@@ -1125,6 +1215,7 @@ def assign_qr_to_order_view(request, order_id):
 @is_admin
 @require_http_methods(["POST"])
 def api_assign_qr_to_item(request, item_id):
+    logger.info(f"User {request.user} is attempting to assign QR code to item {item_id}.")
     try:
         logger.info(f"User {request.user} is assigning QR code to item {item_id}.")
         data = json.loads(request.body)
@@ -1176,6 +1267,7 @@ def api_assign_qr_to_item(request, item_id):
 @is_admin
 @require_http_methods(["POST"])
 def api_assign_qr_to_itemv1(request, item_id):
+    logger.info(f"User {request.user} is attempting to assign QR code to item {item_id}.")
     try:
         data = json.loads(request.body)
         code = data.get('qr_code')
@@ -1224,6 +1316,7 @@ from django.contrib.contenttypes.models import ContentType
 @csrf_exempt
 @login_required
 def employee_queue(request):
+    logger.info(f"User {request.user} is accessing the employee queue.")
     try:
         employee = request.user.employee
     except Exception:
@@ -1258,6 +1351,7 @@ def employee_queue(request):
 @csrf_exempt
 @login_required
 def accept_item(request, item_id):
+    logger.info(f"User {request.user} is attempting to accept item {item_id}.")
     item = get_object_or_404(OrderItem, id=item_id)
     try:
         employee = request.user.employee
@@ -1329,10 +1423,14 @@ def accept_item(request, item_id):
         action="Accept"
     )
 
+    referer = request.META.get('HTTP_REFERER', '')
+    if 'transit' in referer:
+        return redirect('laundry:qr_transit_scanner')
     return redirect('laundry:employee_queue')
 @csrf_exempt
 @login_required
 def reject_item(request, item_id):
+    logger.error(f"User {request.user} is attempting to reject item {item_id}.")
     item = get_object_or_404(OrderItem, id=item_id)
     try:
         employee = request.user.employee
@@ -1362,10 +1460,16 @@ def reject_item(request, item_id):
 
     from_stage_name = stage.service_action.name if stage.service_action else f"Stage {stage.sequence}"
 
-    prev_stage = WorkflowStage.objects.filter(
-        workflow=instance.workflow,
-        sequence__lt=stage.sequence
-    ).order_by('-sequence').first()
+    target_stage_id = request.POST.get('target_stage_id')
+    rejection_reason = request.POST.get('rejection_reason', 'Rejected during transit')
+
+    if target_stage_id:
+        prev_stage = WorkflowStage.objects.filter(id=target_stage_id).first()
+    else:
+        prev_stage = WorkflowStage.objects.filter(
+            workflow=instance.workflow,
+            sequence__lt=stage.sequence
+        ).order_by('-sequence').first()
 
     if prev_stage:
         instance.current_stage = prev_stage
@@ -1373,7 +1477,7 @@ def reject_item(request, item_id):
         item.status = prev_stage.service_action.name if prev_stage.service_action else f"Stage {prev_stage.sequence}"
         item.save()
         to_stage_name = item.status
-        messages.success(request, f"Item rejected and sent back to {to_stage_name}.")
+        messages.warning(request, f"Item rejected and sent back to {to_stage_name}. Reason: {rejection_reason}")
         
         prev_actor = prev_stage.responsible_officer
         
@@ -1383,10 +1487,73 @@ def reject_item(request, item_id):
             to_stage=to_stage_name,
             actor=employee,
             previous_actor=prev_actor,
+            notes=f"Returned to {to_stage_name}. Reason: {rejection_reason}",
             action="Reject"
         )
     else:
         messages.error(request, "Cannot reject further. Item is at the first stage.")
         return redirect(request.META.get('HTTP_REFERER', '/'))
 
+    referer = request.META.get('HTTP_REFERER', '')
+    if 'transit' in referer:
+        return redirect('laundry:qr_transit_scanner')
     return redirect('laundry:employee_queue')
+
+# --------------------------------------------
+# TRANSIT SCANNER (WORKFLOW ENGINE EXTENSION)
+# --------------------------------------------
+@require_http_methods(["GET"])
+def qr_transit_scanner(request):
+    """
+    Renders the page for scanning items to transition them in their workflow.
+    """
+    logger.info(f"User {request.user} is accessing the QR transit scanner.")
+
+    return render(request, 'transit_scanner.html')
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def htmx_transit_scan(request):
+    """
+    Called via HTMX POST when a QR code is scanned in transit.
+    Returns the action card (transit_action_card.html) for that item.
+    """
+    import json
+    logger.info(f"User {request.user} submitted a transit scan.")
+    try:
+        data = json.loads(request.body)
+        decoded_text = data.get('decodedText', '').strip()
+    except json.JSONDecodeError:
+        decoded_text = request.POST.get('decodedText', '').strip()
+
+    if not decoded_text:
+        return HttpResponse('<div class="alert alert-danger"><i class="fas fa-exclamation-triangle me-1"></i>Invalid scan data received.</div>')
+
+    # Find the order item by QR code
+    item = OrderItem.objects.filter(qr_code=decoded_text).first()
+    if not item:
+        return HttpResponse('<div class="alert alert-danger"><i class="fas fa-search me-1"></i>No item found matching this QR code.</div>')
+
+    from django.contrib.contenttypes.models import ContentType
+    from myapp.models import WorkflowInstance
+    ct = ContentType.objects.get_for_model(OrderItem)
+    instance = WorkflowInstance.objects.filter(content_type=ct, object_id=item.id).first()
+
+    if not instance:
+        return HttpResponse('<div class="alert alert-warning"><i class="fas fa-info-circle me-1"></i>This item has no assigned workflow engine yet.</div>')
+        
+    if instance.completed_at:
+        return HttpResponse('<div class="alert alert-success"><i class="fas fa-check-circle me-1"></i>This item has already completed its workflow lifecycle.</div>')
+
+    # Get prior stages for selective rejection
+    prior_stages = []
+    if instance.current_stage:
+        prior_stages = instance.workflow.stages.filter(sequence__lt=instance.current_stage.sequence).order_by('-sequence')
+
+    context = {
+        'item': item,
+        'instance': instance,
+        'current_stage': instance.current_stage,
+        'prior_stages': prior_stages
+    }
+    return render(request, 'htmx/transit_action_card.html', context)

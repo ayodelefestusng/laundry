@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+/* Reset any overly restrictive camera box borders that might conflict with Html5Qrcode */
+#reader {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+#reader video {
+    border-radius: 8px;
+}
+</style>
+
+<div class="container my-5">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+        <h2 class="fw-bold m-0"><i class="fas fa-barcode text-primary me-2"></i>Workflow Transit Scanner</h2>
+        <a href="{% url 'laundry:admin_dashboard' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> Back</a>
+    </div>
+
+    <!-- Scanner Layout -->
+    <div class="row g-4 justify-content-center">
+        <!-- Scanner Section -->
+        <div class="col-md-5">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-white p-3 border-bottom text-center">
+                    <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-camera text-primary me-1"></i> Scan Item QR</h5>
+                </div>
+                <div class="card-body p-4 text-center">
+                    
+                    <button class="btn btn-primary fw-bold px-4 py-2 mb-3 shadow-sm" id="start-scanner-btn">
+                        <i class="fas fa-camera me-2"></i> Start Scanner
+                    </button>
+                    
+                    <div id="reader-container" style="display: none;">
+                        <p class="text-muted fw-bold mb-2">Live Camera Feed:</p>
+                        <div id="reader" style="width: 100%;"></div>
+                        <button class="btn btn-danger btn-sm mt-3 fw-bold shadow-sm" id="cancel-scan">
+                            <i class="fas fa-stop-circle me-1"></i> Cancel
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Result Action Card Section -->
+        <div class="col-md-7">
+            <div class="card shadow-sm border-0 rounded-4 h-100 bg-light">
+                <div class="card-header bg-white p-3 border-bottom text-center">
+                    <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-clipboard-check text-success me-1"></i> Item Action Panel</h5>
+                </div>
+                <div class="card-body p-4 d-flex flex-column align-items-center justify-content-center" id="transit-action-container">
+                    <i class="fas fa-qrcode fa-5x mb-3 text-secondary opacity-25"></i>
+                    <h4 class="text-secondary fw-bold">Ready to Scan</h4>
+                    <p class="text-muted mb-0">Point camera at a package QR code to load workflow actions.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts must be inside the content block to actually render, like assign_qr.html -->
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let html5QrcodeScanner = null;
+    
+    const startBtn = document.getElementById('start-scanner-btn');
+    const readerContainer = document.getElementById('reader-container');
+    const cancelBtn = document.getElementById('cancel-scan');
+    const actionContainer = document.getElementById('transit-action-container');
+    
+    startBtn.addEventListener('click', function() {
+        startBtn.style.display = 'none';
+        readerContainer.style.display = 'block';
+        
+        // Exact assign_qr.html logic
+        html5QrcodeScanner = new Html5Qrcode("reader");
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+        
+        html5QrcodeScanner.start(
+            { facingMode: "environment" }, 
+            config, 
+            onScanSuccess,
+            onScanFailure
+        ).catch(err => {
+            alert('Error starting camera: ' + err);
+            stopScanner();
+        });
+    });
+    
+    cancelBtn.addEventListener('click', function() {
+        stopScanner();
+    });
+    
+    function stopScanner() {
+        if (html5QrcodeScanner) {
+            html5QrcodeScanner.stop().then(() => {
+                html5QrcodeScanner.clear();
+                readerContainer.style.display = 'none';
+                startBtn.style.display = 'inline-block';
+            }).catch(err => {
+                console.error("Failed to stop scanner", err);
+            });
+        }
+    }
+    
+    function onScanFailure(error) {
+        // Ignore constantly streaming scan failures
+    }
+    
+    function onScanSuccess(decodedText, decodedResult) {
+        if (html5QrcodeScanner.getState() !== 2) return;
+        html5QrcodeScanner.pause();
+        
+        // Show loading state directly in the action container
+        actionContainer.innerHTML = `<h4 class="text-primary"><i class="fas fa-sync fa-spin me-2"></i> Fetching Item Details...</h4><p class="text-muted">QR Code: ${decodedText}</p>`;
+        
+        fetch('{% url "laundry:htmx_transit_scan" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}' // Rely on existing context variable
+            },
+            body: JSON.stringify({ decodedText: decodedText })
+        })
+        .then(response => response.text())
+        .then(html => {
+            actionContainer.innerHTML = html;
+            stopScanner();
+            
+            // Re-bind inline start scanner callback if they want to scan again
+            actionContainer.insertAdjacentHTML('beforeend', `
+                <div class="mt-4 text-center border-top pt-3">
+                     <button class="btn btn-outline-primary btn-sm fw-bold" onclick="window.location.reload()"><i class="fas fa-camera me-1"></i> Scan Next Item</button>
+                </div>
+            `);
+        })
+        .catch(error => {
+            alert('Network error fetching transit state.');
+            setTimeout(() => html5QrcodeScanner.resume(), 2000);
+        });
+    }
+
+    // Auto-start the scanner on page load natively
+    setTimeout(() => {
+        if (startBtn.style.display !== 'none') {
+            startBtn.click();
+        }
+    }, 500);
+});
+</script>
+{% endblock %}

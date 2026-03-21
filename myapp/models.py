@@ -100,21 +100,22 @@ def validate_nigerian_phone(value):
 
 
 class CustomUserManager(BaseUserManager):
-    def create_user(self, email, password=None):
+    def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError("Email is required")
         email = self.normalize_email(email)
-        user = self.model(email=email)
+        # Pass extra_fields (like 'name') into the model constructor
+        user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, email, password=None, phone=None):
-        user = self.create_user(email, password)
+    def create_superuser(self, email, password=None, phone=None, **extra_fields):
+        user = self.create_user(email, password, **extra_fields)
         user.is_superuser = True
         user.is_staff = True
         if phone:
-            user.phone = phone
+            user.phone = phone  
         user.save(using=self._db)
         return user
 
@@ -127,7 +128,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     )
 
     email = models.EmailField(unique=True)
-    name = models.CharField(_("full name"), max_length=255, blank=True, null=True)
+    name = models.CharField(max_length=255, blank=True, null=True)
     phone = models.CharField(max_length=15, blank=True, null=True, validators=[validate_nigerian_phone])
 
     is_active = models.BooleanField(default=True)
@@ -154,7 +155,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     )
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["full_name"]
+    REQUIRED_FIELDS = ["name"]
 
     objects = CustomUserManager()
     # Add this to your User model in user/models.py
@@ -402,8 +403,10 @@ class QR(TenantModel):
     code = models.CharField(max_length=100, unique=True)
     status = models.CharField(max_length=20, choices=QR_STATUS_CHOICES, default='unused')
     # order_item = models.OneToOneField('OrderItem', on_delete=models.CASCADE, related_name='qr_codes', null=True, blank=True)
-    # def __str__(self):
-    #     return f"{self.code}  in Order #{self.order_item.order.id}"
+    def __str__(self):
+        return f"{self.code}  in Order #{self.status}"
+    
+    
 class Order(TenantModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     # user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -515,7 +518,11 @@ ACTOR = (
 )
 
 class Comment(TenantModel):
-    order = models.ForeignKey(Order, on_delete=models.SET_DEFAULT, default="missing_id", related_name='comments')
+    order = models.ForeignKey(Order, 
+        on_delete=models.SET_NULL, 
+        related_name='comments', 
+        null=True, 
+        blank=True)
     actor=models.CharField(max_length=20, choices=ACTOR, default='customer')
     # user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='comments', null=True, blank=True)
     body = models.TextField()
@@ -637,8 +644,30 @@ class WorkflowStage(TenantModel):
         unique_together = ("workflow", "sequence", "tenant")
 
     
-
     def clean(self):
+        super().clean()
+        if self.sequence < 1:
+            raise ValidationError("Sequence must start from 1.")
+        
+        # FIX: Only run the database filter if the parent workflow already exists
+        if self.workflow and self.workflow.pk:
+            existing_stages = WorkflowStage.objects.filter(
+                workflow=self.workflow, 
+                tenant=self.tenant
+            ).exclude(pk=self.pk).values_list('sequence', flat=True)
+
+            if existing_stages:
+                max_seq = max(existing_stages)
+                if self.sequence > max_seq + 1:
+                    raise ValidationError(
+                        f"Sequence is not consecutive. The next sequence should be {max_seq + 1}."
+                    )
+        else:
+            # Logic for brand new Workflow records (Optional)
+            # You can't easily check 'existing_stages' here because they aren't saved yet.
+            # Usually, it's safe to let the first save happen, then validate on updates.
+            pass
+    def cleanv1(self):
         super().clean()
         if self.sequence < 1:
             raise ValidationError("Sequence must start from 1.")
@@ -673,7 +702,7 @@ class WorkflowStage(TenantModel):
     
     def __str__(self):
         return (
-            f"{self.workflow.name} - Stage {self.sequence}: {self.responsible_officer.name}"
+            f"{self.workflow.name} - Stage {self.sequence}: "
         )
 
 STATUS_CHOICES =[
@@ -928,6 +957,9 @@ class WorkflowInstance(TenantModel):
         except Exception as e:
             logger.error(f"Error moving to next stage: {e}", exc_info=True)
     # Inside WorkflowInstance
+
+
+
 class HistoricalRecord(TenantModel):
     instance = models.ForeignKey(
         WorkflowInstance, on_delete=models.CASCADE, related_name="history"

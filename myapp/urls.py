@@ -1,5 +1,7 @@
 from django.urls import path
 
+from django.urls import path
+from django.contrib.auth import views as auth_views
 from . import views
 
 app_name = 'laundry'
@@ -9,6 +11,7 @@ urlpatterns = [
     path('homes2/', views.homepage, name='homepage'),
     path('register/', views.register, name='register'),
     path('logout/', views.custom_logout, name='logout'),
+    path('login/', auth_views.LoginView.as_view(), name='login'),
     path('', views.customer_order, name='customer_order'),
     # path('customer/dashboard/', views.customer_dashboard, name='customer_dashboard'),
     path('customer/order/<uuid:order_id>/', views.order_detail, name='order_detail'),
@@ -27,11 +30,14 @@ urlpatterns = [
     path('dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('review/<uuid:order_id>/', views.admin_review_request, name='admin_review_request'),
     path('approve_comment/<uuid:order_id>/', views.admin_approve_comment, name='admin_approve_comment'),
+    path('view_order_admin/<uuid:order_id>/', views.view_order_admin, name='view_order_admin'),
     
     # Employee Workflow views
     path('employee/queue/', views.employee_queue, name='employee_queue'),
     path('employee/accept/<int:item_id>/', views.accept_item, name='accept_item'),
     path('employee/reject/<int:item_id>/', views.reject_item, name='reject_item'),
+    path('transit/', views.qr_transit_scanner, name='qr_transit_scanner'),
+    path('transit/scan/', views.htmx_transit_scan, name='htmx_transit_scan'),
 
     # HTMX endpoints
     path('htmx/get_services/', views.htmx_get_package_options, name='htmx_get_package_options'),

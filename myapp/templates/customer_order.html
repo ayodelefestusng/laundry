@@ -12,7 +12,13 @@
 
     <form method="post" class="mt-4">
       {% csrf_token %}
-      {{ form|crispy }}
+      {{ form.customer_name|as_crispy_field }}
+      {{ form.customer_email|as_crispy_field }}
+      <div id="email-error"></div>
+      {{ form.customer_phone|as_crispy_field }}
+      {{ form.address|as_crispy_field }}
+      {{ form.pickup_date|as_crispy_field }}
+      {{ form.special_instructions|as_crispy_field }}
       <div class="text-center mt-4">
         <button type="submit" class="btn btn-primary btn-sm">Submit Order</button>
       </div>

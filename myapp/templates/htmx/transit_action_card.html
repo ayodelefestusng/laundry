@@ -1,0 +1,76 @@
+<div class="w-100 h-100 d-flex flex-column">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
+        <h4 class="fw-bold m-0 text-dark">{{ item.name }}</h4>
+        <span class="badge bg-secondary d-flex align-items-center px-3 py-2 fs-6">
+            <i class="fas fa-qrcode me-2"></i>{{ item.qr_code|truncatechars:12 }}
+        </span>
+    </div>
+    
+    <!-- Info row -->
+    <div class="row mb-4">
+        <div class="col-6">
+            <p class="text-muted small mb-1 text-uppercase fw-bold letter-spacing-1">Service Package</p>
+            <p class="fw-bold text-dark fs-5">{{ item.package.get_service_type_display }}</p>
+        </div>
+        <div class="col-6">
+            <p class="text-muted small mb-1 text-uppercase fw-bold letter-spacing-1">Current Stage</p>
+            <p class="fw-bold text-primary fs-5"><i class="fas fa-spinner fa-spin me-2"></i>{{ current_stage.service_action.name }}</p>
+        </div>
+    </div>
+    
+    <!-- Stage Details Card -->
+    <div class="bg-white border rounded container-fluid p-3 mb-4 shadow-sm border-primary border-start border-4 text-start">
+        <p class="fw-bold text-primary mb-2 border-bottom pb-1"><i class="fas fa-info-circle me-1"></i> Assignment Details</p>
+        <div class="d-flex justify-content-between">
+            <p class="mb-0 text-dark"><strong>Required Role:</strong> <span class="badge bg-light text-dark border">{{ current_stage.responsible_officer }}</span></p>
+            <p class="mb-0 text-dark"><strong>Time Allotted:</strong> {{ current_stage.turnaround_time }} hrs</p>
+        </div>
+    </div>
+    
+    <div class="mt-auto">
+        <!-- Action Buttons -->
+        <h6 class="text-muted fw-bold mb-3 text-start">Log Work & Proceed</h6>
+        <div class="d-flex gap-3">
+            <!-- Accept Button Form -->
+            <form method="post" action="{% url 'laundry:accept_item' item.id %}" class="flex-grow-1 m-0">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success w-100 fw-bold py-3 shadow">
+                    <i class="fas fa-check-circle fa-lg me-1"></i> Accept & Continue
+                </button>
+            </form>
+            
+            <!-- Reject Button Trigger -->
+            <button type="button" class="btn btn-outline-danger flex-grow-1 fw-bold py-3 shadow-sm bg-white" data-bs-toggle="collapse" data-bs-target="#rejectFormContainer">
+                <i class="fas fa-times-circle fa-lg me-1"></i> Reject & Return
+            </button>
+        </div>
+        
+        <!-- Reject Form (Collapsible) -->
+        <div class="collapse mt-3" id="rejectFormContainer">
+            <div class="card card-body bg-danger bg-opacity-10 border-danger text-start">
+                <form method="post" action="{% url 'laundry:reject_item' item.id %}" class="m-0">
+                    {% csrf_token %}
+                    
+                    <label class="fw-bold text-danger mb-2 small"><i class="fas fa-undo me-1"></i> Return Back To Stage:</label>
+                    <select name="target_stage_id" class="form-select border-danger bg-white mb-3" required>
+                        <option value="">-- Select Prior Stage --</option>
+                        {% for stage in prior_stages %}
+                            <option value="{{ stage.id }}">Stage #{{ stage.sequence }}: {{ stage.service_action.name }}</option>
+                        {% empty %}
+                            <option value="" disabled>No prior stages available</option>
+                        {% endfor %}
+                    </select>
+                    
+                    <label class="fw-bold mb-1 small text-dark">Reason for Rejection :</label>
+                    <textarea name="rejection_reason" class="form-control mb-3 border-danger bg-white" rows="2" placeholder="e.g. Stains were not removed..." required></textarea>
+                    
+                    <div class="text-end">
+                        <button type="button" class="btn btn-light btn-sm fw-bold me-2 border" data-bs-toggle="collapse" data-bs-target="#rejectFormContainer">Cancel</button>
+                        <button type="submit" class="btn btn-danger btn-sm fw-bold px-4 shadow-sm"><i class="fas fa-paper-plane me-1"></i> Submit Return</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

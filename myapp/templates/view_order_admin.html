@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+/* CSS styles for hover effects and polishing */
+.dashboard-card { transition: transform 0.2s, box-shadow 0.2s; border-radius: 12px; border: none; }
+.dashboard-card:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+</style>
+
+<div class="container my-5">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+        <h2 class="fw-bold m-0"><i class="fas fa-sitemap text-primary me-2"></i>Order Workflow Tracker ({{ order.order_code }})</h2>
+        <a href="{% url 'laundry:admin_dashboard' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> Back to Dashboard</a>
+    </div>
+
+    <!-- Order Details -->
+    <div class="card shadow-sm border-0 mb-5 rounded-4 bg-light">
+        <div class="card-body p-4">
+            <h5 class="fw-bold mb-3 text-secondary border-bottom pb-2">Order Information</h5>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <p class="text-muted mb-1 small text-uppercase fw-bold">Customer</p>
+                    <p class="fw-semibold mb-0">{{ order.customer_name|default:order.customer_email }}</p>
+                </div>
+                <div class="col-md-3">
+                    <p class="text-muted mb-1 small text-uppercase fw-bold">Created</p>
+                    <p class="fw-semibold mb-0">{{ order.created_at|date:"M d, Y - g:i A" }}</p>
+                </div>
+                <div class="col-md-3">
+                     <p class="text-muted mb-1 small text-uppercase fw-bold">Pickup Date</p>
+                     <p class="fw-semibold mb-0">{{ order.pickup_date|date:"M d, Y"|default:"Not Scheduled" }}</p>
+                </div>
+                <div class="col-md-3">
+                    <p class="text-muted mb-1 small text-uppercase fw-bold">Instructions</p>
+                    <p class="mb-0 small fst-italic">{{ order.special_instructions|default:"None" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h4 class="fw-bold mb-4">Item Workflows</h4>
+    
+    {% for data in items_data %}
+    <div class="card shadow-sm border-0 mb-4 rounded-4 dashboard-card">
+        <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="mb-0 fw-bold">{{ data.item.name }}</h5>
+                <p class="text-muted mb-0 small">Package: {{ data.item.package.get_service_type_display }} • Color: {{ data.item.color|default:"N/A" }} • Price: ${{ data.item.price }}</p>
+            </div>
+            {% if data.item.qr_code %}
+            <span class="badge bg-secondary px-3 py-2"><i class="fas fa-qrcode me-1"></i> {{ data.item.qr_code|truncatechars:15 }}</span>
+            {% else %}
+            <span class="badge bg-warning text-dark px-3 py-2"><i class="fas fa-exclamation-triangle me-1"></i> Assignment Pending</span>
+            {% endif %}
+        </div>
+        
+        <div class="card-body p-4 bg-light overflow-auto">
+            {% if data.stage_chain %}
+                <h6 class="fw-bold mb-4 text-secondary">Workflow Progress</h6>
+                
+                <div class="d-flex justify-content-between position-relative pb-4 pt-2" style="min-width: 600px;">
+                    <!-- Base line for the workflow chain -->
+                    <div class="position-absolute top-50 start-0 w-100 bg-secondary bg-opacity-25" style="height: 4px; transform: translateY(-50%); z-index: 1;"></div>
+                    
+                    {% for stage in data.stage_chain %}
+                        {% if data.current_stage and stage.sequence < data.current_stage.sequence or data.workflow_instance.completed_at %}
+                            <!-- COMPLETED STAGE -->
+                            <div class="text-center position-relative" style="z-index: 2; width: 120px;">
+                                <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center mx-auto mb-2 border border-3 border-white shadow-sm" style="width: 45px; height: 45px;">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                                <p class="fw-bold mb-0 small text-success">{{ stage.service_action.name|default:"Stage" }}</p>
+                            </div>
+                        
+                        {% elif data.current_stage and stage.sequence == data.current_stage.sequence %}
+                            <!-- CURRENT STAGE -->
+                            <div class="text-center position-relative" style="z-index: 2; width: 120px;">
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-2 border border-3 border-primary shadow" style="width: 55px; height: 55px; transform: translateY(-5px);">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                </div>
+                                <p class="fw-bolder mb-0 text-primary">{{ stage.service_action.name|default:"Stage" }}</p>
+                                <span class="badge bg-warning text-dark mt-1" style="font-size: 0.7rem;"><i class="far fa-clock"></i> SLA: {{ stage.turnaround_time }}h</span>
+                            </div>
+                        
+                        {% else %}
+                            <!-- PENDING STAGE -->
+                            <div class="text-center position-relative opacity-50" style="z-index: 2; width: 120px;">
+                                <div class="rounded-circle bg-secondary bg-opacity-25 text-secondary d-flex align-items-center justify-content-center mx-auto mb-2 border border-3 border-white" style="width: 45px; height: 45px;">
+                                    <i class="fas fa-circle" style="font-size: 0.5rem;"></i>
+                                </div>
+                                <p class="mb-0 small text-muted">{{ stage.service_action.name|default:"Stage" }}</p>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    <!-- completion node -->
+                    <div class="text-center position-relative {% if data.workflow_instance.completed_at %}opacity-100{% else %}opacity-50{% endif %}" style="z-index: 2; width: 100px;">
+                         <div class="rounded-circle {% if data.workflow_instance.completed_at %}bg-success text-white{% else %}bg-secondary bg-opacity-25 text-secondary{% endif %} d-flex align-items-center justify-content-center mx-auto mb-2 border border-3 border-white" style="width: 45px; height: 45px;">
+                            <i class="fas fa-flag-checkered"></i>
+                        </div>
+                        <p class="mb-0 small {% if data.workflow_instance.completed_at %}fw-bold text-success{% else %}text-muted{% endif %}">Done</p>
+                    </div>
+                </div>
+
+                {% if data.current_stage %}
+                <div class="mt-4 p-3 bg-white border rounded shadow-sm d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="mb-1 fw-bold text-dark"><i class="fas fa-info-circle text-primary me-2"></i>Current Stage Details</p>
+                        <p class="mb-0 small text-muted">Awaiting Action By: <strong>{{ data.current_stage.responsible_officer }}</strong></p>
+                    </div>
+                    <div class="text-end border-start ps-3">
+                        <p class="mb-0 small text-muted">Max Turnaround: <strong>{{ data.current_stage.turnaround_time }} hours</strong></p>
+                    </div>
+                </div>
+                {% endif %}
+            
+            {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="fas fa-project-diagram fa-2x mb-2 opacity-25"></i>
+                    <p class="mb-0">No workflow assigned or started for this item.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

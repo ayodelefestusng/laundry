@@ -41,7 +41,12 @@ class OrderForm(forms.ModelForm):
         ]
         widgets = {
             'customer_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'customer_email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'customer_email': forms.EmailInput(attrs={
+                'class': 'form-control',
+                'hx-get': '/customer/check_email/',
+                'hx-trigger': 'keyup changed delay:500ms',
+                'hx-target': '#email-error'
+            }),
             'customer_phone': forms.TextInput(attrs={'class': 'form-control'}),
             'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'cols': 40}),
             'pickup_date': forms.DateTimeInput(
