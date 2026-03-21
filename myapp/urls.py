@@ -17,15 +17,21 @@ urlpatterns = [
     path('customer/order/<uuid:order_id>/comment/', views.comment_order, name='comment_order'),
     path('customer/order/<uuid:order_id>/confirm/', views.confirm_order, name='confirm_order'),
     path('comment/success/', views.comment_success, name='comment_success'),
+    
     path('customer/assign_qr/<uuid:order_id>/', views.assign_qr_code, name='assign_qr_code'),
+    path('assign_qr_to_order/<uuid:order_id>/', views.assign_qr_to_order_view, name='assign_qr_to_order'),
    
    
     
 
-    # Admin views
     path('dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('review/<uuid:order_id>/', views.admin_review_request, name='admin_review_request'),
     path('approve_comment/<uuid:order_id>/', views.admin_approve_comment, name='admin_approve_comment'),
+    
+    # Employee Workflow views
+    path('employee/queue/', views.employee_queue, name='employee_queue'),
+    path('employee/accept/<int:item_id>/', views.accept_item, name='accept_item'),
+    path('employee/reject/<int:item_id>/', views.reject_item, name='reject_item'),
 
     # HTMX endpoints
     path('htmx/get_services/', views.htmx_get_package_options, name='htmx_get_package_options'),
@@ -35,6 +41,7 @@ urlpatterns = [
     path('htmx/delete_item/<int:item_id>/', views.htmx_delete_item, name='htmx_delete_item'),
     path('htmx/get_order_summary/<uuid:order_id>/', views.htmx_get_order_summary, name='htmx_get_order_summary'),
     path('htmx/send_invoice/<uuid:order_id>/', views.htmx_send_invoice, name='htmx_send_invoice'),
+    path('api/assign_qr_to_item/<int:item_id>/', views.api_assign_qr_to_item, name='api_assign_qr_to_item'),
 
     # Payment redirects
 #     path('paypal/success/', views.paypal_success, name='paypal_success'),

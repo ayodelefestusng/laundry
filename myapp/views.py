@@ -30,14 +30,14 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 
 from .forms import AddItemForm, CommentForm, OrderForm, OrderItemForm,CustomUserChangeForm,CustomUserCreationForm
-from .models import Comment, Order, OrderItem, Package, ServiceCategory, Payment,CustomUser
+from .models import Comment, Order, OrderItem, Package, ServiceCategory, Payment, CustomUser, PremiumClient, QR, WorkflowHistory, WorkflowInstance, WorkflowStage, Tenant
 from .utils import is_admin
 
 from .models import log_with_context
 
 
 # User-facing views
-
+@csrf_exempt
 def homepage(request):
     """
     Renders the homepage.
@@ -45,6 +45,7 @@ def homepage(request):
     logger.info(f"User {request.user} accessed the homepage.")
     return render(request, 'homepage.html')
 
+@csrf_exempt
 def register(request):
     """
     Renders the user registration form and handles form submission.
@@ -62,6 +63,8 @@ def register(request):
         form = CustomUserCreationForm()
     return render(request, 'register.html', {'form': form})
 
+@csrf_exempt
+@login_required
 def custom_logout(request):
     """
     Logs the user out and redirects to the homepage.
@@ -71,6 +74,77 @@ def custom_logout(request):
     messages.info(request, "You have been logged out successfully.")
     return redirect('users:home')
 
+
+@csrf_exempt
+@login_required
+def customer_order(request):
+    logger.info(f"User {request.user} is placing an order.")
+    if request.method == 'POST':
+        form = OrderForm(request.POST)
+        if form.is_valid():
+            logger.info(f"Form is valid: {form.cleaned_data}")
+            try:
+                order = form.save(commit=False)
+                # order.user = request.user
+                order.save()
+                logger.info(f"Order created successfully: {order}")
+                messages.success(
+                    request, 'Order placed successfully! We will contact you shortly.')
+                send_mail(
+                'Laundry Service Request Confirmation',
+                'Your request has been received. A dispatch agent will visit shortly.',
+                settings.DEFAULT_FROM_EMAIL,
+                [request.user.email],
+                fail_silently=False,
+            )
+                return redirect('laundry:order_detail', order_id=order.id)
+            except IntegrityError:
+                messages.error(
+                    request, "An error occurred while placing the order. Please try again.")
+    else:
+        form = OrderForm()
+    return render(request, 'customer_order.html', {'form': form})
+
+def admin_dashboard(request):
+    """
+    Admin dashboard to view pending, in-progress, and commented orders.
+    """
+    logger.info(f"Admin {request.user} is viewing admin dashboard.")
+    
+    pending_requests = Order.objects.filter(status='pending').order_by('created_at')
+    in_progress_orders = Order.objects.filter(status='in_progress').order_by('-created_at')
+    commented_orders = Order.objects.filter(status='commented').order_by('-created_at')
+    confirmed_orders = Order.objects.filter(status='confirmed').order_by('-created_at')
+    invoiced_sent = Order.objects.filter(status='invoice_sent').order_by('-created_at')
+    # Pipeline data
+    items = OrderItem.objects.all()
+    pipeline_counts = {}
+    for item in items:
+        status = item.status or 'Unknown'
+        pipeline_counts[status] = pipeline_counts.get(status, 0) + 1
+        
+    total_items = items.count()
+    escalated_items = WorkflowHistory.objects.filter(action="Escalate").values('item').distinct().count()
+    rejected_items = WorkflowHistory.objects.filter(action="Reject").values('item').distinct().count()
+
+    context = {
+        'pending_requests': pending_requests,
+        'in_progress_orders': in_progress_orders,
+        'commented_orders': commented_orders,
+        'confirmed_orders': confirmed_orders,
+        'invoiced_sent': invoiced_sent,
+        'pipeline_counts': pipeline_counts,
+        'total_items': total_items,
+        'escalated_items': escalated_items,
+        'rejected_items': rejected_items,
+    }
+    return render(request, 'admin_dashboard.html', context)
+
+
+
+
+
+@csrf_exempt
 @login_required
 @require_http_methods(["GET", "POST"])
 def customer_order1(request):
@@ -109,36 +183,7 @@ def customer_order1(request):
 
 
 
-@login_required
-def customer_order(request):
-    logger.info(f"User {request.user} is placing an order.")
-    if request.method == 'POST':
-        form = OrderForm(request.POST)
-        if form.is_valid():
-            logger.info(f"Form is valid: {form.cleaned_data}")
-            try:
-                order = form.save(commit=False)
-                # order.user = request.user
-                order.save()
-                logger.info(f"Order created successfully: {order}")
-                messages.success(
-                    request, 'Order placed successfully! We will contact you shortly.')
-                send_mail(
-                'Laundry Service Request Confirmation',
-                'Your request has been received. A dispatch agent will visit shortly.',
-                settings.DEFAULT_FROM_EMAIL,
-                [request.user.email],
-                fail_silently=False,
-            )
-                return redirect('laundry:order_detail', order_id=order.id)
-            except IntegrityError:
-                messages.error(
-                    request, "An error occurred while placing the order. Please try again.")
-    else:
-        form = OrderForm()
-    return render(request, 'customer_order.html', {'form': form})
-
-
+@csrf_exempt
 @login_required
 def customer_dashboard(request):
     logger.info(f"User {request.user} is viewing their dashboard.")
@@ -150,7 +195,7 @@ def customer_dashboard(request):
     context = {'orders': customer_orders}
     logger.info(f"Customer orders: {customer_orders}")
     return render(request, 'customer_dashboard.html', context)
-
+@csrf_exempt
 @login_required
 def order_detail(request, order_id):
     logger.info(f"User {request.user} is viewing order {order_id}.")
@@ -162,7 +207,7 @@ def order_detail(request, order_id):
     logger.info(f"Order details: {order}")
     context = {'order': order}
     return render(request, 'order_detail.html', context)
-
+@csrf_exempt
 @login_required
 def customer_review(request, order_id):
     """
@@ -173,7 +218,7 @@ def customer_review(request, order_id):
     context = {'order': order}
     logger.info(f"Order details: {order}")
     return render(request, 'customer_review.html', context)
-
+@csrf_exempt
 @login_required
 def accept_order(request, order_id):
     """
@@ -184,7 +229,7 @@ def accept_order(request, order_id):
     order.save()
     messages.success(request, "Your order has been accepted. Thank you!")
     return redirect('laundry:customer_dashboard')
-
+@csrf_exempt
 @login_required
 def comment_order(request, order_id):
     """
@@ -202,6 +247,7 @@ def comment_order(request, order_id):
             comment.body = form.cleaned_data['body']
             comment.save()
             order.is_confirmed = False
+            order.status = "commented"
             # order.notes=comment.body
             order.save()
             logger.info(f"Comment added successfully: {comment}")
@@ -210,6 +256,8 @@ def comment_order(request, order_id):
         form = CommentForm()
     context = {'order': order, 'form': form}
     return render(request, 'add_comment.html', context)
+
+
 @login_required
 def confirm_order(request, order_id):
     """
@@ -219,6 +267,7 @@ def confirm_order(request, order_id):
     order = get_object_or_404(Order, id=order_id)
     if request.method == 'POST':
             order.is_confirmed = True
+            order.status = "confirmed"
             order.save()
             logger.info(f"Order {order_id} confirmed successfully.")
             return redirect('laundry:admin_dashboard')
@@ -256,30 +305,6 @@ def assign_qr_code(request, order_id):
     return redirect('laundry:order_detail', order_id=order.id)
 # Admin-facing views
 
-def admin_dashboard(request):
-    """
-    Admin dashboard to view pending, in-progress, and commented orders.
-    """
-    logger.info(f"Admin {request.user} is viewing admin dashboard.")
-    # pending_requests = Order.objects.filter(status='pending')
-    # in_progress_orders = Order.objects.filter(status='in_progress')
-    # commented_orders = Order.objects.filter(has_comment=True, comment__is_approved=False).distinct()
-    
-    pending_requests = Order.objects.filter(status='pending').order_by('created_at')
-    in_progress_orders = Order.objects.filter(status='in_progress').order_by('-created_at')
-    commented_orders = Order.objects.filter(has_comment_from_customer=True).order_by('-created_at')
-    confirmed_orders = Order.objects.filter(has_confirmation_received=True).order_by('-created_at')
-
-    logger.info(f"Pending requests: {pending_requests}")
-    logger.info(f"In-progress orders: {in_progress_orders}")
-    logger.info(f"Commented orders: {commented_orders}")
-    context = {
-        'pending_requests': pending_requests,
-        'in_progress_orders': in_progress_orders,
-        'commented_orders': commented_orders,
-        'confirmed_orders': confirmed_orders,
-    }
-    return render(request, 'admin_dashboard.html', context)
 
 @require_http_methods(["GET"])
 def admin_review_request(request, order_id):
@@ -300,8 +325,8 @@ def admin_review_request(request, order_id):
     }
     return render(request, 'admin_review_request.html', context)
 
-@is_admin
-@require_http_methods(["POST"])
+# @is_admin
+# @require_http_methods(["POST"])
 def admin_approve_comment(request, order_id):
     """
     Allows an admin to approve a customer's comment.
@@ -311,8 +336,10 @@ def admin_approve_comment(request, order_id):
     comment = order.comment_set.first()
     if comment:
         comment.is_approved = True
+        comment.actor = "staff"
         comment.save()
         order.has_comment = False
+        order.status = "confirmed"
         order.save()
     logger.info(f"Comment approved successfully: {comment}")
     messages.success(request, "Comment approved successfully.")
@@ -457,7 +484,7 @@ def htmx_get_order_summary(request, order_id):
     logger.info(f"Order summary: {summary}")
     context = {'summary': summary}
     return render(request, 'htmx/order_summary.html', context)
-
+@csrf_exempt
 @require_http_methods(["POST"])
 def htmx_send_invoice1(request, order_id):
     order = get_object_or_404(Order, id=order_id)
@@ -529,7 +556,7 @@ def htmx_send_invoice1(request, order_id):
         messages.error(request, f'Failed to send email: {e}')
         return HttpResponse("Failed to send invoice.", status=500)
 
-
+@csrf_exempt
 def get_paypal_access_token():
     logger.info("Getting PayPal access token.")
     """Retrieves a PayPal access token."""
@@ -546,7 +573,7 @@ def get_paypal_access_token():
         logger.error(f"Error getting PayPal access token: {e}")
         return None
 
-
+@csrf_exempt
 def create_paypal_payment(request, order_id):
     logger.info(f"User {request.user} is creating PayPal payment for order {order_id}.")
     """Initiates a PayPal checkout and redirects the user."""
@@ -606,7 +633,7 @@ def create_paypal_payment(request, order_id):
         return None, None
 
 # Utility function to fetch data from the external API
-
+@csrf_exempt
 def verify_paystack_payment(ref):
     """
     Verifies a Paystack transaction using the reference and Secret Key.
@@ -635,7 +662,7 @@ def verify_paystack_payment(ref):
         return False, {"message": "Verification failed due to network error."}
 
 
-
+@csrf_exempt
 def initiate_paystack_transaction(request, email, amount, order_id):
     """
     Initializes a transaction with the Paystack API.
@@ -705,7 +732,7 @@ def initiate_paystack_transaction(request, email, amount, order_id):
         return None, None
 
 from django.core.exceptions import ObjectDoesNotExist
-
+@csrf_exempt
 def htmx_send_invoice(request, order_id):
     logger.info(f"User {request.user} is sending invoice for order {order_id}.")
     order = get_object_or_404(Order, id=order_id)
@@ -792,6 +819,8 @@ def htmx_send_invoice(request, order_id):
         logger.error(f"Email send error for Order {order.id}: {e}")
         messages.error(request, f'Failed to send email: {e}')
         return HttpResponse("Failed to send invoice.", status=500)
+
+@csrf_exempt
 def htmx_send_invoicev2(request, order_id):
     logger.info(f"User {request.user} is sending invoice for order {order_id}.")
     order = get_object_or_404(Order, id=order_id)
@@ -900,7 +929,7 @@ def htmx_send_invoicev2(request, order_id):
 # Import your models and the verification utility
 # from .models import Order, Payment 
 # from .utils import verify_paystack_payment 
-
+@csrf_exempt
 @login_required
 def paystack_callback_view(request, order_id):
     logger.info(f"User {request.user} is handling Paystack callback for order {order_id}.")
@@ -1069,7 +1098,7 @@ def paystack_cancel(request):
 
 
 
-
+@csrf_exempt
 def laundry_request_confirmation(request):
     send_mail(
         'Laundry Service Request Confirmation',
@@ -1079,3 +1108,285 @@ def laundry_request_confirmation(request):
         fail_silently=False,
     )
     return HttpResponse("Confirmation email sent.")
+
+from django.db import transaction
+@is_admin
+@require_http_methods(["GET"])
+def assign_qr_to_order_view(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
+    items = order.items.all()
+    context = {
+        'order': order,
+        'items': items,
+    }
+    return render(request, 'assign_qr.html', context)
+
+@csrf_exempt
+@is_admin
+@require_http_methods(["POST"])
+def api_assign_qr_to_item(request, item_id):
+    try:
+        logger.info(f"User {request.user} is assigning QR code to item {item_id}.")
+        data = json.loads(request.body)
+        code = data.get('qr_code')
+        if not code:
+            return JsonResponse({'success': False, 'message': 'QR code is missing.'}, status=400)
+            
+        item = get_object_or_404(OrderItem, id=item_id)
+        
+        if item.qr_code:
+            return JsonResponse({'success': False, 'message': 'Item already has a QR code assigned.'}, status=400)
+            
+        from myapp.models import QR
+        try:
+            qr = QR.objects.get(code=code)
+        except QR.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'QR code not found.'}, status=404)
+            
+        if qr.status != 'unused':
+            return JsonResponse({'success': False, 'message': 'QR code is already used.'}, status=400)
+            
+        with transaction.atomic():
+            # 1. Update QR record
+            qr.status = 'assigned'
+            qr.save()
+            
+            # 2. Assign to item. This triggers OrderItem.save() 
+            # which internally triggers item.order.check_and_update_status()
+            item.qr_code = code
+            item.save()
+            
+            # 3. Refresh the order object to get the updated status from the save signal
+            item.order.refresh_from_db()
+            logger.info(f"QR {code} assigned to Item {item.id}. Order status: {item.order.status}, Invoice sent: {item.order.has_invoice_sent}")
+            
+            return JsonResponse({
+                'success': True, 
+                'order_status': item.order.status,
+                'invoice_sent': item.order.has_invoice_sent
+            })
+
+    except Exception as e:
+        logger.error(f"Error assigning QR code: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'message': 'An internal error occurred.'}, status=500)
+
+
+
+@csrf_exempt
+@is_admin
+@require_http_methods(["POST"])
+def api_assign_qr_to_itemv1(request, item_id):
+    try:
+        data = json.loads(request.body)
+        code = data.get('qr_code')
+        if not code:
+            return JsonResponse({'success': False, 'message': 'QR code is missing.'}, status=400)
+            
+        item = get_object_or_404(OrderItem, id=item_id)
+        
+        # Check if item already has a QR
+        if item.qr_code:
+            return JsonResponse({'success': False, 'message': 'Item already has a QR code assigned.'}, status=400)
+            
+        from myapp.models import QR
+        try:
+            qr = QR.objects.get(code=code)
+        except QR.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'QR code not found in system.'}, status=404)
+            
+        if qr.status != 'unused':
+            return JsonResponse({'success': False, 'message': 'QR code is already used or invalid.'}, status=400)
+            
+        # Assign QR
+        with transaction.atomic():
+            qr.status = 'assigned'
+            # qr.order_item = item
+            qr.save()
+            
+            item.qr_code = code
+            item.save()
+            order_updated = item.order.check_and_update_invoice_status()
+            logger.info(f"QR {code} assigned to Item {item.id}. Order update: {order_updated}")
+            return JsonResponse({
+                'success': True, 
+                'order_status': item.order.status,
+                'invoice_sent': item.order.has_invoice_sent
+            })
+            # if order_updated:
+            #     return JsonResponse({'success': True, 'message': 'QR code assigned successfully.'})
+            # else:
+            #     return JsonResponse({'success': False, 'message': 'QR code assigned successfully but order status not updated.'})
+    except Exception as e:
+        logger.error(f"Error assigning QR code: {e}")
+        return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+from django.contrib.contenttypes.models import ContentType
+@csrf_exempt
+@login_required
+def employee_queue(request):
+    try:
+        employee = request.user.employee
+    except Exception:
+        messages.error(request, "Employee profile not found.")
+        return redirect('homepage')
+
+    ct = ContentType.objects.get_for_model(OrderItem)
+    instances = WorkflowInstance.objects.filter(
+        content_type=ct, 
+        completed_at__isnull=True,
+        current_stage__responsible_officer=employee
+    )
+    
+    manager_instances = WorkflowInstance.objects.filter(
+        content_type=ct,
+        completed_at__isnull=True,
+        current_stage__responsible_officer__line_manager=employee
+    )
+    
+    deputy_instances = WorkflowInstance.objects.filter(
+        content_type=ct,
+        completed_at__isnull=True,
+        current_stage__responsible_officer__deputy_person=employee
+    )
+    
+    all_instances = (instances | manager_instances | deputy_instances).distinct()
+
+    context = {
+        'instances': all_instances,
+    }
+    return render(request, 'employee_queue.html', context)
+@csrf_exempt
+@login_required
+def accept_item(request, item_id):
+    item = get_object_or_404(OrderItem, id=item_id)
+    try:
+        employee = request.user.employee
+    except Exception:
+        messages.error(request, "Employee profile required.")
+        return redirect(request.META.get('HTTP_REFERER', '/'))
+        
+    ct = ContentType.objects.get_for_model(OrderItem)
+    instance = WorkflowInstance.objects.filter(content_type=ct, object_id=item.id).first()
+    
+    if not instance:
+        workflow = None
+        if item.package.workflows.exists():
+            workflow = item.package.workflows.first()
+            first_stage = workflow.stages.order_by('sequence').first()
+            if first_stage:
+                instance = WorkflowInstance.objects.create(
+                    workflow=workflow,
+                    content_type=ct,
+                    object_id=item.id,
+                    current_stage=first_stage,
+                    initiated_by=employee
+                )
+    
+    if not instance:
+        messages.error(request, "No workflow configured for this item's package.")
+        return redirect(request.META.get('HTTP_REFERER', '/'))
+
+    stage = instance.current_stage
+    officer = stage.responsible_officer
+
+    can_accept = False
+    if officer == employee or officer.line_manager == employee or officer.deputy_person == employee or request.user.is_superuser:
+        can_accept = True
+    elif getattr(request.user, 'is_hr_admin', False):
+        can_accept = True
+
+    if not can_accept:
+        messages.error(request, "Order not at your stage.")
+        return redirect(request.META.get('HTTP_REFERER', '/'))
+
+    from_stage_name = stage.service_action.name if stage.service_action else f"Stage {stage.sequence}"
+    
+    next_stage = WorkflowStage.objects.filter(
+        workflow=instance.workflow,
+        sequence__gt=stage.sequence
+    ).order_by('sequence').first()
+
+    if next_stage:
+        instance.current_stage = next_stage
+        instance.save()
+        item.status = next_stage.service_action.name if next_stage.service_action else f"Stage {next_stage.sequence}"
+        item.save()
+        to_stage_name = item.status
+        messages.success(request, f"Item moved to {to_stage_name}.")
+    else:
+        instance.completed_at = timezone.now()
+        instance.save()
+        item.status = 'completed'
+        item.save()
+        to_stage_name = 'Completed'
+        messages.success(request, "Item workflow completed.")
+
+    WorkflowHistory.objects.create(
+        item=item,
+        from_stage=from_stage_name,
+        to_stage=to_stage_name,
+        actor=employee,
+        action="Accept"
+    )
+
+    return redirect('laundry:employee_queue')
+@csrf_exempt
+@login_required
+def reject_item(request, item_id):
+    item = get_object_or_404(OrderItem, id=item_id)
+    try:
+        employee = request.user.employee
+    except Exception:
+        messages.error(request, "Employee profile required.")
+        return redirect(request.META.get('HTTP_REFERER', '/'))
+        
+    ct = ContentType.objects.get_for_model(OrderItem)
+    instance = WorkflowInstance.objects.filter(content_type=ct, object_id=item.id).first()
+    
+    if not instance:
+        messages.error(request, "No workflow instance found.")
+        return redirect(request.META.get('HTTP_REFERER', '/'))
+
+    stage = instance.current_stage
+    officer = stage.responsible_officer
+
+    can_reject = False
+    if officer == employee or officer.line_manager == employee or officer.deputy_person == employee or request.user.is_superuser:
+        can_reject = True
+    elif getattr(request.user, 'is_hr_admin', False):
+        can_reject = True
+
+    if not can_reject:
+        messages.error(request, "Order not at your stage.")
+        return redirect(request.META.get('HTTP_REFERER', '/'))
+
+    from_stage_name = stage.service_action.name if stage.service_action else f"Stage {stage.sequence}"
+
+    prev_stage = WorkflowStage.objects.filter(
+        workflow=instance.workflow,
+        sequence__lt=stage.sequence
+    ).order_by('-sequence').first()
+
+    if prev_stage:
+        instance.current_stage = prev_stage
+        instance.save()
+        item.status = prev_stage.service_action.name if prev_stage.service_action else f"Stage {prev_stage.sequence}"
+        item.save()
+        to_stage_name = item.status
+        messages.success(request, f"Item rejected and sent back to {to_stage_name}.")
+        
+        prev_actor = prev_stage.responsible_officer
+        
+        WorkflowHistory.objects.create(
+            item=item,
+            from_stage=from_stage_name,
+            to_stage=to_stage_name,
+            actor=employee,
+            previous_actor=prev_actor,
+            action="Reject"
+        )
+    else:
+        messages.error(request, "Cannot reject further. Item is at the first stage.")
+        return redirect(request.META.get('HTTP_REFERER', '/'))
+
+    return redirect('laundry:employee_queue')

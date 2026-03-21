@@ -5,6 +5,8 @@ import random
 import uuid
 from attr import has
 from django.db import models, transaction
+import logging
+from django.db import models, transaction
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -203,8 +205,10 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 # from .managers import CustomUserManager
 ORDER_STATUS = (
     ('pending', 'Pending'),
+     ('invoice_sent', 'Invoice Sent'),
+    ('commented', 'Commented'),
+    ('confirmed', 'Confirmed Order'),
     ('in_progress', 'In Progress'),
-    ('invoice_sent', 'Invoice Sent'),
     ('paid', 'Paid'),
     ('delivered', 'Delivered'),
     ('canceled', 'Canceled'),
@@ -388,15 +392,24 @@ class Package(TenantModel):
 def generate_order_code():
     return get_random_string(8).upper()
   
+QR_STATUS_CHOICES = (
+    ('unused', 'Unused'),
+    ('assigned', 'Assigned'),
+    ('invalid', 'Invalid'),
+)
+
 class QR(TenantModel):
     code = models.CharField(max_length=100, unique=True)
-    order_item = models.OneToOneField('OrderItem', on_delete=models.CASCADE, related_name='qr_codes')
-
+    status = models.CharField(max_length=20, choices=QR_STATUS_CHOICES, default='unused')
+    # order_item = models.OneToOneField('OrderItem', on_delete=models.CASCADE, related_name='qr_codes', null=True, blank=True)
+    # def __str__(self):
+    #     return f"{self.code}  in Order #{self.order_item.order.id}"
 class Order(TenantModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     # user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     # order_code = models.CharField(max_length=12, unique=False, editable=True, default=get_random_string(8).upper)
     # order_code = models.CharField(max_length=12, unique=True, blank=True, null=True)
+    order_code = models.CharField(max_length=12, unique=True,  editable=True, default=generate_order_code)
     # user = models.ForeignKey(CustomUser, on_delete=models.SET_DEFAULT, default="missing_id",related_name='laundry_orders')
     status = models.CharField(max_length=20, choices=ORDER_STATUS, default='pending')
     customer_name = models.CharField(max_length=100, blank=True, null=True)
@@ -417,9 +430,35 @@ class Order(TenantModel):
     has_payment_received=models.BooleanField(default=False)
     has_comment_from_customer=models.BooleanField(default=False)
     
-    
+    def check_and_update_status(self):
+        """
+        Logic to transition order to 'in_progress' if all items have QR codes.
+        """
+        try:
+            items = self.items.all()
+            if not items.exists():
+                return False
+
+            # Efficiently check if any item is missing a QR code
+            # This is faster than a Python loop for large orders
+            any_missing = items.filter(
+                models.Q(qr_code__isnull=True) | models.Q(qr_code='')
+            ).exists()
+
+            if not any_missing and self.status != 'in_progress':
+                self.status = 'in_progress'
+                self.has_confirmation_received = True
+                self.save(update_fields=['status', 'has_confirmation_received', 'updated_at'])
+                logger.info(f"Order {self.order_code} transitioned to in_progress.")
+                return True
+            
+            return False
+        
+        except Exception as e:
+            logger.error(f"Error updating status for Order {self.id}: {str(e)}", exc_info=True)
+            return False
     def __str__(self):
-        return f"Order #{self.order_code} for {self.customer_email}"
+        return f"Order #for {self.customer_email}"
 
 
 class OrderItem(TenantModel):
@@ -431,14 +470,54 @@ class OrderItem(TenantModel):
     delivery_time_days = models.IntegerField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=WORKFLOW_STAGES, default='pending_dispatch')
     qr_code = models.CharField(max_length=100, unique=True, blank=True, null=True)
+    def save(self, *args, **kwargs):
+        try:
+            # Atomic transaction to ensure data integrity during the double save
+            with transaction.atomic():
+                is_new_qr = False
+                
+                if self.pk:
+                    old_instance = OrderItem.objects.filter(pk=self.pk).first()
+                    if old_instance and not old_instance.qr_code and self.qr_code:
+                        is_new_qr = True
+                elif self.qr_code:
+                    is_new_qr = True
+
+                super().save(*args, **kwargs)
+
+                # If a QR code was just added, trigger the check on the parent Order
+                if is_new_qr:
+                    self.order.check_and_update_status()
+
+        except Exception as e:
+            logger.error(f"Failed to save OrderItem or update Order status: {str(e)}", exc_info=True)
+            raise e
+    
     def __str__(self):
         return f"{self.name}  in Order #{self.order.id}"
 
+class WorkflowHistory(TenantModel):
+    item = models.ForeignKey(OrderItem, on_delete=models.CASCADE, related_name='workflow_history')
+    from_stage = models.CharField(max_length=50, blank=True, null=True)
+    to_stage = models.CharField(max_length=50)
+    actor = models.ForeignKey('Employee', on_delete=models.SET_NULL, null=True, blank=True, related_name='actions_performed')
+    previous_actor = models.ForeignKey('Employee', on_delete=models.SET_NULL, null=True, blank=True, related_name='previous_actions')
+    timestamp = models.DateTimeField(auto_now_add=True)
+    action = models.CharField(max_length=50, help_text="Accept, Reject, Escalate, etc.")
 
+    def __str__(self):
+        return f"{self.item.name} moved to {self.to_stage} by {self.actor}"
+
+ACTOR = (
+    ('customer', 'Csutomer'),
+     ('staff', 'Staff'),
+
+)
 
 class Comment(TenantModel):
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='comments')
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='comments', null=True, blank=True)
+    order = models.ForeignKey(Order, on_delete=models.SET_DEFAULT, default="missing_id", related_name='comments')
+    actor=models.CharField(max_length=20, choices=ACTOR, default='customer')
+    # user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='comments', null=True, blank=True)
     body = models.TextField()
     is_approved = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

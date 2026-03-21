@@ -5,9 +5,54 @@
 <div class="container my-5">
     <h2 class="mb-4">Admin Dashboard</h2>
 
-    <div class="row">
+    <div class="row mb-4">
         <div class="col-md-4">
-            <h3>Pending Requests</h3>
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <h5 class="card-title">Total Active Items</h5>
+                    <p class="card-text fs-2">{{ total_items }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-danger">
+                <div class="card-body">
+                    <h5 class="card-title">Escalated Items</h5>
+                    <p class="card-text fs-2">{{ escalated_items }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-warning">
+                <div class="card-body">
+                    <h5 class="card-title">Rejected Items</h5>
+                    <p class="card-text fs-2">{{ rejected_items }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-5">
+        <div class="col-md-12">
+            <h3>Pipeline Tracking</h3>
+            <div class="d-flex flex-wrap gap-2 mt-3">
+                {% for stage, count in pipeline_counts.items %}
+                <div class="p-3 bg-light border rounded">
+                    <strong>{{ stage }}</strong>
+                    <span class="badge bg-secondary ms-2">{{ count }}</span>
+                </div>
+                {% empty %}
+                <p>No items in pipeline.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <hr>
+
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <h3> Virgin Order Requests</h3>
             {% if pending_requests %}
                 <ul class="list-group">
                     {% for request in pending_requests %}
@@ -64,7 +109,7 @@
                     {% for order in confirmed_orders %}
                     <li class="list-group-item">
                         Order #{{ order.order_code }} - {{ order.notes }}
-                        <a href="{% url 'laundry:admin_approve_comment' order.id %}" class="btn btn-success btn-sm float-end">Assign QR to Order</a>
+                        <a href="{% url 'laundry:assign_qr_to_order' order.id %}" class="btn btn-success btn-sm float-end">Assign QR to Order</a>
 
                     </li>
                     {% endfor %}
@@ -73,6 +118,24 @@
                 <p>No confirmed orders.</p>
             {% endif %}
         </div>  
+
+
+           <div class="col-md-4">
+            <h3>Invoiced Sent Orders</h3>
+            {% if invoiced_sent %}
+                <ul class="list-group">
+                    {% for order in invoiced_sent %}
+                    <li class="list-group-item">
+                        Order #{{ order.order_code }} 
+                        {#  <a href="{% url 'laundry:admin_review_request' order.id %}" class="btn btn-success btn-sm float-end">Assign QR to Order</a>  #}
+
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No invoiced sent orders.</p>
+            {% endif %}
+        </div> 
     </div>
 </div>
 {% endblock %}

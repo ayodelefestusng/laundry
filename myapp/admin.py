@@ -4,7 +4,7 @@ from django.contrib.auth.admin import UserAdmin
 
 from .models import (Comment, CustomUser, Order, OrderItem, Package,
                      ServiceCategory,Tenant, Workflow, WorkflowStage, WorkflowInstance,Employee,
-                     ServiceChoices,PremiumClient)
+                     ServiceChoices,PremiumClient,QR)
 
 
 class CustomUserAdmin(UserAdmin):
@@ -43,7 +43,7 @@ class OrderItemInline(admin.TabularInline):
     """
     model = OrderItem
     extra = 0
-    fields = ('package', 'name', 'color',)
+    fields = ('package', 'name', 'color',"qr_code")
     readonly_fields = ('color',)
 
 class OrderAdmin(admin.ModelAdmin):
@@ -51,7 +51,7 @@ class OrderAdmin(admin.ModelAdmin):
     Customizes the Django admin to manage the Order model.
     """
     list_display = (
-        'id', 'status', 'created_at', 'total_price',
+        'id', 'status','order_code', 'created_at', 'total_price',
         'estimated_delivery_date'
     )
     list_filter = ('status', 'created_at')
@@ -60,7 +60,7 @@ class OrderAdmin(admin.ModelAdmin):
     readonly_fields = ('created_at',)
     fieldsets = (
         ('Order Information', {
-            'fields': ( 'status', 'created_at', 'total_price', 'estimated_delivery_date', 'notes')
+            'fields': ( 'status', 'order_code','total_price', 'estimated_delivery_date',  'has_confirmation_received')
         }),
         ('Customer Details', {
             'fields': ('customer_name', 'customer_phone', 'customer_email', 'address', 'pickup_date', 'special_instructions')
@@ -104,7 +104,7 @@ admin.site.register(Employee)
 admin.site.register(ServiceChoices)
 admin.site.register(Tenant, admin.ModelAdmin)
 admin.site.register(PremiumClient, admin.ModelAdmin)
-
+admin.site.register(QR)
 class WorkflowStepInline(admin.TabularInline):
     model = WorkflowStage
     extra = 1

@@ -148,6 +148,9 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL")
 
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://9415-105-113-69-195.ngrok-free.app",
+]
 
 
 

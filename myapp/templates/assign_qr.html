@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container my-5">
+    <h2 class="mb-4">Assign QR Codes to Order #{{ order.order_code }}</h2>
+    <a href="{% url 'laundry:admin_dashboard' %}" class="btn btn-secondary mb-3">Back to Dashboard</a>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <h4>Order Items</h4>
+            <ul class="list-group">
+                {% for item in items %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>{{ item.name }}</strong> ({{ item.package.category.name }} - {{ item.package.get_service_type_display }})
+                        <br>
+                        <small id="status-{{ item.id }}" class="text-muted">
+                            {% if item.qr_code %}
+                            Assigned QR Code: {{ item.qr_code }}
+                            {% else %}
+                            Pending Assignment
+                            {% endif %}
+                        </small>
+                    </div>
+                    {% if not item.qr_code %}
+                    <button class="btn btn-sm btn-primary scan-btn" data-item-id="{{ item.id }}">Scan QR</button>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="col-md-6">
+            <h4>Scanner</h4>
+            <div id="reader-container" style="display: none;">
+                <p>Scanning for item: <strong id="scanning-item-name"></strong></p>
+                <div id="reader" style="width: 100%;"></div>
+                <button class="btn btn-danger mt-2" id="cancel-scan">Cancel</button>
+            </div>
+            <div id="scan-message" class="alert mt-3" style="display: none;"></div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let html5QrcodeScanner = null;
+    let currentItemId = null;
+    
+    const scanButtons = document.querySelectorAll('.scan-btn');
+    const readerContainer = document.getElementById('reader-container');
+    const cancelBtn = document.getElementById('cancel-scan');
+    const scanMessage = document.getElementById('scan-message');
+    const scanningItemName = document.getElementById('scanning-item-name');
+    
+    scanButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            currentItemId = this.getAttribute('data-item-id');
+            scanningItemName.textContent = this.parentElement.querySelector('strong').textContent;
+            
+            scanButtons.forEach(b => b.style.display = 'none');
+            readerContainer.style.display = 'block';
+            scanMessage.style.display = 'none';
+            
+            html5QrcodeScanner = new Html5Qrcode("reader");
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            
+            html5QrcodeScanner.start(
+                { facingMode: "environment" }, 
+                config, 
+                onScanSuccess,
+                onScanFailure
+            ).catch(err => {
+                showMessage('Error starting camera: ' + err, 'danger');
+                stopScanner();
+            });
+        });
+    });
+    
+    cancelBtn.addEventListener('click', function() {
+        stopScanner();
+    });
+    
+    function stopScanner() {
+        if (html5QrcodeScanner) {
+            html5QrcodeScanner.stop().then(() => {
+                html5QrcodeScanner.clear();
+                readerContainer.style.display = 'none';
+                scanButtons.forEach(b => {
+                    const li = b.closest('li');
+                    if (li.querySelector('small').textContent.includes('Pending')) {
+                        b.style.display = 'inline-block';
+                    }
+                });
+            }).catch(err => {
+                console.error("Failed to stop scanner", err);
+            });
+        }
+    }
+    
+    function showMessage(msg, type) {
+        scanMessage.textContent = msg;
+        scanMessage.className = `alert alert-${type} mt-3`;
+        scanMessage.style.display = 'block';
+    }
+    
+    function onScanSuccess(decodedText, decodedResult) {
+        if (html5QrcodeScanner.getState() !== 2) return;
+        html5QrcodeScanner.pause();
+        
+        showMessage('Validating QR...', 'info');
+        
+        fetch(`/api/assign_qr_to_item/${currentItemId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ qr_code: decodedText })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage('Success: ' + data.message, 'success');
+                const statusEl = document.getElementById(`status-${currentItemId}`);
+                statusEl.innerHTML = `Assigned: ${decodedText}`;
+                
+                const btn = document.querySelector(`.scan-btn[data-item-id="${currentItemId}"]`);
+                if (btn) btn.remove();
+                
+                stopScanner();
+            } else {
+                showMessage('Error: ' + data.message, 'danger');
+                setTimeout(() => html5QrcodeScanner.resume(), 2000);
+            }
+        })
+        .catch(error => {
+            showMessage('Network error.', 'danger');
+            setTimeout(() => html5QrcodeScanner.resume(), 2000);
+        });
+    }
+    
+    function onScanFailure(error) {
+    }
+    
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+{% endblock %}
