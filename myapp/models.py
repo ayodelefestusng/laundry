@@ -1,5 +1,6 @@
 # Create your models here.
 import logging
+from math import log
 from pyclbr import Class
 import random
 import uuid
@@ -186,6 +187,8 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     @property
     def is_hr_admin(self):
         return self.groups.filter(name="HR Admin").exists()
+
+
 
 # class CustomUser1(AbstractBaseUser, PermissionsMixin):
 #     email = models.EmailField(unique=True)
@@ -432,8 +435,11 @@ class Order(TenantModel):
     has_invoice_sent=models.BooleanField(default=False)
     has_payment_received=models.BooleanField(default=False)
     has_comment_from_customer=models.BooleanField(default=False)
+    work_initiator = models.ForeignKey(
+        'Employee', on_delete=models.SET_NULL, related_name="initiated_orders", null=True, blank=True
+    )
     
-    def check_and_update_status(self):
+    def check_and_update_status(self, user=None):
         """
         Logic to transition order to 'in_progress' if all items have QR codes.
         """
@@ -451,8 +457,47 @@ class Order(TenantModel):
             if not any_missing and self.status != 'in_progress':
                 self.status = 'in_progress'
                 self.has_confirmation_received = True
-                self.save(update_fields=['status', 'has_confirmation_received', 'updated_at'])
-                logger.info(f"Order {self.order_code} transitioned to in_progress.")
+
+                # Determine the latest updated item to adopt its qr_initiator
+                latest_item = items.order_by('-updated_at').first()
+                if latest_item and latest_item.qr_initiator:
+                    self.work_initiator = latest_item.qr_initiator
+                elif user and hasattr(user, 'employee'):
+                    self.work_initiator = user.employee
+                else:
+                    self.work_initiator = Employee.objects.filter(tenant=self.tenant).first()
+
+                self.save(update_fields=['status', 'has_confirmation_received', 'updated_at', 'work_initiator'])
+                logger.info(f"Order {self.order_code} transitioned to in_progress. Initiator: {self.work_initiator}")
+                
+                # --- TRIGGER WORKFLOWS FOR EACH ORDER ITEM ---
+                initiator = self.work_initiator
+                logger.info(f"Initiating workflow trigger for Order {self.order_code} with initiator {initiator}.")
+                if items.exists():
+                    order_item_ct = ContentType.objects.get_for_model(items.first())
+                    for item in items:
+                        workflow = item.package.workflows.first()
+                        if workflow:
+                            # Prevent duplicate workflow instance creation
+                            if not WorkflowInstance.objects.filter(content_type=order_item_ct, object_id=item.id).exists():
+                                logger.info(f"Starting workflow '{workflow.name}' for OrderItem {item.id} (Package: {item.package}).")
+                                first_stage = workflow.stages.order_by('sequence').first()
+                                if first_stage and initiator:
+                                    WorkflowInstance.objects.create(
+                                        tenant=self.tenant,
+                                        workflow=workflow,
+                                        content_type=order_item_ct,
+                                        object_id=item.id,
+                                        current_stage=first_stage,
+                                        initiated_by=initiator
+                                    )
+                                    logger.info(f"Triggered workflow '{workflow.name}' for OrderItem {item.id}")
+                                else:
+                                    val = "stages" if not first_stage else "initiator"
+                                    logger.warning(f"Could not start workflow '{workflow.name}': Missing {val}.")
+                        else:
+                            logger.info(f"No workflow attached to Package for OrderItem {item.id}")
+
                 return True
             
             return False
@@ -473,6 +518,12 @@ class OrderItem(TenantModel):
     delivery_time_days = models.IntegerField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=WORKFLOW_STAGES, default='pending_dispatch')
     qr_code = models.CharField(max_length=100, unique=True, blank=True, null=True)
+    
+    qr_initiator = models.ForeignKey(
+        'Employee', on_delete=models.SET_NULL, related_name="qr_assigned_items", null=True, blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     def save(self, *args, **kwargs):
         try:
             # Atomic transaction to ensure data integrity during the double save
@@ -732,7 +783,7 @@ class WorkflowInstance(TenantModel):
 
     def save(self, *args, **kwargs):
         # Apply the unique reference logic from your project
-        if not self.closure_ref and (self.completed_at or self.job_status == 'closed'):
+        if not self.closure_ref and self.completed_at:
             date_str = timezone.now().strftime("%Y%m%d")
             rand_suffix = str(random.randint(1000, 9999))
             self.closure_ref = f"{self.workflow.code.upper()}/{date_str}/{rand_suffix}"

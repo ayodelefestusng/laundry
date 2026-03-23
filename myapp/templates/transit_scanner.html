@@ -88,8 +88,16 @@ document.addEventListener('DOMContentLoaded', function() {
             onScanSuccess,
             onScanFailure
         ).catch(err => {
-            alert('Error starting camera: ' + err);
-            stopScanner();
+            // Fallback to front (user) camera if PC has no rear camera
+            html5QrcodeScanner.start(
+                { facingMode: "user" }, 
+                config, 
+                onScanSuccess,
+                onScanFailure
+            ).catch(err2 => {
+                alert('Error starting camera: ' + err2);
+                stopScanner();
+            });
         });
     });
     

@@ -1,6 +1,7 @@
 # Register your models here.
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from matplotlib.pylab import qr
 
 from .models import (Comment, CustomUser, Order, OrderItem, Package,
                      ServiceCategory,Tenant, Workflow, WorkflowStage, WorkflowInstance,Employee,
@@ -43,7 +44,7 @@ class OrderItemInline(admin.TabularInline):
     """
     model = OrderItem
     extra = 0
-    fields = ('package', 'name', 'color',"qr_code")
+    fields = ('package', 'name', 'color',"qr_code","qr_initiator")
     readonly_fields = ('color',)
 
 class OrderAdmin(admin.ModelAdmin):
@@ -52,7 +53,7 @@ class OrderAdmin(admin.ModelAdmin):
     """
     list_display = (
         'id', 'status','order_code', 'created_at', 'total_price',
-        'estimated_delivery_date'
+        'estimated_delivery_date',"work_initiator",
     )
     list_filter = ('status', 'created_at')
     search_fields = ('id', 'user__email', 'customer_name', 'customer_phone')
@@ -60,7 +61,7 @@ class OrderAdmin(admin.ModelAdmin):
     readonly_fields = ('created_at',)
     fieldsets = (
         ('Order Information', {
-            'fields': ( 'status', 'order_code','total_price', 'estimated_delivery_date',  'has_confirmation_received')
+            'fields': ( 'status', 'order_code','total_price', 'estimated_delivery_date',  'has_confirmation_received', 'work_initiator')
         }),
         ('Customer Details', {
             'fields': ('customer_name', 'customer_phone', 'customer_email', 'address', 'pickup_date', 'special_instructions')

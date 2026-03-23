@@ -1245,6 +1245,15 @@ def api_assign_qr_to_item(request, item_id):
             # 2. Assign to item. This triggers OrderItem.save() 
             # which internally triggers item.order.check_and_update_status()
             item.qr_code = code
+            if not hasattr(request.user, 'employee'):
+                logger.error(f"User {request.user.email} is not linked to an Employee record.")
+                return JsonResponse({
+                    'success': False, 
+                    'message': 'You must be registered as an employee to perform this action.'
+                }, status=403)
+            logger.info(f"Employee {request.user.employee} is attempting to assign QR code to item {item_id}.")
+            if hasattr(request.user, 'employee'):
+                item.qr_initiator = request.user.employee
             item.save()
             
             # 3. Refresh the order object to get the updated status from the save signal

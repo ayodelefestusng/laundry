@@ -72,16 +72,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 onScanSuccess,
                 onScanFailure
             ).catch(err => {
-                // Fallback to front (user) camera if PC has no rear camera
-                html5QrcodeScanner.start(
-                    { facingMode: "user" }, 
-                    config, 
-                    onScanSuccess,
-                    onScanFailure
-                ).catch(err2 => {
-                    showMessage('Error starting camera: ' + err2, 'danger');
-                    stopScanner();
-                });
+                showMessage('Error starting camera: ' + err, 'danger');
+                stopScanner();
             });
         });
     });
