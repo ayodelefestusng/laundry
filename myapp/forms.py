@@ -12,7 +12,85 @@ class CustomUserCreationForm(UserCreationForm):
     """
     class Meta:
         model = CustomUser
-        fields = ('email', 'phone', 'name',)
+        fields = ('email', 'name',)
+
+
+from django.urls import reverse_lazy
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Layout, Submit, HTML, Field
+from django.contrib.auth.forms import SetPasswordForm
+class RegistrationForm(forms.ModelForm):
+    class Meta:
+        model = CustomUser
+        fields = ["email", "name" ]
+        widgets = {
+            'email': forms.EmailInput(attrs={
+                'hx-post': reverse_lazy('laundry:check_username'),
+                'hx-trigger': 'keyup',
+                'hx-target': '#username-err'
+            }),
+        }
+
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_action = reverse_lazy('laundry:register')
+        self.helper.form_method = ('POST')
+        self.helper.add_input(Submit('submit', 'Register'))
+        self.helper.layout = Layout(
+        
+            Field('email'),
+            # This is the custom div with id "ayo"
+            HTML('<div class="text-danger mt-2" id="username-err"></div>'),
+             HTML('<div class="custom-divider"></div>'),
+             HTML('<p></p>'),
+            Field('name'),
+        )
+
+    
+    def clean_email(self):
+        email = self.cleaned_data.get("email")
+        if CustomUser.objects.filter(email=email).exists():
+            raise forms.ValidationError("This email is already registered.")
+        return email
+
+
+class PasswordSetupForm(SetPasswordForm):
+    pass
+
+        
+class PasswordChangeForm(forms.Form):
+    old_password = forms.CharField(widget=forms.PasswordInput)
+    new_password = forms.CharField(widget=forms.PasswordInput)
+
+from django.contrib.auth.forms import PasswordResetForm 
+from django.utils.translation import gettext_lazy as _
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.contrib.auth.tokens import default_token_generator
+from django.template import loader
+from django.core.mail import EmailMultiAlternatives
+from django.contrib.sites.shortcuts import get_current_site
+from django.conf import settings
+from django.contrib.auth import get_user_model
+import logging
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.contrib.auth.tokens import default_token_generator
+from django.template import loader
+from django.core.mail import EmailMultiAlternatives
+from django.contrib.sites.shortcuts import get_current_site
+from django.conf import settings
+from django.contrib.auth import get_user_model
+import logging
+from django.utils.encoding import force_bytes
+logger = logging.getLogger(__name__)
+
+UserModel = get_user_model()
+
+
 
 # class CustomUserCreationForm1(UserCreationForm):
 #     """

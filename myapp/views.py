@@ -22,14 +22,27 @@ from django.http import (
     HttpResponseRedirect,
     JsonResponse,
 )
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+
+from django.core.exceptions import ObjectDoesNotExist
+
+from django.contrib.auth import authenticate, login, logout
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
-
-from .forms import AddItemForm, CommentForm, OrderForm, OrderItemForm,CustomUserChangeForm,CustomUserCreationForm
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.html import strip_tags
+from django.contrib.auth.forms import (AuthenticationForm, PasswordResetForm,
+                                       SetPasswordForm)
+from .forms import (
+AddItemForm, CommentForm, OrderForm, OrderItemForm,CustomUserChangeForm,RegistrationForm,
+CustomUserCreationForm,PasswordSetupForm,PasswordChangeForm,PasswordSetupForm,
+) 
 from .models import Comment, Order, OrderItem, Package, ServiceCategory, Payment, CustomUser, PremiumClient, QR, WorkflowHistory, WorkflowInstance, WorkflowStage, Tenant
 from .utils import is_admin
 
@@ -46,7 +59,7 @@ def homepage(request):
     return render(request, 'homepage.html')
 
 @csrf_exempt
-def register(request):
+def registerv1(request):
     """
     Renders the user registration form and handles form submission.
     """
@@ -63,6 +76,149 @@ def register(request):
         form = CustomUserCreationForm()
     return render(request, 'register.html', {'form': form})
 
+
+
+def check_username(request):
+
+    if request.method == "GET":
+        return HttpResponse("Oya")
+    elif request.method == "POST":
+        email = request.POST.get('email')
+        print("AJADI", email)
+
+        if email and CustomUser.objects.filter(email=email).exists():
+            return HttpResponse("This username already exists")
+        return HttpResponse("")  # Empty response if email is available or not provided
+
+@csrf_exempt
+def register(request):
+    # logger.info(f"User {request.POST} accessed the register page.")
+    logger.info(f"User {request.POST} accessed the register VIEW")
+    if request.method == "POST":
+        logger.info(f"User {request.POST} accessed the register page.")
+        form = RegistrationForm(request.POST)
+        if form.is_valid():
+            logger.info(f"User {request.POST} accessed the register page.")
+            user = form.save(commit=False)
+            user.set_password(None)  # User sets password later
+            user.save()
+
+            token = default_token_generator.make_token(user)
+            link = request.build_absolute_uri(reverse("laundry:setup_password", args=[user.pk, token]))
+            # link = f"{settings.SITE_DOMAIN}{reverse('users:setup_password', args=[user.pk, token])}"
+
+            # send_mail(
+            #     "Set Your Password",
+            #     f"Click the link to set your password: {link}",
+            #     settings.DEFAULT_FROM_EMAIL,
+            #     [user.email],
+            # )
+            # Render HTML template
+            html_content = render_to_string("emails/register_email.html", {
+                    "user": user,
+                    "ceate_link": link,
+    
+                })
+            text_content = strip_tags(html_content)
+
+            # Send email
+            msg = EmailMultiAlternatives(
+                subject="Set Your Password",
+                body=text_content,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[user.email],
+            )
+            msg.attach_alternative(html_content, "text/html")
+            msg.send()
+            messages.success(request, "Registration successful! Please check your email to set your password.")
+
+            # return render(request, "myapp/registration_success.html", {"email": user.email})
+            return render(request, "registration/password_setup_sent.html", {"email": user.email})
+    else:
+        logger.info(f"User {request.POST} accessed the register page.")
+        form = RegistrationForm()
+    return render(request, "registration/register.html", {"form": form})
+
+@csrf_exempt
+def setup_password(request, user_id, token):
+    user = CustomUser.objects.get(pk=user_id)
+    if default_token_generator.check_token(user, token):
+        if request.method == "POST":
+            form = PasswordSetupForm(user, request.POST)
+            if form.is_valid():
+                form.save()
+                return redirect("laundry:login")
+                # return HttpResponseRedirect("login")
+        else:
+            form = PasswordSetupForm(user)
+        return render(request, "registration/setup_password.html", {"form": form})
+    else:
+        return render(request, "registration/error.html", {"message": "Invalid token"})
+
+@csrf_exempt
+def password_reset_request(request):
+    logger.info(f"User {request.POST} accessed the password reset VIEW")    
+    if request.method == "POST":
+        logger.info(f"User {request.POST} accessed the password reset page.")
+        form = PasswordResetForm(request.POST)
+        if form.is_valid():
+            email = form.cleaned_data["email"]
+            user = CustomUser.objects.filter(email=email).first()
+            if user:
+                token = default_token_generator.make_token(user)
+                link = request.build_absolute_uri(reverse("laundry:setup_password", args=[user.pk, token]))
+                
+                # send_mail(
+                #     "Reset Your Password",
+                #     f"Click the link to reset your password: {link}",
+                #     "admin@example.com",
+                #     [email],
+                # )
+                  # Render HTML template
+                html_content = render_to_string("registration/password_reset_email.html", {
+                    "user": user,
+                    "reset_link": link,
+                })
+                text_content = strip_tags(html_content)
+
+                # Send email
+                msg = EmailMultiAlternatives(
+                    subject="Reset Your Password",
+                    body=text_content,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    # from_email='Dignity Concept <upwardwave.dignity@gmail.com>',
+                    to=[email],
+                )
+                msg.attach_alternative(html_content, "text/html")
+                msg.send()
+            return render(request, "registration/password_reset_sent.html", {"email": email})
+    else:
+        logger.info(f"User {request.POST} accessed the password reset page.")
+        form = PasswordResetForm()
+    return render(request, "registration/password_reset.html", {"form": form})
+
+@csrf_exempt
+def change_password(request):
+    if request.method == "POST":
+        form = PasswordChangeForm(request.POST)
+        if form.is_valid():
+            user = authenticate(email=request.user.email, password=form.cleaned_data["old_password"])
+            if user:
+                user.set_password(form.cleaned_data["new_password"])
+                user.save()
+                logout(request)
+                return redirect("laundry:login")
+            else:
+                return render(request, "myapp/change_password.html", {"form": form, "error": "Incorrect password"})
+    else:
+        form = PasswordChangeForm()
+    return render(request, "registration/change_password.html", {"form": form})
+
+def terms_and_privacy(request):
+    return render(request, 'registration/terms_and_privacy.html')
+
+
+
 @csrf_exempt
 @login_required
 def custom_logout(request):
@@ -72,11 +228,11 @@ def custom_logout(request):
     logger.info(f"User {request.user} logged out successfully.")
     auth.logout(request)
     messages.info(request, "You have been logged out successfully.")
-    return redirect('users:home')
+    return redirect('laundry:customer_order')
 
 
 @csrf_exempt
-@login_required
+# @login_required
 def customer_order(request):
     logger.info(f"User {request.user} is placing an order.")
     if request.method == 'POST':
@@ -818,7 +974,7 @@ def initiate_paystack_transaction(request, email, amount, order_id):
         logger.exception(f"Paystack initialization network error for order {order_id}: {e}")
         return None, None
 
-from django.core.exceptions import ObjectDoesNotExist
+
 @csrf_exempt
 def htmx_send_invoice(request, order_id):
     logger.info(f"User {request.user} is sending invoice for order {order_id}.")

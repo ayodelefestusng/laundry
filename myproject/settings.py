@@ -37,6 +37,9 @@ ALLOWED_HOSTS = [
 # ==============================================================================
 
 INSTALLED_APPS = [
+    # My apps
+    'myapp', # Correct app name
+
     # Django apps
     'django.contrib.admin',
     'django.contrib.auth',
@@ -49,12 +52,21 @@ INSTALLED_APPS = [
     'crispy_forms',
     'crispy_bootstrap5', # Needed for Bootstrap 5 template pack
     'whitenoise.runserver_nostatic', # For serving static files in development
-
-    # My apps
-    'myapp', # Correct app name
-
-  'django_bootstrap5',
-    # 'htmx_messages',
+    'django.contrib.humanize',
+    'django_otp',
+    'django_otp.plugins.otp_totp',
+    'django_otp.plugins.otp_static',
+    'django_otp.plugins.otp_email',
+    'django_htmx',   # optional, for enhanced HTMX support
+  
+  
+    # Allauth apps
+    'django.contrib.sites',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    # Add providers if needed, e.g.:
+    'allauth.socialaccount.providers.google',
 ]
 
 MIDDLEWARE = [
@@ -66,8 +78,16 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    "myapp.tenant_middleware.TenantMiddleware"
+    "myapp.tenant_middleware.TenantMiddleware",
+
+    # Allauth middleware
+    'allauth.account.middleware.AccountMiddleware',
+    'django_htmx.middleware.HtmxMiddleware',  # ✅ valid middlewar
+
 ]
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 
 ROOT_URLCONF = 'myproject.urls'
 
@@ -111,9 +131,10 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-LOGIN_REDIRECT_URL = 'laundry:home'
+LOGIN_REDIRECT_URL = 'laundry:customer_order'
 LOGOUT_REDIRECT_URL = 'laundry:login'
 LOGIN_URL = 'laundry:login'
+
 
 # ==============================================================================
 #  Internationalization & Time
@@ -177,6 +198,52 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 SITE_ID = 1
+
+
+
+
+# ✅ Required for django-allauth
+SITE_ID = 1
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',  # default
+    'allauth.account.auth_backends.AuthenticationBackend',  # allauth
+]
+
+# Django-allauth configuration
+ACCOUNT_LOGIN_METHODS = {'email'}
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+# ACCOUNT_EMAIL_REQUIRED = True
+# ACCOUNT_USERNAME_REQUIRED = False
+# ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_EMAIL_VERIFICATION = 'optional'  # Change to 'mandatory' in production
+
+
+
+
+
+
+# Social account settings
+SOCIALACCOUNT_AUTO_SIGNUP = True
+# ACCOUNT_EMAIL_VERIFICATION = "none"
+SOCIALACCOUNT_QUERY_EMAIL = True
+SOCIALACCOUNT_ADAPTER = 'myapp.adapter.MySocialAccountAdapter'
+# SOCIALACCOUNT_ADAPTER = 'users.adapters.CustomSocialAccountAdapter'
+ACCOUNT_ADAPTER = 'allauth.account.adapter.DefaultAccountAdapter'
+
+
+
+# Configure allauth social providers to avoid SocialApp.DoesNotExist
+# SOCIALACCOUNT_PROVIDERS = {
+#     'google': {
+#         'APP': {
+#             'client_id': 'your-client-id',
+#             'secret': 'your-secret',
+#             'key': ''
+#         }
+#     }
+# }
 
 STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")

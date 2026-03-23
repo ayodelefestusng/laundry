@@ -12,6 +12,18 @@ urlpatterns = [
     path('register/', views.register, name='register'),
     path('logout/', views.custom_logout, name='logout'),
     path('login/', auth_views.LoginView.as_view(), name='login'),
+
+    path("check-username/", views.check_username, name='check_username'),
+
+
+    #  path("register/", views.register, name="register"),
+    path("setup-password/<int:user_id>/<str:token>/", views.setup_password, name="setup_password"),
+    path("password-reset/", views.password_reset_request, name="password_reset"),
+    path("change-password/", views.change_password, name="change_password"),
+            path('terms-and-privacy/', views.terms_and_privacy, name='terms_and_privacy'),
+
+
+
     path('', views.customer_order, name='customer_order'),
     # path('customer/dashboard/', views.customer_dashboard, name='customer_dashboard'),
     path('customer/order/<uuid:order_id>/', views.order_detail, name='order_detail'),

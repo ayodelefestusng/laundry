@@ -9,4 +9,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     # path('accounts/', include('django.contrib.auth.urls')),
     path('', include('myapp.urls')),
+    path('', include('django.contrib.auth.urls')),  # Built-in login/logout/password views
+    path('accounts/', include('allauth.urls')),              # ✅ Social login (Google, Facebook, etc.)
+
 ]
