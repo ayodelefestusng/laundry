@@ -12,5 +12,5 @@ crispy-bootstrap5
 whitenoise
 django-otp
 django-htmx
-PyJWT
+PyJWT<2
 

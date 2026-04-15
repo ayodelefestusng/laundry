@@ -1,5 +1,6 @@
 import logging
 from math import log
+import os
 import uuid
 import json
 import hmac
@@ -8,9 +9,11 @@ from chromadb import logger
 import requests
 from datetime import timedelta
 from uuid import UUID
+from django.db.models import Q
 
 from django.conf import settings
 from django.contrib import auth, messages
+from django.contrib.auth.models import Group
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.core.exceptions import ValidationError
 from django.core.mail import EmailMessage, send_mail
@@ -47,7 +50,7 @@ from .models import Comment, Order, OrderItem, Package, ServiceCategory, Payment
 from .utils import is_admin, analyze_sentiment, verify_qr_token, get_signed_token, generate_qr_base64
 
 from .models import log_with_context
-
+GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY', 'AIzaSyDuPZzHxMY3HYN-3tnFGrMN6M_wae-XaSU')
 
 # User-facing views
 @csrf_exempt
@@ -232,36 +235,138 @@ def custom_logout(request):
 
 
 @csrf_exempt
-# @login_required
 def customer_order(request):
     logger.info(f"User {request.user} is placing an order.")
+    tenant = getattr(request, 'tenant', None)
+    logger.info(f"User {request} is Aleoeoekeekek an order.")
     if request.method == 'POST':
-        form = OrderForm(request.POST)
+        form = OrderForm(request.POST, user=request.user)
         if form.is_valid():
             logger.info(f"Form is valid: {form.cleaned_data}")
             try:
                 order = form.save(commit=False)
-                # order.user = request.user
+                order.tenant = tenant
+                
+                email = form.cleaned_data.get('customer_email')
+                user = request.user
+                
+                # Automated User Management
+                if not user.is_authenticated:
+                    user = CustomUser.objects.filter(email=email).first()
+                    if not user:
+                        # Create new user
+                        user = CustomUser.objects.create_user(
+                            email=email,
+                            name=form.cleaned_data.get('customer_name'),
+                            phone=form.cleaned_data.get('customer_phone'),
+                            address=form.cleaned_data.get('address'),
+                            tenant=tenant
+                        )
+                        # Add to Customer group
+                        customer_group, _ = Group.objects.get_or_create(name='Customer')
+                        user.groups.add(customer_group)
+                        
+                    # Log the user in
+                    auth.login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+                
+                order.user = user
+                
+                # Update Lat/Long if provided
+                pickup_lat = request.POST.get('pickup_latitude')
+                pickup_lng = request.POST.get('pickup_longitude')
+                if pickup_lat and pickup_lng:
+                    order.pickup_latitude = pickup_lat
+                    order.pickup_longitude = pickup_lng
+                    
+                    # Sync to User model if user is Customer
+                    if user and user.groups.filter(name='Customer').exists():
+                        user.latitude = pickup_lat
+                        user.longitude = pickup_lng
+                        user.save(update_fields=['latitude', 'longitude'])
+
                 order.save()
+                
                 logger.info(f"Order created successfully: {order}")
-                messages.success(
-                    request, 'Order placed successfully! We will contact you shortly.')
-                send_mail(
-                'Laundry Service Request Confirmation',
-                'Your request has been received. A dispatch agent will visit shortly.',
-                settings.DEFAULT_FROM_EMAIL,
-                [order.customer_email],
-                fail_silently=False,
-            )
+                messages.success(request, 'Order placed successfully! We will contact you shortly.')
+                
+                # Send confirmation email
+                try:
+                    send_mail(
+                        'Laundry Service Request Confirmation',
+                        'Your request has been received. A dispatch agent will visit shortly.',
+                        settings.DEFAULT_FROM_EMAIL,
+                        [order.customer_email],
+                        fail_silently=False,
+                    )
+                except Exception as e:
+                    logger.error(f"Email sending failed: {e}")
+
                 if 'book_and_pick' in request.POST:
                     return redirect('laundry:admin_review_request', order_id=order.id)
                 return redirect('laundry:order_detail', order_id=order.id)
-            except IntegrityError:
-                messages.error(
-                    request, "An error occurred while placing the order. Please try again.")
+            except Exception as e:
+                logger.error(f"Error in customer_order: {e}")
+                messages.error(request, "An error occurred while placing the order. Please try again.")
     else:
-        form = OrderForm()
-    return render(request, 'customer_order.html', {'form': form})
+        logger.info(f"User {request.user} is ALUKE g an order.")
+        form = OrderForm(user=request.user)
+    logger.info(f"User {request.user} ALelele  ddjdjd g an order.")
+    return render(request, 'customer_order.html', {
+        'form': form,
+        'google_maps_api_key': GOOGLE_MAPS_API_KEY,
+        'tenant': tenant
+    })
+
+from math import radians, cos, sin, asin, sqrt
+
+def haversine(lon1, lat1, lon2, lat2):
+    """Calculate the great circle distance between two points on the earth."""
+    # convert decimal degrees to radians 
+    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+    # haversine formula 
+    dlon = lon2 - lon1 
+    dlat = lat2 - lat1 
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a)) 
+    r = 6371 # Radius of earth in kilometers. Use 3956 for miles
+    return c * r
+
+@require_http_methods(["GET"])
+def htmx_calculate_delivery(request):
+    """Calculates delivery cost based on distance from tenant location."""
+    tenant = getattr(request, 'tenant', None)
+    if not tenant or not tenant.location_lat or not tenant.location_lng:
+        return HttpResponse('<span class="text-warning">Tenant location not set. Contact admin.</span>')
+
+    try:
+        dest_lat = float(request.GET.get('lat'))
+        dest_lng = float(request.GET.get('lng'))
+    except (TypeError, ValueError):
+        return HttpResponse('<span class="text-danger">Invalid address.</span>')
+
+    # Calculate distance
+    distance = haversine(
+        float(tenant.location_lng), float(tenant.location_lat),
+        dest_lng, dest_lat
+    )
+    
+    # Find pricing tier
+    from myapp.models import DeliveryPricing
+    from django.db.models import Q
+
+    pricing = DeliveryPricing.objects.filter(
+        tenant=tenant,
+        min_km__lte=distance
+    ).filter(
+        Q(max_km__gte=distance) | Q(max_km__isnull=True)
+    ).first()
+
+    price = pricing.price if pricing else 0
+    
+    return render(request, 'htmx/delivery_price_snippet.html', {
+        'distance': round(distance, 2),
+        'price': price
+    })
 
 def admin_dashboard(request):
     """
@@ -488,8 +593,51 @@ def admin_review_request(request, order_id):
         'form': form,
         'packages': packages,
         'categories': categories,
+        'google_maps_api_key': GOOGLE_MAPS_API_KEY,
     }
     return render(request, 'admin_review_request.html', context)
+
+@require_http_methods(["POST"])
+def htmx_update_shipping(request, order_id):
+    """
+    Updates shipping details and returns the updated order summary.
+    """
+    logger.info(f"Updating shipping for order {order_id}")
+    order = get_object_or_404(Order, id=order_id)
+    
+    delivery_option = request.POST.get('delivery_option')
+    order.delivery_option = delivery_option
+    
+    if delivery_option == 'home_delivery':
+        order.recipient_name = request.POST.get('recipient_name')
+        order.recipient_phone = request.POST.get('recipient_phone')
+        order.recipient_email = request.POST.get('recipient_email')
+        order.recipient_address = request.POST.get('recipient_address')
+        order.recipient_latitude = request.POST.get('recipient_latitude') or None
+        order.recipient_longitude = request.POST.get('recipient_longitude') or None
+        
+        # Calculate shipping price based on recipient lat/long
+        if order.recipient_latitude and order.recipient_longitude:
+            tenant = getattr(request, 'tenant', None)
+            if tenant and tenant.location_lat and tenant.location_lng:
+                distance = haversine(
+                    float(tenant.location_lng), float(tenant.location_lat),
+                    float(order.recipient_longitude), float(order.recipient_latitude)
+                )
+                from myapp.models import DeliveryPricing
+                pricing = DeliveryPricing.objects.filter(
+                    tenant=tenant, min_km__lte=distance
+                ).filter(
+                    models.Q(max_km__gte=distance) | models.Q(max_km__isnull=True)
+                ).first()
+                order.shipping_price = pricing.price if pricing else 0
+    else:
+        order.shipping_price = 0
+        
+    order.save()
+    
+    # Return updated summary via HTMX
+    return htmx_get_order_summary(request, order.id)
 
 @require_http_methods(["POST"])
 def admin_approve_comment(request, order_id):
@@ -728,7 +876,9 @@ def htmx_get_order_summary(request, order_id):
 
     summary = {
         'total_items': total_items,
-        'total_price': total_price,
+        'total_price': total_price + order.shipping_price,
+        'shipping_price': order.shipping_price,
+        'delivery_option': order.delivery_option,
         'delivery_date': delivery_date
     }
     logger.info(f"Order summary: {summary}")

@@ -116,7 +116,9 @@ class OrderForm(forms.ModelForm):
     class Meta:
         model = Order
         fields = [
-            'customer_name', 'customer_email', 'customer_phone', 'address',
+            'customer_name', 'customer_email', 'customer_phone', 'address', 'pickup_latitude', 'pickup_longitude',
+            'delivery_option', 'recipient_name', 'recipient_email', 
+            'recipient_phone', 'recipient_address', 'recipient_latitude', 'recipient_longitude',
             'pickup_date', 'special_instructions'
         ]
         widgets = {
@@ -128,19 +130,30 @@ class OrderForm(forms.ModelForm):
                 'hx-target': '#email-error'
             }),
             'customer_phone': forms.TextInput(attrs={'class': 'form-control'}),
-            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'cols': 40}),
+            'address': forms.TextInput(attrs={'class': 'form-control', 'id': 'id_address', 'placeholder': 'Enter your pickup address'}),
+            
+            'delivery_option': forms.RadioSelect(attrs={'class': 'form-check-input'}),
+            
+            'recipient_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'recipient_email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'recipient_phone': forms.TextInput(attrs={'class': 'form-control'}),
+            'recipient_address': forms.TextInput(attrs={'class': 'form-control', 'id': 'id_recipient_address', 'placeholder': 'Enter recipient address'}),
+            'pickup_latitude': forms.HiddenInput(),
+            'pickup_longitude': forms.HiddenInput(),
+            'recipient_latitude': forms.HiddenInput(),
+            'recipient_longitude': forms.HiddenInput(),
+            
             'pickup_date': forms.DateTimeInput(
-                attrs={'class': 'form-control', 'id': 'pickup-calendar',}
+                attrs={'class': 'form-control', 'id': 'pickup-calendar', 'type': 'datetime-local'}
             ),
-               'special_instructions': forms.Textarea(
+            'special_instructions': forms.Textarea(
                 attrs={
                     'class': 'form-control',
                     'rows': 2,
                     'cols': 40,
-                    'placeholder': 'I want it specially washed'
+                    'placeholder': 'Special care instructions...'
                 }
             ),
-
         }
         labels = {
             'customer_name': 'Customer Name',
@@ -152,15 +165,36 @@ class OrderForm(forms.ModelForm):
         }
         
     def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
 
-        # Make all fields required except special_instructions
-        for field_name in self.fields:
-            if field_name != 'special_instructions':
-                self.fields[field_name].required = True
-            else:
-                self.fields[field_name].required = False
+        # Auto-populate if user is in Customer group
+        if user and user.is_authenticated:
+            if user.groups.filter(name='Customer').exists():
+                self.fields['customer_name'].initial = user.name
+                self.fields['customer_email'].initial = user.email
+                self.fields['customer_phone'].initial = user.phone
+                self.fields['address'].initial = user.address
+                self.fields['pickup_latitude'].initial = user.latitude
+                self.fields['pickup_longitude'].initial = user.longitude
 
+        # Make recipient and pickup coordinates optional by default
+        optional_fields = [
+            'recipient_name', 'recipient_email', 'recipient_phone', 
+            'recipient_address', 'recipient_latitude', 'recipient_longitude',
+            'pickup_latitude', 'pickup_longitude', 'delivery_option', 'special_instructions'
+        ]
+        for field in optional_fields:
+            if field in self.fields:
+                self.fields[field].required = False
+        
+        if 'delivery_option' in self.fields:
+            self.fields['delivery_option'].initial = 'home_delivery'
+
+        # Make all other fields required
+        for field_name in self.fields:
+            if field_name not in optional_fields:
+                self.fields[field_name].required = True
 
 
 class OrderFormv1(forms.ModelForm):

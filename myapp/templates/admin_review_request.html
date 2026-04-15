@@ -15,6 +15,106 @@
         <!-- The summary will be loaded here via HTMX -->
     </div>
 
+    <div class="card shadow p-4 mb-4 border-start border-primary border-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="text-primary mb-0"><i class="fas fa-truck me-2"></i> Shipping Details</h5>
+            <button class="btn btn-outline-primary btn-sm" id="toggle-shipping-edit">
+                <i class="fas fa-edit me-1"></i> Edit
+            </button>
+        </div>
+        
+        <!-- Display Mode -->
+        <div id="shipping-display-section" {% if not order.recipient_name and order.delivery_option == 'home_delivery' %}style="display:none;"{% endif %}>
+            <div class="row">
+                <div class="col-md-3">
+                    <label class="text-muted small">Recipient Name</label>
+                    <div class="fw-bold">{{ order.recipient_name|default:order.customer_name }}</div>
+                </div>
+                <div class="col-md-3">
+                    <label class="text-muted small">Recipient Phone</label>
+                    <div class="fw-bold">{{ order.recipient_phone|default:order.customer_phone }}</div>
+                </div>
+                <div class="col-md-3">
+                    <label class="text-muted small">Recipient Address</label>
+                    <div class="fw-bold">{{ order.recipient_address|default:order.address }}</div>
+                </div>
+                <div class="col-md-3">
+                    <label class="text-muted small">Delivery Option</label>
+                    <div class="fw-bold text-capitalize">{{ order.get_delivery_option_display }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Mode -->
+        <div id="shipping-edit-section" {% if order.recipient_name or order.delivery_option != 'home_delivery' %}style="display:none;"{% endif %}>
+            <form id="shipping-update-form" hx-post="{% url 'laundry:htmx_update_shipping' order.id %}" hx-target="#order-summary-section" hx-swap="outerHTML">
+                {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-md-12">
+                        <label class="form-label fw-bold">Delivery Option</label>
+                        <div class="d-flex gap-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="delivery_option" id="home_delivery" value="home_delivery" {% if order.delivery_option == 'home_delivery' or not order.delivery_option %}checked{% endif %}>
+                                <label class="form-check-label" for="home_delivery">Home Delivery</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="delivery_option" id="on_premise" value="on_premise" {% if order.delivery_option == 'on_premise' %}checked{% endif %}>
+                                <label class="form-check-label" for="on_premise">On-Premise Pickup</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="home-delivery-fields" class="col-md-12">
+                        <hr>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Address Source</label>
+                            <div class="d-flex gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="address_source" id="source_customer" value="customer" checked>
+                                    <label class="form-check-label" for="source_customer">Use Customer Address</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="address_source" id="source_shipping" value="shipping">
+                                    <label class="form-check-label" for="source_shipping">Use Different Shipping Address</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="recipient-form-fields">
+                            <div class="row g-2">
+                                <div class="col-md-4">
+                                    <label class="small text-muted">Recipient Name</label>
+                                    <input type="text" name="recipient_name" class="form-control form-control-sm" value="{{ order.recipient_name|default:order.customer_name }}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="small text-muted">Recipient Phone</label>
+                                    <input type="text" name="recipient_phone" class="form-control form-control-sm" value="{{ order.recipient_phone|default:order.customer_phone }}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="small text-muted">Recipient Email</label>
+                                    <input type="email" name="recipient_email" class="form-control form-control-sm" value="{{ order.recipient_email|default:order.customer_email }}">
+                                </div>
+                                <div class="col-md-12 mt-2">
+                                    <label class="small text-muted">Recipient Address</label>
+                                    <input type="text" id="id_recipient_address" name="recipient_address" class="form-control form-control-sm" value="{{ order.recipient_address|default:order.address }}">
+                                    <input type="hidden" id="id_recipient_latitude" name="recipient_latitude" value="{{ order.recipient_latitude|default:'' }}">
+                                    <input type="hidden" id="id_recipient_longitude" name="recipient_longitude" value="{{ order.recipient_longitude|default:'' }}">
+                                    <div id="recipient-map-error" class="text-danger small mt-1" style="display:none;">
+                                        <i class="fas fa-exclamation-triangle"></i> Please select a valid address from the dropdown or drop a pin on the map.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-12 text-end mt-2">
+                        <button type="submit" class="btn btn-primary btn-sm">Save Shipping Details</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Message area for success/error messages, like after sending an invoice -->
     <div id="invoice-message"></div>
     
@@ -54,6 +154,7 @@
 
      
     <!-- Table to display existing items -->
+    {% if order.items.exists %}
     <div class="card shadow p-4 mb-4">
         <h5 class="mb-3">Existing Items</h5>
         <div class="table-responsive">
@@ -92,4 +193,73 @@
     </div>
     
 </div>
+
+{% block extra_js %}
+<script>
+function initAutocomplete() {
+    const input = document.getElementById('id_recipient_address');
+    if (!input) return;
+
+    const options = {
+        componentRestrictions: { country: "ng" },
+        fields: ["address_components", "geometry", "name"],
+    };
+
+    const autocomplete = new google.maps.places.Autocomplete(input, options);
+    autocomplete.addListener("place_changed", () => {
+        const place = autocomplete.getPlace();
+        if (!place.geometry) {
+            document.getElementById('recipient-map-error').style.display = 'block';
+            return;
+        }
+        document.getElementById('recipient-map-error').style.display = 'none';
+        document.getElementById('id_recipient_latitude').value = place.geometry.location.lat();
+        document.getElementById('id_recipient_longitude').value = place.geometry.location.lng();
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const editBtn = document.getElementById('toggle-shipping-edit');
+    const displaySection = document.getElementById('shipping-display-section');
+    const editSection = document.getElementById('shipping-edit-section');
+    const homeDeliveryFields = document.getElementById('home-delivery-fields');
+    const deliveryOptions = document.querySelectorAll('input[name="delivery_option"]');
+    const addressSources = document.querySelectorAll('input[name="address_source"]');
+    const recipientFields = document.getElementById('recipient-form-fields');
+
+    if (editBtn) {
+        editBtn.addEventListener('click', function() {
+            if (editSection.style.display === 'none') {
+                editSection.style.display = 'block';
+                displaySection.style.display = 'none';
+                editBtn.innerHTML = '<i class="fas fa-times me-1"></i> Cancel';
+            } else {
+                editSection.style.display = 'none';
+                displaySection.style.display = 'block';
+                editBtn.innerHTML = '<i class="fas fa-edit me-1"></i> Edit';
+            }
+        });
+    }
+
+    deliveryOptions.forEach(opt => {
+        opt.addEventListener('change', function() {
+            homeDeliveryFields.style.display = this.value === 'home_delivery' ? 'block' : 'none';
+        });
+    });
+
+    addressSources.forEach(src => {
+        src.addEventListener('change', function() {
+            if (this.value === 'customer') {
+                document.getElementsByName('recipient_name')[0].value = "{{ order.customer_name|escapejs }}";
+                document.getElementsByName('recipient_phone')[0].value = "{{ order.customer_phone|escapejs }}";
+                document.getElementsByName('recipient_email')[0].value = "{{ order.customer_email|escapejs }}";
+                document.getElementById('id_recipient_address').value = "{{ order.address|escapejs }}";
+                document.getElementById('id_recipient_latitude').value = "{{ order.pickup_latitude|default:'' }}";
+                document.getElementById('id_recipient_longitude').value = "{{ order.pickup_longitude|default:'' }}";
+            }
+        });
+    });
+});
+</script>
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initAutocomplete" async defer></script>
 {% endblock %}
