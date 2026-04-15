@@ -213,6 +213,9 @@ ORDER_STATUS = (
     ('commented', 'Commented'),
     ('confirmed', 'Confirmed Order'),
     ('in_progress', 'In Progress'),
+    ('ready_for_dispatch', 'Ready for Dispatch'),
+    ('awaiting_dispatch', 'Awaiting Dispatch'),
+    ('assigned_to_dispatcher', 'Assigned to Dispatcher'),
     ('paid', 'Paid'),
     ('delivered', 'Delivered'),
     ('canceled', 'Canceled'),
@@ -417,7 +420,7 @@ class Order(TenantModel):
     # order_code = models.CharField(max_length=12, unique=True, blank=True, null=True)
     order_code = models.CharField(max_length=12, unique=True,  editable=True, default=generate_order_code)
     # user = models.ForeignKey(CustomUser, on_delete=models.SET_DEFAULT, default="missing_id",related_name='laundry_orders')
-    status = models.CharField(max_length=20, choices=ORDER_STATUS, default='pending')
+    status = models.CharField(max_length=120, choices=ORDER_STATUS, default='pending')
     customer_name = models.CharField(max_length=100, blank=True, null=True)
     customer_email = models.EmailField(blank=True, null=True)
     customer_phone = models.CharField(max_length=15, blank=True, null=True)
@@ -438,6 +441,14 @@ class Order(TenantModel):
     work_initiator = models.ForeignKey(
         'Employee', on_delete=models.SET_NULL, related_name="initiated_orders", null=True, blank=True
     )
+    
+    # Dispatch & Delivery Fields
+    dispatched_by = models.CharField(max_length=255, blank=True, null=True)
+    delivered_by = models.CharField(max_length=255, blank=True, null=True)
+    received_by_name = models.CharField(max_length=255, blank=True, null=True)
+    received_by_phone = models.CharField(max_length=50, blank=True, null=True)
+    sentiment_analysis = models.CharField(max_length=50, blank=True, null=True, help_text="Sentiment analysis label/score")
+    qr_secure_token = models.CharField(max_length=255, unique=True, null=True, blank=True)
     
     def check_and_update_status(self, user=None):
         """

@@ -1,4 +1,4 @@
-from django.urls import path
+
 
 from django.urls import path
 from django.contrib.auth import views as auth_views
@@ -50,6 +50,8 @@ urlpatterns = [
     path('employee/reject/<int:item_id>/', views.reject_item, name='reject_item'),
     path('transit/', views.qr_transit_scanner, name='qr_transit_scanner'),
     path('transit/scan/', views.htmx_transit_scan, name='htmx_transit_scan'),
+    path('dispatch/inward/', views.dispatch_inward, name='dispatch_inward'),
+    path('dispatch/delivery/', views.dispatch_delivery, name='dispatch_delivery'),
 
     # HTMX endpoints
     path('htmx/get_services/', views.htmx_get_package_options, name='htmx_get_package_options'),

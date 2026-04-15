@@ -44,7 +44,7 @@ AddItemForm, CommentForm, OrderForm, OrderItemForm,CustomUserChangeForm,Registra
 CustomUserCreationForm,PasswordSetupForm,PasswordChangeForm,PasswordSetupForm,
 ) 
 from .models import Comment, Order, OrderItem, Package, ServiceCategory, Payment, CustomUser, PremiumClient, QR, WorkflowHistory, WorkflowInstance, WorkflowStage, Tenant
-from .utils import is_admin
+from .utils import is_admin, analyze_sentiment, verify_qr_token, get_signed_token, generate_qr_base64
 
 from .models import log_with_context
 
@@ -250,9 +250,11 @@ def customer_order(request):
                 'Laundry Service Request Confirmation',
                 'Your request has been received. A dispatch agent will visit shortly.',
                 settings.DEFAULT_FROM_EMAIL,
-                [request.user.email],
+                [order.customer_email],
                 fail_silently=False,
             )
+                if 'book_and_pick' in request.POST:
+                    return redirect('laundry:admin_review_request', order_id=order.id)
                 return redirect('laundry:order_detail', order_id=order.id)
             except IntegrityError:
                 messages.error(
@@ -272,6 +274,8 @@ def admin_dashboard(request):
     commented_orders = Order.objects.filter(status='commented').order_by('-created_at')
     confirmed_orders = Order.objects.filter(status='confirmed').order_by('-created_at')
     invoiced_sent = Order.objects.filter(status='invoice_sent').order_by('-created_at')
+    dispatch_ready_orders = Order.objects.filter(status__in=['ready_for_dispatch', 'assigned_to_dispatcher']).order_by('-updated_at')
+    
     # Pipeline data
     items = OrderItem.objects.all()
     pipeline_counts = {}
@@ -289,6 +293,7 @@ def admin_dashboard(request):
         'commented_orders': commented_orders,
         'confirmed_orders': confirmed_orders,
         'invoiced_sent': invoiced_sent,
+        'dispatch_ready_orders': dispatch_ready_orders,
         'pipeline_counts': pipeline_counts,
         'total_items': total_items,
         'escalated_items': escalated_items,
@@ -403,9 +408,13 @@ def comment_order(request, order_id):
             # comment.author = order.customer_email or request.user.email  
             comment.body = form.cleaned_data['body']
             comment.save()
+            
+            # Sentiment Analysis Integration
+            sentiment_score = analyze_sentiment(comment.body)
+            order.sentiment_analysis = sentiment_score
+            
             order.is_confirmed = False
             order.status = "commented"
-            # order.notes=comment.body
             order.save()
             logger.info(f"Comment added successfully: {comment}")
             return redirect('laundry:comment_success')
@@ -791,7 +800,17 @@ def htmx_send_invoice1(request, order_id):
         return HttpResponse("Invoice Successfully sent")
 
     
-        # return render(request, 'htmx/invoice_sent_message.html')
+        # messages.success(request, 'Invoice successfully sent to the email of the customer!')
+        # if request.user.is_authenticated:
+        #     destination = reverse('laundry:admin_dashboard')
+        # else:
+        #     destination = reverse('laundry:customer_order')
+
+        # if hasattr(request, 'htmx') and request.htmx:
+        #     response = HttpResponse()
+        #     response['HX-Redirect'] = destination
+        #     return response
+        # return redirect(destination)
 
     except Exception as e:
         print("Email send error:", e)
@@ -1057,7 +1076,17 @@ def htmx_send_invoice(request, order_id):
         email.content_subtype = "html"
         email.send()
         logger.info(f"Invoice email sent successfully to {order.customer_email} for Order {order.id}.")
-        return render(request, 'htmx/invoice_sent_message.html')
+        messages.success(request, 'Invoice successfully sent to the email of the customer!')
+        if request.user.is_authenticated:
+            destination = reverse('laundry:admin_dashboard')
+        else:
+            destination = reverse('laundry:customer_order')
+
+        if hasattr(request, 'htmx') and request.htmx:
+            response = HttpResponse()
+            response['HX-Redirect'] = destination
+            return response
+        return redirect(destination)
     except Exception as e:
         logger.error(f"Email send error for Order {order.id}: {e}")
         messages.error(request, f'Failed to send email: {e}')
@@ -1121,6 +1150,12 @@ def htmx_send_invoicev2(request, order_id):
             verified=False
         )
         logger.info(f"Payment record created for Order {order.id} with reference {reference}")
+        
+        # Phase 6: Ensure Order has a secure QR token for dispatch/delivery
+        if not order.qr_secure_token:
+            order.qr_secure_token = get_signed_token(order.id)
+            order.save(update_fields=['qr_secure_token', 'updated_at'])
+            
     except Exception as e:
         logger.exception(f"Error creating payment record for Order {order.id}: {e}")
         messages.error(request, 'Payment record creation failed.')
@@ -1148,6 +1183,7 @@ def htmx_send_invoicev2(request, order_id):
         'paystack_url': paystack_url, # ✅ Use the actual Paystack checkout URL
         'comment_url': comment_url,
         'confirm_url': confirm_url,
+        'qr_code_base64': generate_qr_base64(order.qr_secure_token, sign=False),
     })
 
     try:
@@ -1160,7 +1196,17 @@ def htmx_send_invoicev2(request, order_id):
         email.content_subtype = "html"
         email.send()
         logger.info(f"Invoice email sent successfully to {order.customer_email} for Order {order.id}.")
-        return render(request, 'htmx/invoice_sent_message.html')
+        messages.success(request, 'Invoice successfully sent to the email of the customer!')
+        if request.user.is_authenticated:
+            destination = reverse('laundry:admin_dashboard')
+        else:
+            destination = reverse('laundry:customer_order')
+
+        if hasattr(request, 'htmx') and request.htmx:
+            response = HttpResponse()
+            response['HX-Redirect'] = destination
+            return response
+        return redirect(destination)
 
     except Exception as e:
         logger.error(f"Email send error for Order {order.id}: {e}")
@@ -1352,7 +1398,7 @@ def laundry_request_confirmation(request):
         ['ayodelefestusng@gmail.com', 'upwardwave.dignity@gmail.com'],
         fail_silently=False,
     )
-    return HttpResponse("Confirmation email sent.")
+    return HttpResponse(b"Confirmation email sent.")
 
 from django.db import transaction
 @is_admin
@@ -1381,13 +1427,17 @@ def api_assign_qr_to_item(request, item_id):
             
         item = get_object_or_404(OrderItem, id=item_id)
         
+        # Phase 6: Verify that the code is a valid signed token (prevent guessing)
+        if not verify_qr_token(code):
+             return JsonResponse({'success': False, 'message': 'Invalid or tampered QR code tag.'}, status=400)
+             
         if item.qr_code:
             return JsonResponse({'success': False, 'message': 'Item already has a QR code assigned.'}, status=400)
             
         from myapp.models import QR
         try:
             qr = QR.objects.get(code=code)
-        except QR.DoesNotExist:
+        except ObjectDoesNotExist:
             return JsonResponse({'success': False, 'message': 'QR code not found.'}, status=404)
             
         if qr.status != 'unused':
@@ -1448,7 +1498,7 @@ def api_assign_qr_to_itemv1(request, item_id):
         from myapp.models import QR
         try:
             qr = QR.objects.get(code=code)
-        except QR.DoesNotExist:
+        except ObjectDoesNotExist:
             return JsonResponse({'success': False, 'message': 'QR code not found in system.'}, status=404)
             
         if qr.status != 'unused':
@@ -1692,12 +1742,12 @@ def htmx_transit_scan(request):
         decoded_text = request.POST.get('decodedText', '').strip()
 
     if not decoded_text:
-        return HttpResponse('<div class="alert alert-danger"><i class="fas fa-exclamation-triangle me-1"></i>Invalid scan data received.</div>')
+        return HttpResponse(b'<div class="alert alert-danger"><i class="fas fa-exclamation-triangle me-1"></i>Invalid scan data received.</div>')
 
     # Find the order item by QR code
     item = OrderItem.objects.filter(qr_code=decoded_text).first()
     if not item:
-        return HttpResponse('<div class="alert alert-danger"><i class="fas fa-search me-1"></i>No item found matching this QR code.</div>')
+        return HttpResponse(b'<div class="alert alert-danger"><i class="fas fa-search me-1"></i>No item found matching this QR code.</div>')
 
     from django.contrib.contenttypes.models import ContentType
     from myapp.models import WorkflowInstance
@@ -1705,10 +1755,10 @@ def htmx_transit_scan(request):
     instance = WorkflowInstance.objects.filter(content_type=ct, object_id=item.id).first()
 
     if not instance:
-        return HttpResponse('<div class="alert alert-warning"><i class="fas fa-info-circle me-1"></i>This item has no assigned workflow engine yet.</div>')
+        return HttpResponse(b'<div class="alert alert-warning"><i class="fas fa-info-circle me-1"></i>This item has no assigned workflow engine yet.</div>')
         
     if instance.completed_at:
-        return HttpResponse('<div class="alert alert-success"><i class="fas fa-check-circle me-1"></i>This item has already completed its workflow lifecycle.</div>')
+        return HttpResponse(b'<div class="alert alert-success"><i class="fas fa-check-circle me-1"></i>This item has already completed its workflow lifecycle.</div>')
 
     # Get prior stages for selective rejection
     prior_stages = []
@@ -1722,3 +1772,77 @@ def htmx_transit_scan(request):
         'prior_stages': prior_stages
     }
     return render(request, 'htmx/transit_action_card.html', context)
+@csrf_exempt
+@login_required
+def dispatch_inward(request):
+    """
+    Handles internal dispatch QR scans.
+    Verifies the token and updates order status to 'assigned_to_dispatcher'.
+    """
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            token = data.get('decodedText')
+            order_id = verify_qr_token(token)
+            
+            if not order_id:
+                return HttpResponse(b"Invalid or tampered QR code.", status=400)
+                
+            order = get_object_or_404(Order, id=order_id)
+            order.status = 'assigned_to_dispatcher'
+            order.dispatched_by = request.user.email
+            order.save()
+            
+            return HttpResponse(f"""
+                <div class="alert alert-success">
+                    <h5 class="alert-heading"><i class="fas fa-check-circle me-2"></i>Dispatch Inward Successful</h5>
+                    <p class="mb-0">Order: <strong>{order.order_code}</strong></p>
+                    <p class="mb-0">Status: <strong>{order.get_status_display()}</strong></p>
+                    <p class="mb-0">Dispatched By: {request.user.email}</p>
+                </div>
+            """.encode('utf-8'))
+        except Exception as e:
+            logger.error(f"Dispatch Inward Error: {str(e)}")
+            return HttpResponse(b"Server error processing scan.", status=500)
+            
+    return render(request, 'dispatch_scanner.html', {'scan_mode': 'inward'})
+
+@csrf_exempt
+@login_required
+def dispatch_delivery(request):
+    """
+    Handles delivery QR scans.
+    Verifies token, captures recipient details, and updates status to 'delivered'.
+    """
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            token = data.get('decodedText')
+            recipient_name = data.get('recipient_name', 'Not provided')
+            recipient_phone = data.get('recipient_phone', 'Not provided')
+            
+            order_id = verify_qr_token(token)
+            if not order_id:
+                return HttpResponse(b"Invalid or tampered QR code.", status=400)
+                
+            order = get_object_or_404(Order, id=order_id)
+            order.status = 'delivered'
+            order.delivered_by = request.user.email
+            order.received_by_name = recipient_name
+            order.received_by_phone = recipient_phone
+            order.save()
+            
+            # TODO: Automation: Send "Delivery Successful" email
+            
+            return HttpResponse(f"""
+                <div class="alert alert-success">
+                    <h5 class="alert-heading"><i class="fas fa-truck me-2"></i>Delivery Successful</h5>
+                    <p class="mb-0">Order: <strong>{order.order_code}</strong></p>
+                    <p class="mb-0">Recipient: {recipient_name} ({recipient_phone})</p>
+                </div>
+            """.encode('utf-8'))
+        except Exception as e:
+            logger.error(f"Dispatch Delivery Error: {str(e)}")
+            return HttpResponse(b"Server error processing scan.", status=500)
+            
+    return render(request, 'dispatch_scanner.html', {'scan_mode': 'delivery'})

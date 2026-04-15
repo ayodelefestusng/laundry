@@ -4,11 +4,7 @@
 {% block content %}
 <div class="container my-5">
     <h2 class="mb-4">Review Order #{{ order.order_code }}</h2>
-<ul>
-    {% for package in packages %}
-        <li>{{ package.category.name }} — {{ package.get_service_type_display }} (₦{{ package.price }}, {{ package.delivery_time_days }} days)</li>
-    {% endfor %}
-</ul>
+
 
     <!-- HTMX-powered Order Summary Section -->
     <div id="order-summary-section" class="card shadow p-4 mb-4" 

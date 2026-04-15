@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
 from myapp.models import QR, Tenant
+from myapp.utils import get_signed_token
 import uuid
 
 import qrcode
@@ -22,19 +23,41 @@ def generate_qr_image(code):
 def generate_qr_pdf(qr_queryset, filename="qr_codes.pdf"):
     c = canvas.Canvas(filename, pagesize=A4)
     width, height = A4
-
-    x, y = 50, height - 100  # starting position
-    for qr in qr_queryset:
+    
+    cols = 5
+    rows = 10
+    margin = 35
+    cell_width = (width - 2 * margin) / cols
+    cell_height = (height - 2 * margin) / rows
+    
+    for i, qr in enumerate(qr_queryset):
+        # Handle multiple pages if count > 40
+        if i > 0 and i % (cols * rows) == 0:
+            c.showPage()
+            
+        page_idx = i % (cols * rows)
+        col = page_idx % cols
+        row = page_idx // cols # 0 to 9
+        
+        # Calculate x, y (PDF y is from bottom)
+        x = margin + col * cell_width
+        y = height - margin - (row + 1) * cell_height
+        
         img_data = generate_qr_image(qr.code)
         img = ImageReader(BytesIO(img_data))
-        c.drawImage(img, x, y, width=100, height=100)
-        c.drawString(x, y - 15, f"Code: {qr.code}")
-
-        # move down for next QR
-        y -= 150
-        if y < 100:  # new page if space runs out
-            c.showPage()
-            y = height - 100
+        
+        # Center QR in cell
+        qr_size = 80
+        pad_x = (cell_width - qr_size) / 2
+        pad_y = (cell_height - qr_size) / 2 + 10 # room for text below
+        
+        c.drawImage(img, x + pad_x, y + pad_y, width=qr_size, height=qr_size)
+        
+        # Label below QR
+        c.setFont("Helvetica", 6)
+        # Use a shortened version if signed code is long
+        display_code = (qr.code[:30] + '..') if len(qr.code) > 30 else qr.code
+        c.drawCentredString(x + cell_width/2, y + pad_y - 12, display_code)
 
     c.save()
 
@@ -65,8 +88,9 @@ class Command(BaseCommand):
 
         qr_list = []
         for _ in range(count):
-            code = str(uuid.uuid4())
-            qr_list.append(QR(code=code, tenant=tenant, status='unused'))
+            raw_uuid = str(uuid.uuid4())
+            signed_code = get_signed_token(raw_uuid)
+            qr_list.append(QR(code=signed_code, tenant=tenant, status='unused'))
 
         QR.objects.bulk_create(qr_list)
 
@@ -82,3 +106,6 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(
             f"PDF with {count} QR codes generated for tenant {tenant.name} at {filename}."
         ))
+
+        # python manage.py generate_qrs 50
+        # python manage.py generate_qrs 50 --tenant 1

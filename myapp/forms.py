@@ -6,6 +6,37 @@ from .models import (Comment, CustomUser, Order, OrderItem, Package, Payment,Pac
                      )
 
 
+from django.urls import reverse_lazy
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Layout, Submit, HTML, Field
+from django.contrib.auth.forms import SetPasswordForm
+from django.contrib.auth.forms import PasswordResetForm 
+from django.utils.translation import gettext_lazy as _
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.contrib.auth.tokens import default_token_generator
+from django.template import loader
+from django.core.mail import EmailMultiAlternatives
+from django.contrib.sites.shortcuts import get_current_site
+from django.conf import settings
+from django.contrib.auth import get_user_model
+import logging
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.contrib.auth.tokens import default_token_generator
+from django.template import loader
+from django.core.mail import EmailMultiAlternatives
+from django.contrib.sites.shortcuts import get_current_site
+from django.conf import settings
+from django.contrib.auth import get_user_model
+import logging
+from django.utils.encoding import force_bytes
+logger = logging.getLogger(__name__)
+
+UserModel = get_user_model()
+from django import forms
+from datetime import datetime, timedelta
 class CustomUserCreationForm(UserCreationForm):
     """
     A form that creates a user, with no username, but with email, phone number, and address.
@@ -15,10 +46,6 @@ class CustomUserCreationForm(UserCreationForm):
         fields = ('email', 'name',)
 
 
-from django.urls import reverse_lazy
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Submit, HTML, Field
-from django.contrib.auth.forms import SetPasswordForm
 class RegistrationForm(forms.ModelForm):
     class Meta:
         model = CustomUser
@@ -64,31 +91,7 @@ class PasswordChangeForm(forms.Form):
     old_password = forms.CharField(widget=forms.PasswordInput)
     new_password = forms.CharField(widget=forms.PasswordInput)
 
-from django.contrib.auth.forms import PasswordResetForm 
-from django.utils.translation import gettext_lazy as _
-from django.utils.http import urlsafe_base64_encode
-from django.utils.encoding import force_bytes
-from django.contrib.auth.tokens import default_token_generator
-from django.template import loader
-from django.core.mail import EmailMultiAlternatives
-from django.contrib.sites.shortcuts import get_current_site
-from django.conf import settings
-from django.contrib.auth import get_user_model
-import logging
-from django.utils.encoding import force_bytes
-from django.utils.http import urlsafe_base64_encode
-from django.utils.encoding import force_bytes
-from django.contrib.auth.tokens import default_token_generator
-from django.template import loader
-from django.core.mail import EmailMultiAlternatives
-from django.contrib.sites.shortcuts import get_current_site
-from django.conf import settings
-from django.contrib.auth import get_user_model
-import logging
-from django.utils.encoding import force_bytes
-logger = logging.getLogger(__name__)
 
-UserModel = get_user_model()
 
 
 
@@ -106,8 +109,7 @@ class CustomUserChangeForm(UserChangeForm):
     class Meta:
         model = CustomUser
         fields = ('email', 'phone', 'name',)
-from django import forms
-from datetime import datetime, timedelta
+
 
 class OrderForm(forms.ModelForm):
     

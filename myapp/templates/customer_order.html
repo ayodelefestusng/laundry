@@ -3,68 +3,450 @@
 {% load crispy_forms_tags %}
 
 {% block content %}
-<div class="container my-5">
-  <div class="card shadow p-4 mx-auto" style="max-width: 600px;">
-    <h2 class="text-center mb-4">Place a New Order</h2>
-    <p class="text-center text-muted">
-      Please fill out the form below to start your laundry order. We will contact you to confirm the details and provide an invoice.
-    </p>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        --glass-bg: rgba(255, 255, 255, 0.95);
+        --glass-border: rgba(255, 255, 255, 0.2);
+    }
 
-    <form method="post" class="mt-4">
-      {% csrf_token %}
-      {{ form.customer_name|as_crispy_field }}
-      {{ form.customer_email|as_crispy_field }}
-      <div id="email-error"></div>
-      {{ form.customer_phone|as_crispy_field }}
-      {{ form.address|as_crispy_field }}
-      {{ form.pickup_date|as_crispy_field }}
-      {{ form.special_instructions|as_crispy_field }}
-      <div class="text-center mt-4">
-        <button type="submit" class="btn btn-primary btn-sm">Submit Order</button>
-      </div>
-    </form>
-  </div>
+    body {
+        background: #f0f2f5;
+        background-image: 
+            radial-gradient(at 0% 0%, rgba(var(--primary-color-rgb, 13, 110, 253), 0.05) 0px, transparent 50%),
+            radial-gradient(at 50% 0%, rgba(var(--secondary-color-rgb, 108, 117, 125), 0.05) 0px, transparent 50%);
+        min-height: 100vh;
+    }
+
+    .hero-section {
+        padding: 60px 0 40px;
+        text-align: center;
+    }
+
+    .hero-title {
+        font-weight: 800;
+        font-size: 3rem;
+        background: var(--primary-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 20px;
+    }
+
+    .order-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+        padding: 40px;
+        margin-bottom: 50px;
+        transition: transform 0.3s ease;
+    }
+
+    .order-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 8px;
+    }
+
+    .form-control {
+        border-radius: 12px;
+        padding: 12px 16px;
+        border: 2px solid #eee;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.25rem rgba(var(--primary-color-rgb, 13, 110, 253), 0.1);
+    }
+
+    .btn-submit {
+        background: var(--primary-gradient);
+        color: white;
+        border: none;
+        padding: 15px 40px;
+        border-radius: 50px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        box-shadow: 0 10px 20px rgba(var(--primary-color-rgb, 13, 110, 253), 0.3);
+        transition: all 0.3s ease;
+    }
+
+    .btn-submit:hover {
+        transform: scale(1.05);
+        box-shadow: 0 15px 25px rgba(var(--primary-color-rgb, 13, 110, 253), 0.4);
+        color: white;
+    }
+
+    /* Floating WhatsApp */
+    .whatsapp-float {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 60px;
+        height: 60px;
+        background-color: #25d366;
+        color: #fff;
+        border-radius: 50px;
+        text-align: center;
+        font-size: 30px;
+        box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+
+    .whatsapp-float:hover {
+        background-color: #128c7e;
+        transform: scale(1.1);
+        color: white;
+    }
+
+    /* Chatbot Toggle */
+    .chat-toggle {
+        position: fixed;
+        bottom: 30px;
+        left: 30px;
+        background: var(--primary-gradient);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 50px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.3s ease;
+    }
+
+    /* Chat Pane Styles */
+    .chat-pane {
+        position: fixed;
+        bottom: 100px;
+        left: 30px;
+        width: 350px;
+        height: 450px;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        display: none;
+        flex-direction: column;
+        z-index: 1001;
+        overflow: hidden;
+        border: 1px solid #eee;
+    }
+
+    .chat-header {
+        background: var(--primary-gradient);
+        color: white;
+        padding: 15px 20px;
+        font-weight: 700;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .chat-body {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        background: #f8f9fa;
+    }
+
+    .chat-message {
+        padding: 10px 15px;
+        border-radius: 15px;
+        max-width: 85%;
+        font-size: 0.9rem;
+    }
+
+    .message-bot {
+        background: white;
+        align-self: flex-start;
+        border-bottom-left-radius: 2px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+
+    .message-user {
+        background: var(--primary-color);
+        color: white;
+        align-self: flex-end;
+        border-bottom-right-radius: 2px;
+    }
+
+    .chat-footer {
+        padding: 15px;
+        border-top: 1px solid #eee;
+        display: flex;
+        gap: 10px;
+    }
+
+    .chat-input {
+        flex: 1;
+        border: 1px solid #ddd;
+        border-radius: 20px;
+        padding: 8px 15px;
+        outline: none;
+    }
+
+    .btn-send {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Chat Pane Styles */
+    .chat-pane {
+        position: fixed;
+        bottom: 100px;
+        left: 30px;
+        width: 350px;
+        height: 450px;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        display: none;
+        flex-direction: column;
+        z-index: 1001;
+        overflow: hidden;
+        border: 1px solid #eee;
+    }
+
+    .chat-header {
+        background: var(--primary-gradient);
+        color: white;
+        padding: 15px 20px;
+        font-weight: 700;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .chat-body {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        background: #f8f9fa;
+    }
+
+    .chat-message {
+        padding: 10px 15px;
+        border-radius: 15px;
+        max-width: 85%;
+        font-size: 0.9rem;
+    }
+
+    .message-bot {
+        background: white;
+        align-self: flex-start;
+        border-bottom-left-radius: 2px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+
+    .message-user {
+        background: var(--primary-color);
+        color: white;
+        align-self: flex-end;
+        border-bottom-right-radius: 2px;
+    }
+
+    .chat-footer {
+        padding: 15px;
+        border-top: 1px solid #eee;
+        display: flex;
+        gap: 10px;
+    }
+
+    .chat-input {
+        flex: 1;
+        border: 1px solid #ddd;
+        border-radius: 20px;        padding: 8px 15px;
+        outline: none;
+    }
+
+    .btn-send {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+</style>
+
+<div class="hero-section">
+    <div class="container">
+        <h1 class="hero-title">Elevate Your Lifestyle</h1>
+        <p class="lead text-muted mx-auto" style="max-width: 600px;">
+            Experience premium laundry care with the touch of a button. We handle the dirty work so you can focus on what matters.
+        </p>
+    </div>
 </div>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            <div class="order-card">
+                <h3 class="fw-bold mb-4 text-center">Start Your Order</h3>
+                <form method="post" id="order-form">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            {{ form.customer_name|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.customer_email|as_crispy_field }}
+                        </div>
+                        <div class="col-md-12">
+                            {{ form.customer_phone|as_crispy_field }}
+                        </div>
+                        <div class="col-md-12">
+                            {{ form.address|as_crispy_field }}
+                        </div>
+                        <div class="col-md-12">
+                            {{ form.pickup_date|as_crispy_field }}
+                        </div>
+                        <div class="col-md-12">
+                            {{ form.special_instructions|as_crispy_field }}
+                        </div>
+                    </div>
+                    <div class="text-center mt-5 d-flex flex-column gap-3">
+                        <button type="submit" name="book_only" class="btn btn-submit w-100">
+                            Book Pickup Now <i class="fas fa-calendar-check ms-2"></i>
+                        </button>
+                        <button type="submit" name="book_and_pick" class="btn btn-outline-primary btn-lg rounded-pill fw-bold text-uppercase" style="border-width: 2px;">
+                            Book & Pick with your order <i class="fas fa-arrow-right ms-2"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Elements -->
+<a href="https://wa.me/+2349068770054" class="whatsapp-float" target="_blank">
+    <i class="fab fa-whatsapp"></i>
+</a>
+
+<div class="chat-pane" id="chat-pane">
+    <div class="chat-header">
+        <span><i class="fas fa-robot me-2"></i> AI Assistant</span>
+        <i class="fas fa-times cursor-pointer" id="close-chat"></i>
+    </div>
+    <div class="chat-body" id="chat-body">
+        <div class="chat-message message-bot">
+            Hello! I'm your AI Laundry Assistant. How can I help you today?
+        </div>
+    </div>
+    <div class="chat-footer">
+        <input type="text" class="chat-input" id="chat-input" placeholder="Type a message...">
+        <button class="btn-send" id="send-btn"><i class="fas fa-paper-plane"></i></button>
+    </div>
+</div>
+
+<div class="chat-toggle" id="chat-toggle">
+    <i class="fas fa-robot"></i> AI Assistant
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    // Calculate the max date by counting 5 valid business days (skipping Sunday)
     let maxDate = new Date();
     let validDays = 0;
     while (validDays < 5) {
         maxDate.setDate(maxDate.getDate() + 1);
-        // If not Sunday (0), it counts as a valid day
-        if (maxDate.getDay() !== 0) {
-            validDays++;
-        }
+        if (maxDate.getDay() !== 0) validDays++;
     }
 
     flatpickr("#pickup-calendar", {
         enableTime: true,
         dateFormat: "Y-m-d H:i",
-        
         minDate: "today",
         maxDate: maxDate,
-        disable: [
-            function(date) {
-                // Disable Sundays (0 = Sunday)
-                return (date.getDay() === 0);
-            }
-        ],
+        disable: [function(date) { return (date.getDay() === 0); }],
         minTime: "08:00",
-        maxTime: "17:00",
+        maxTime: "18:00",
     });
+
+    // Chat Logic
+    const chatToggle = document.getElementById('chat-toggle');
+    const chatPane = document.getElementById('chat-pane');
+    const closeChat = document.getElementById('close-chat');
+    const sendBtn = document.getElementById('send-btn');
+    const chatInput = document.getElementById('chat-input');
+    const chatBody = document.getElementById('chat-body');
+
+    if (chatToggle) {
+        chatToggle.onclick = () => chatPane.style.display = 'flex';
+    }
+    if (closeChat) {
+        closeChat.onclick = () => chatPane.style.display = 'none';
+    }
+
+    function addMessage(text, isUser = false) {
+        const msg = document.createElement('div');
+        msg.className = `chat-message ${isUser ? 'message-user' : 'message-bot'}`;
+        msg.textContent = text;
+        chatBody.appendChild(msg);
+        chatBody.scrollTop = chatBody.scrollHeight;
+    }
+
+    if (sendBtn) {
+        sendBtn.onclick = () => {
+            const text = chatInput.value.trim();
+            if (!text) return;
+            
+            addMessage(text, true);
+            chatInput.value = '';
+
+            setTimeout(() => {
+                const responses = [
+                    "I can certainly help you with that! Are you looking for pickup schedules?",
+                    "Our premium service includes organic detergents. Would you like to know more?",
+                    "I've noted your interest. For immediate booking, please use the form on this page.",
+                    "Orders usually take 2-3 business days depending on the items."
+                ];
+                const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+                addMessage(randomResponse);
+            }, 1000);
+        };
+    }
+
+    if (chatInput) {
+        chatInput.onkeypress = (e) => { if (e.key === 'Enter') sendBtn.click(); };
+    }
 });
 </script>
-
-<style>
-/* Target all placeholders inside form-control inputs/textarea */
-.form-control::placeholder {
-    font-style: italic;
-    color: #6c757d; /* Bootstrap’s muted gray */
-    opacity: 0.8;   /* Slightly lighter */
-}
-</style>
 {% endblock %}

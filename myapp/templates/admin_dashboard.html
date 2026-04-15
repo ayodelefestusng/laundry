@@ -124,11 +124,70 @@
                         <span class="badge bg-secondary ms-1">{{ invoiced_sent|length }}</span>
                     </button>
                 </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="dispatch-tab" data-bs-toggle="pill" data-bs-target="#dispatch" type="button" role="tab">
+                        <i class="fas fa-shuttle-van me-1"></i> Dispatch
+                        <span class="badge bg-dark ms-1">{{ dispatch_ready_orders|length }}</span>
+                    </button>
+                </li>
             </ul>
         </div>
         
         <div class="card-body p-4 bg-light">
             <div class="tab-content" id="adminTabsContent">
+                
+                <!-- DISPATCH TAB -->
+                <div class="tab-pane fade" id="dispatch" role="tabpanel">
+                    {% if dispatch_ready_orders %}
+                        {% for order in dispatch_ready_orders %}
+                        <div class="order-item-card {% if order.status == 'assigned_to_dispatcher' %}border-dark{% else %}border-primary{% endif %} p-4 mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <h5 class="mb-0 fw-bold text-dark me-3">Order #{{ order.order_code }}</h5>
+                                        {% if order.has_payment_received or order.status == 'paid' %}
+                                            <span class="badge bg-success shadow-sm"><i class="fas fa-check-circle me-1"></i> Paid</span>
+                                        {% else %}
+                                            <span class="badge bg-danger shadow-sm"><i class="fas fa-exclamation-circle me-1"></i> Unpaid</span>
+                                        {% endif %}
+                                        
+                                        {% if order.status == 'assigned_to_dispatcher' %}
+                                            <span class="badge bg-dark ms-2">In Transit</span>
+                                        {% endif %}
+                                    </div>
+                                    <p class="mb-1 text-muted"><i class="fas fa-user me-2"></i>{{ order.customer_name|default:order.customer_email }}</p>
+                                    <p class="mb-0 text-muted"><i class="fas fa-map-marker-alt me-2"></i>{{ order.address|truncatechars:50|default:"No address" }}</p>
+                                </div>
+                                <div class="text-end">
+                                    {% if order.status == 'ready_for_dispatch' %}
+                                        {% if order.has_payment_received or order.status == 'paid' %}
+                                            <a href="{% url 'laundry:dispatch_inward' %}" class="btn btn-primary fw-bold shadow-sm px-4">
+                                                <i class="fas fa-qrcode me-2"></i>Dispatch Now
+                                            </a>
+                                        {% else %}
+                                            <button hx-post="{% url 'laundry:htmx_send_invoice' order.id %}" 
+                                                    hx-target="this" 
+                                                    hx-swap="outerHTML"
+                                                    class="btn btn-warning fw-bold shadow-sm px-4">
+                                                <i class="fas fa-paper-plane me-2"></i>Send Invoice
+                                            </button>
+                                        {% endif %}
+                                    {% elif order.status == 'assigned_to_dispatcher' %}
+                                        <a href="{% url 'laundry:dispatch_delivery' %}" class="btn btn-success fw-bold shadow-sm px-4">
+                                            <i class="fas fa-truck-check me-2"></i>Confirm Delivery
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-5 text-muted">
+                            <i class="fas fa-truck-loading fa-3x mb-3 opacity-50"></i>
+                            <h5>No orders ready for dispatch.</h5>
+                        </div>
+                    {% endif %}
+                </div>
                 
                 <!-- PENDING TAB -->
                 <div class="tab-pane fade show active" id="pending" role="tabpanel">

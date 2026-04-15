@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    #reader {
+        background-color: #f8f9fa;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 2px solid var(--primary-color);
+    }
+    .scanner-card {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+</style>
+
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card scanner-card">
+                <div class="card-header bg-white p-4 border-bottom text-center">
+                    <h3 class="fw-bold mb-0">
+                        {% if scan_mode == 'delivery' %}
+                            <i class="fas fa-truck text-primary me-2"></i>Delivery Confirmation
+                        {% else %}
+                            <i class="fas fa-shuttle-van text-primary me-2"></i>Dispatch Inward
+                        {% endif %}
+                    </h3>
+                </div>
+                <div class="card-body p-4">
+                    {% if scan_mode == 'delivery' %}
+                        <div id="recipient-info" class="mb-4">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Recipient Name</label>
+                                <input type="text" id="recipient_name" class="form-control" placeholder="Enter name">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Recipient Phone</label>
+                                <input type="text" id="recipient_phone" class="form-control" placeholder="Enter phone number">
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <div id="reader-section">
+                        <div id="reader"></div>
+                        <div class="text-center mt-3">
+                            <button id="start-btn" class="btn btn-primary btn-lg w-100 fw-bold">
+                                <i class="fas fa-camera me-2"></i>Start Scanning
+                            </button>
+                            <button id="stop-btn" class="btn btn-outline-danger w-100 mt-2 fw-bold" style="display:none;">
+                                <i class="fas fa-stop me-2"></i>Stop Camera
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="result-container" class="mt-4"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        let scanner = null;
+        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const resultContainer = document.getElementById('result-container');
+        const scanMode = "{{ scan_mode }}";
+
+        startBtn.addEventListener('click', function() {
+            startBtn.style.display = 'none';
+            stopBtn.style.display = 'block';
+            
+            scanner = new Html5Qrcode("reader");
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            
+            const startScanner = (mode) => {
+                scanner.start({ facingMode: mode }, config, onScanSuccess)
+                .catch(err => {
+                    if (mode === "environment") startScanner("user");
+                    else alert("Camera error: " + err);
+                });
+            };
+
+            startScanner("environment");
+        });
+
+        stopBtn.addEventListener('click', function() {
+            if (scanner) {
+                scanner.stop().then(() => {
+                    startBtn.style.display = 'block';
+                    stopBtn.style.display = 'none';
+                });
+            }
+        });
+
+        function onScanSuccess(decodedText) {
+            scanner.pause();
+            resultContainer.innerHTML = '<div class="text-center"><div class="spinner-border text-primary"></div><p class="mt-2">Processing...</p></div>';
+            
+            const payload = { decodedText: decodedText };
+            if (scanMode === 'delivery') {
+                payload.recipient_name = document.getElementById('recipient_name').value;
+                payload.recipient_phone = document.getElementById('recipient_phone').value;
+            }
+
+            fetch(window.location.pathname, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.text())
+            .then(html => {
+                resultContainer.innerHTML = html;
+                if (html.includes('alert-success')) {
+                    scanner.stop().then(() => {
+                        stopBtn.style.display = 'none';
+                        // Keep success message
+                    });
+                } else {
+                    setTimeout(() => scanner.resume(), 3000);
+                }
+            })
+            .catch(err => {
+                resultContainer.innerHTML = '<div class="alert alert-danger">Network Error</div>';
+                setTimeout(() => scanner.resume(), 3000);
+            });
+        }
+    });
+</script>
+{% endblock %}
