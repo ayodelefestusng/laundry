@@ -315,7 +315,8 @@
         <div class="col-lg-7">
             <div class="order-card">
                 <h3 class="fw-bold mb-4 text-center">Start Your Order</h3>
-                <form method="post" id="order-form">
+                <form method="post" action="{% url 'laundry:customer_order' %}" id="order-form">
+
                     {% csrf_token %}
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -420,8 +421,9 @@ function initAutocomplete() {
             const lng = place.geometry.location.lng();
             
             // Populate hidden fields
-            document.getElementById('id_pickup_latitude').value = lat;
-            document.getElementById('id_pickup_longitude').value = lng;
+            document.getElementById('id_pickup_latitude').value = lat.toFixed(6);
+            document.getElementById('id_pickup_longitude').value = lng.toFixed(6);
+
 
             // Trigger HTMX call for price calculation
             if (typeof htmx !== 'undefined') {

@@ -177,6 +177,7 @@
             </table>
         </div>
     </div>
+    {% endif %}
     
     <!-- Send Invoice Button -->
     <div class="d-grid gap-2">
@@ -262,4 +263,5 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initAutocomplete" async defer></script>
+{% endblock %}
 {% endblock %}

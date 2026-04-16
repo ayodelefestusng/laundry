@@ -2,22 +2,26 @@
     <h5 class="mb-0">Order Summary</h5>
 </div>
 <div class="card-body">
-    <div class="row">
-        <div class="col-md-3">
-            <h6 class="text-muted">Total Items:</h6>
-            <h4>{{ summary.total_items }}</h4>
+    <div class="row text-center">
+        <div class="col-md-2">
+            <h6 class="text-muted small">Items Count</h6>
+            <h5 class="fw-bold">{{ summary.total_items }}</h5>
+        </div>
+        <div class="col-md-2">
+            <h6 class="text-muted small">Subtotal</h6>
+            <h5 class="fw-bold">&#8358;{{ summary.subtotal|floatformat:2 }}</h5>
+        </div>
+        <div class="col-md-2">
+            <h6 class="text-muted small">Shipping</h6>
+            <h5 class="fw-bold text-primary">&#8358;{{ summary.shipping_price|floatformat:2 }}</h5>
         </div>
         <div class="col-md-3">
-            <h6 class="text-muted">Shipping:</h6>
-            <h4>&#8358;{{ summary.shipping_price|floatformat:2 }}</h4>
+            <h6 class="text-muted small text-uppercase">Grand Total</h6>
+            <h4 class="fw-bold text-success">&#8358;{{ summary.total_price|floatformat:2 }}</h4>
         </div>
         <div class="col-md-3">
-            <h6 class="text-muted">Grand Total:</h6>
-            <h4>&#8358;{{ summary.total_price|floatformat:2 }}</h4>
-        </div>
-        <div class="col-md-3">
-            <h6 class="text-muted">Delivery Date:</h6>
-            <h4>{{ summary.delivery_date|date:"F d, Y" }}</h4>
+            <h6 class="text-muted small">Est. Delivery</h6>
+            <h5 class="fw-bold">{{ summary.delivery_date|date:"M d, Y" }}</h5>
         </div>
     </div>
 </div>

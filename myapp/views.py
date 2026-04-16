@@ -307,6 +307,10 @@ def customer_order(request):
             except Exception as e:
                 logger.error(f"Error in customer_order: {e}")
                 messages.error(request, "An error occurred while placing the order. Please try again.")
+        else:
+            logger.warning(f"Form errors: {form.errors}")
+
+    
     else:
         logger.info(f"User {request.user} is ALUKE g an order.")
         form = OrderForm(user=request.user)
@@ -316,6 +320,7 @@ def customer_order(request):
         'google_maps_api_key': GOOGLE_MAPS_API_KEY,
         'tenant': tenant
     })
+
 
 from math import radians, cos, sin, asin, sqrt
 
@@ -332,8 +337,9 @@ def haversine(lon1, lat1, lon2, lat2):
     return c * r
 
 @require_http_methods(["GET"])
-def htmx_calculate_delivery(request):
+def htmx_calculate_delivery(request, order_id):
     """Calculates delivery cost based on distance from tenant location."""
+    order = get_object_or_404(Order, id=order_id)
     tenant = getattr(request, 'tenant', None)
     if not tenant or not tenant.location_lat or not tenant.location_lng:
         return HttpResponse('<span class="text-warning">Tenant location not set. Contact admin.</span>')
@@ -363,10 +369,12 @@ def htmx_calculate_delivery(request):
 
     price = pricing.price if pricing else 0
     
-    return render(request, 'htmx/delivery_price_snippet.html', {
-        'distance': round(distance, 2),
-        'price': price
-    })
+    # Update order shipping price
+    order.shipping_price = price
+    order.save()
+    
+    # Return updated summary
+    return htmx_get_order_summary(request, order_id)
 
 def admin_dashboard(request):
     """
@@ -876,8 +884,9 @@ def htmx_get_order_summary(request, order_id):
 
     summary = {
         'total_items': total_items,
-        'total_price': total_price + order.shipping_price,
+        'subtotal': total_price,
         'shipping_price': order.shipping_price,
+        'total_price': total_price + order.shipping_price,
         'delivery_option': order.delivery_option,
         'delivery_date': delivery_date
     }

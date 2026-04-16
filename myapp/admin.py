@@ -5,7 +5,7 @@ from matplotlib.pylab import qr
 
 from .models import (Comment, CustomUser, Order, OrderItem, Package,
                      ServiceCategory,Tenant, Workflow, WorkflowStage, WorkflowInstance,Employee,
-                     ServiceChoices,PremiumClient,QR)
+                     ServiceChoices,PremiumClient,QR,DeliveryPricing)
 
 
 class CustomUserAdmin(UserAdmin):
@@ -106,6 +106,7 @@ admin.site.register(ServiceChoices)
 admin.site.register(Tenant, admin.ModelAdmin)
 admin.site.register(PremiumClient, admin.ModelAdmin)
 admin.site.register(QR)
+admin.site.register(DeliveryPricing)
 class WorkflowStepInline(admin.TabularInline):
     model = WorkflowStage
     extra = 1
