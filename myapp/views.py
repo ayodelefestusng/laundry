@@ -710,12 +710,13 @@ def admin_review_request(request, order_id):
     }
     return render(request, 'admin_review_request.html', context)
 
+@csrf_exempt
 @require_http_methods(["POST"])
 def htmx_update_shipping(request, order_id):
     """
     Updates shipping details and returns the updated order summary.
     """
-    logger.info(f"Updating shipping for order {order_id}")
+    logger.info(f"Method: {request.method} - Updating shipping for order {order_id}")
     order = get_object_or_404(Order, id=order_id)
     
     delivery_option = request.POST.get('delivery_option')
@@ -987,15 +988,23 @@ def htmx_edit_item(request, item_id):
     item = get_object_or_404(OrderItem, id=item_id)
     
     if request.method == 'POST':
+        logger.info(f"User {request.user} is editing item {item_id}. Form data: {request.POST}")
         form = OrderItemForm(request.POST, instance=item)
         if form.is_valid():
+            logger.info(f"User {request.user} is editing item {item_id}. Form is valid.")
             form.save()
             return render(request, 'htmx/item_table_row.html', {'item': item})
         else:
             return HttpResponseBadRequest(render_to_string('htmx/add_item_errors.html', {'errors': form.errors}))
     else:
+        logger.info(f"User {request.user} is getting item {item_id} for editing.")
         form = OrderItemForm(instance=item)
-        return render(request, 'htmx/edit_item_form.html', {'form': form, 'item': item})
+        all_categories = ServiceCategory.objects.all()
+        return render(request, 'htmx/edit_item_form.html', {
+            'form': form, 
+            'item': item,
+            'all_categories': all_categories
+        })
 
 @require_http_methods(["DELETE"])
 def htmx_delete_item(request, item_id):

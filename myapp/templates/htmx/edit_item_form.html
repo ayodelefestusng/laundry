@@ -12,14 +12,14 @@
         >
             <option value="">---------</option>
             {% for category in all_categories %}
-                <option value="{{ category.id }}" {% if item.service.category.id == category.id %}selected{% endif %}>{{ category.name }}</option>
+                <option value="{{ category.id }}" {% if item.package.category.id == category.id %}selected{% endif %}>{{ category.name }}</option>
             {% endfor %}
         </select>
     </td>
     <td>
         <!-- Service selection, dynamically loaded -->
         <select 
-            name="service" 
+            name="package" 
             id="edit-service-{{ item.id }}"
             hx-get="{% url 'laundry:htmx_get_package_details' %}"
             hx-target="#edit-price-delivery-details-{{ item.id }}"
@@ -28,7 +28,7 @@
             hx-include="#edit-category-{{ item.id }}, #edit-service-{{ item.id }}"
             class="form-select"
         >
-            <option value="{{ item.service.id }}">{{ item.service.name }}</option>
+            <option value="{{ item.package.id }}">{{ item.package.get_service_type_display }}</option>
         </select>
     </td>
     <td>
