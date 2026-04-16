@@ -427,7 +427,7 @@ function initAutocomplete() {
 
             // Trigger HTMX call for price calculation
             if (typeof htmx !== 'undefined') {
-                htmx.ajax('GET', '{% url "laundry:htmx_calculate_delivery" %}', {
+                htmx.ajax('GET', '{% url "laundry:htmx_calculate_deliverys" %}', {
                     target: '#delivery-price-display',
                     values: { lat: lat, lng: lng }
                 });

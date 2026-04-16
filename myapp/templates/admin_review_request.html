@@ -154,8 +154,7 @@
 
      
     <!-- Table to display existing items -->
-    {% if order.items.exists %}
-    <div class="card shadow p-4 mb-4">
+    <div class="card shadow p-4 mb-4" id="items-card" {% if not order.items.exists %}style="display:none;"{% endif %}>
         <h5 class="mb-3">Existing Items</h5>
         <div class="table-responsive">
             <table class="table table-striped table-hover mb-0" id="item-table">
@@ -177,7 +176,7 @@
             </table>
         </div>
     </div>
-    {% endif %}
+    </div>
     
     <!-- Send Invoice Button -->
     <div class="d-grid gap-2">
@@ -216,6 +215,15 @@ function initAutocomplete() {
         document.getElementById('recipient-map-error').style.display = 'none';
         document.getElementById('id_recipient_latitude').value = place.geometry.location.lat();
         document.getElementById('id_recipient_longitude').value = place.geometry.location.lng();
+        
+        // Ensure the address input has the full formatted address
+        input.value = place.formatted_address || input.value;
+
+        // Auto-save: Trigger the HTMX form submission
+        const shippingForm = document.getElementById('shipping-update-form');
+        if (shippingForm && typeof htmx !== 'undefined') {
+            htmx.trigger(shippingForm, 'submit');
+        }
     });
 }
 
@@ -263,5 +271,5 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initAutocomplete" async defer></script>
-{% endblock %}
-{% endblock %}
+{% endblock extra_js %}
+{% endblock content %}

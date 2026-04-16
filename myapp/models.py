@@ -401,6 +401,16 @@ class ServiceChoices(TenantModel):
     def __str__(self):
         return self.name
     
+
+
+
+    
+     
+    
+    
+    
+    
+    
 WORKFLOW_STAGES1 = (
     ('pending_dispatch', 'Pending Dispatch'),
     ('in_transit', 'In Transit'),

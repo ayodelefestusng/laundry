@@ -46,10 +46,15 @@ from .forms import (
 AddItemForm, CommentForm, OrderForm, OrderItemForm,CustomUserChangeForm,RegistrationForm,
 CustomUserCreationForm,PasswordSetupForm,PasswordChangeForm,PasswordSetupForm,
 ) 
-from .models import Comment, Order, OrderItem, Package, ServiceCategory, Payment, CustomUser, PremiumClient, QR, WorkflowHistory, WorkflowInstance, WorkflowStage, Tenant
+from .models import(Comment, Order, OrderItem, Package, ServiceCategory, Payment, CustomUser, PremiumClient, QR, WorkflowHistory, WorkflowInstance, WorkflowStage, Tenant,
+
+    ) 
 from .utils import is_admin, analyze_sentiment, verify_qr_token, get_signed_token, generate_qr_base64
 
 from .models import log_with_context
+
+from math import radians, cos, sin, asin, sqrt
+
 GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY', 'AIzaSyDuPZzHxMY3HYN-3tnFGrMN6M_wae-XaSU')
 
 # User-facing views
@@ -249,11 +254,13 @@ def customer_order(request):
                 
                 email = form.cleaned_data.get('customer_email')
                 user = request.user
-                
+                logger.info(f"User {user} is placing an order with email: {email}")
                 # Automated User Management
                 if not user.is_authenticated:
+                    logger.info(f"No authenticated user. Checking for existing user with email: {email}")
                     user = CustomUser.objects.filter(email=email).first()
                     if not user:
+                        logger.info(f"Creating new user for email: {email}")
                         # Create new user
                         user = CustomUser.objects.create_user(
                             email=email,
@@ -267,25 +274,76 @@ def customer_order(request):
                         user.groups.add(customer_group)
                         
                     # Log the user in
+                    logger.info(f"Logging in user: {user.email}")
                     auth.login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-                
+                logger.info(f"User {user} is now associated with the order.")
                 order.user = user
                 
                 # Update Lat/Long if provided
                 pickup_lat = request.POST.get('pickup_latitude')
                 pickup_lng = request.POST.get('pickup_longitude')
+                current_address = form.cleaned_data.get('address')
                 if pickup_lat and pickup_lng:
+                    logger.info(f"Received pickup coordinates: ({pickup_lat}, {pickup_lng})")
                     order.pickup_latitude = pickup_lat
                     order.pickup_longitude = pickup_lng
                     
-                    # Sync to User model if user is Customer
-                    if user and user.groups.filter(name='Customer').exists():
-                        user.latitude = pickup_lat
-                        user.longitude = pickup_lng
-                        user.save(update_fields=['latitude', 'longitude'])
+                # Sync to User model if user is Customer
+                if user and user.groups.filter(name='Customer').exists():
+                    logger.info(f"Syncing data to user {user.email}")
+                    try:
+                        # Prepare fields to update
+                        update_fields = []
+                        # Update address if provided
+                        if current_address:
+                            logger.info(f"Syncing address for user {user.email}: {current_address}")
+                            user.address = current_address
+                            update_fields.append('address')
+                        # Update location only if BOTH lat and lng are present
+                        
+                            
+                        if pickup_lat and pickup_lng:
+                            logger.info(f"Syncing location for user {user.email}: ({pickup_lat}, {pickup_lng})")
+                            user.latitude = pickup_lat
+                            user.longitude = pickup_lng
+                            # order.pickup_latitude = pickup_lat
+                            # order.pickup_longitude = pickup_lng
+                            # update_fields.extend(['latitude', 'longitude'])
+                            update_fields.extend(['latitude', 'longitude'])
+                        else:
+                            logger.info(f"No coordinates provided for user {user.email}. Skipping lat/lng update.")
 
-                order.save()
-                
+                        # if current_address:
+                        #     logger.info(f"Syncing address for user {user.email}: {current_address}")
+                        #     user.address = current_address
+                        #     update_fields.append('address')
+                        # Execute save if there are any changes
+    
+        
+        
+                        # Only call save if there is actually something to update
+                        if update_fields:
+                            user.save(update_fields=update_fields)
+                            logger.info(f"User profile updated successfully: {update_fields}")
+
+                    except Exception as e:
+                        logger.error(f"Failed to update user profile for {user.email}: {str(e)}")
+                        # We don't necessarily want to crash the whole order if just the profile update fails
+                        # but you can re-raise if it's a critical failure: raise e
+            
+                    # logger.info(f"Updating user {user.email} location to ({pickup_lat}, {pickup_lng})")
+                    # user.latitude = pickup_lat
+                    # user.longitude = pickup_lng
+                    # user.save(update_fields=['latitude', 'longitude'])
+
+                # 4. Final Order save
+                try:
+                    order.save()
+                    logger.info(f"Order {order.id} saved successfully.")
+                except Exception as e:
+                    logger.error(f"Critical error saving order: {str(e)}", exc_info=True)
+                    # Handle order save failure (e.g., return error response)
+                    
                 logger.info(f"Order created successfully: {order}")
                 messages.success(request, 'Order placed successfully! We will contact you shortly.')
                 
@@ -322,7 +380,7 @@ def customer_order(request):
     })
 
 
-from math import radians, cos, sin, asin, sqrt
+
 
 def haversine(lon1, lat1, lon2, lat2):
     """Calculate the great circle distance between two points on the earth."""
@@ -375,6 +433,53 @@ def htmx_calculate_delivery(request, order_id):
     
     # Return updated summary
     return htmx_get_order_summary(request, order_id)
+
+
+@require_http_methods(["GET"])
+def htmx_calculate_deliverys(request):
+    """Calculates delivery cost based on distance from tenant location."""
+    # order = get_object_or_404(Order, id=order_id)
+    tenant = getattr(request, 'tenant', None)
+    if not tenant or not tenant.location_lat or not tenant.location_lng:
+        return HttpResponse('<span class="text-warning">Tenant location not set. Contact admin.</span>')
+
+    try:
+        dest_lat = float(request.GET.get('lat'))
+        dest_lng = float(request.GET.get('lng'))
+    except (TypeError, ValueError):
+        return HttpResponse('<span class="text-danger">Invalid address.</span>')
+
+    # Calculate distance
+    distance = haversine(
+        float(tenant.location_lng), float(tenant.location_lat),
+        dest_lng, dest_lat
+    )
+    
+    # Find pricing tier
+    from myapp.models import DeliveryPricing
+    from django.db.models import Q
+
+    pricing = DeliveryPricing.objects.filter(
+        tenant=tenant,
+        min_km__lte=distance
+    ).filter(
+        Q(max_km__gte=distance) | Q(max_km__isnull=True)
+    ).first()
+
+    price = pricing.price if pricing else 0
+    
+    # # Update order shipping price
+    # order.shipping_price = price
+    # order.save()
+    
+    # Return updated summary
+    # return htmx_get_order_summary(request, order_id)
+
+
+    return render(request, 'htmx/delivery_price_snippet.html', {
+        'distance': round(distance, 2),
+        'price': price
+    })
 
 def admin_dashboard(request):
     """
@@ -498,7 +603,7 @@ def accept_order(request, order_id):
     """
     Allows a customer to accept an order.
     """
-    log
+    logger.info(f"User {request.user} is accepting order {order_id}.")
     order = get_object_or_404(Order, id=order_id, user=request.user)
     order.status = 'accepted'
     order.save()
@@ -636,7 +741,7 @@ def htmx_update_shipping(request, order_id):
                 pricing = DeliveryPricing.objects.filter(
                     tenant=tenant, min_km__lte=distance
                 ).filter(
-                    models.Q(max_km__gte=distance) | models.Q(max_km__isnull=True)
+                        Q(max_km__gte=distance) | Q(max_km__isnull=True)
                 ).first()
                 order.shipping_price = pricing.price if pricing else 0
     else:
@@ -785,6 +890,43 @@ def htmx_get_package_details(request):
     
     context = {'package': package}
     return render(request, 'htmx/service_details.html', context)
+
+# # HTMX endpoints
+# @require_http_methods(["GET"])
+# def htmx_get_services(request):
+#     """
+#     Returns service options for a given category.
+#     """
+#     category_id = request.GET.get('category')
+#     if not category_id:
+#         return HttpResponse('')
+    
+#     services = Package.objects.filter(category_id=category_id)
+#     context = {'services': services}
+#     return render(request, 'htmx/service_options.html', context)
+
+# @require_http_methods(["GET"])
+# def htmx_get_service_details(request):
+#     """
+#     Returns a snippet of HTML with price and delivery details for a given service.
+#     """
+#     service_id = request.GET.get('service')
+#     service = None
+#     if service_id:
+#         try:
+#             service = Package.objects.get(id=service_id)
+#         except Package.DoesNotExist:
+#             pass # Service not found, template will handle with N/A
+    
+#     context = {'service': service}
+#     return render(request, 'htmx/service_details.html', context)
+
+
+
+
+
+
+
 
 @require_http_methods(["POST"])
 def htmx_add_item(request, order_id):

@@ -4,7 +4,7 @@
         <select 
             name="category" 
             id="edit-category-{{ item.id }}"
-            hx-get="{% url 'laundry:htmx_get_services' %}"
+            hx-get="{% url 'laundry:htmx_get_package_options' %}"
             hx-target="#edit-service-{{ item.id }}"
             hx-trigger="change"
             hx-swap="innerHTML"
@@ -21,7 +21,7 @@
         <select 
             name="service" 
             id="edit-service-{{ item.id }}"
-            hx-get="{% url 'laundry:htmx_get_service_details' %}"
+            hx-get="{% url 'laundry:htmx_get_package_details' %}"
             hx-target="#edit-price-delivery-details-{{ item.id }}"
             hx-trigger="change"
             hx-swap="innerHTML"

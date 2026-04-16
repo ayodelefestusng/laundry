@@ -66,6 +66,13 @@ urlpatterns = [
     path('htmx/send_invoice/<uuid:order_id>/', views.htmx_send_invoice, name='htmx_send_invoice'),
     path('api/assign_qr_to_item/<int:item_id>/', views.api_assign_qr_to_item, name='api_assign_qr_to_item'),
 
+#  # HTMX endpoints
+#     path('htmx/get_services/', views.htmx_get_services, name='htmx_get_services'),
+#     path('htmx/get_service_details/', views.htmx_get_service_details, name='htmx_get_service_details'),
+
+
+
+ path('htmx/calculate_deliverys/', views.htmx_calculate_deliverys, name='htmx_calculate_deliverys'),
     # Payment redirects
 #     path('paypal/success/', views.paypal_success, name='paypal_success'),
 #     path('paypal/cancel/', views.paypal_cancel, name='paypal_cancel'),

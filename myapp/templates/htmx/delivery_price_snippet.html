@@ -1,8 +1,10 @@
+{% load humanize %}
 <div class="alert alert-info d-flex align-items-center mt-2 shadow-sm border-0" style="border-radius: 12px; background: rgba(var(--primary-color-rgb, 13, 110, 253), 0.1);">
     <i class="fas fa-truck me-3 fs-4 text-primary"></i>
     <div>
         <div class="fw-bold text-primary">Estimated Delivery Distance: {{ distance }} km</div>
-        <div class="text-muted small">Shipping Cost: <strong>₦{{ price }}</strong></div>
+        <div class="text-muted small">Shipping Cost: <strong>₦{{ price|floatformat:2|intcomma }}</strong></div>
+     
         <input type="hidden" name="shipping_price" value="{{ price }}">
     </div>
 </div>
