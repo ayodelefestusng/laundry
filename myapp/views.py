@@ -1,3 +1,4 @@
+from decimal import Decimal
 import logging
 from math import log
 import os
@@ -418,19 +419,43 @@ def htmx_calculate_delivery(request, order_id):
     from myapp.models import DeliveryPricing
     from django.db.models import Q
 
+    # pricing = DeliveryPricing.objects.filter(
+    #     tenant=tenant,
+    #     min_km__lte=distance
+    # ).filter(
+    #     Q(max_km__gte=distance) | Q(max_km__isnull=True)
+    # ).first()
+
+    
+    # Find pricing tier
     pricing = DeliveryPricing.objects.filter(
         tenant=tenant,
         min_km__lte=distance
     ).filter(
         Q(max_km__gte=distance) | Q(max_km__isnull=True)
-    ).first()
-
-    price = pricing.price if pricing else 0
-    
-    # Update order shipping price
+    ).order_by('min_km').first() # Get the smallest starting range that fits
+    if not pricing:
+        # Fallback if distance exceeds all defined tiers
+        price = Decimal('5000.00') 
+        logger.warning(f"No tier for {distance:.2f}km. Using fallback ₦{price}")
+    else:
+        price = pricing.price
+        
+        
+    # price = pricing.price if pricing else 0
+    # if not pricing:
+    # # Option A: Use a fallback flat rate
+    #     price = 5000.00 
+    #     logger.warning(f"No pricing tier found for {distance}km. Applied fallback.")
+        
+    #     # Option B: Block the order (recommended for HTMX)
+    #     # return HttpResponse('<span class="text-danger">Distance outside delivery zone.</span>')
+    # else:
+    #     price = pricing.price
+    # # Update order shipping price
     order.shipping_price = price
-    order.save()
-    
+    order.save(update_fields=['shipping_price'])
+    logger.info(f"Order {order_id}: Distance {distance:.2f}km -> Shipping ₦{price}")
     # Return updated summary
     return htmx_get_order_summary(request, order_id)
 
@@ -459,22 +484,64 @@ def htmx_calculate_deliverys(request):
     from myapp.models import DeliveryPricing
     from django.db.models import Q
 
-    pricing = DeliveryPricing.objects.filter(
-        tenant=tenant,
-        min_km__lte=distance
-    ).filter(
-        Q(max_km__gte=distance) | Q(max_km__isnull=True)
-    ).first()
-
-    price = pricing.price if pricing else 0
+    # pricing = DeliveryPricing.objects.filter(
+    #     tenant=tenant,
+    #     min_km__lte=distance
+    # ).filter(
+    #     Q(max_km__gte=distance) | Q(max_km__isnull=True)
+    # ).first()
+    # Find pricing tier
+    # pricing = DeliveryPricing.objects.filter(
+    #     tenant=tenant,
+    #     min_km__lte=distance
+    # ).filter(
+    #     Q(max_km__gte=distance) | Q(max_km__isnull=True)
+    # ).order_by('min_km').first() # Get the smallest starting range that fits
     
+    # price = pricing.price if pricing else 0
+    # if not pricing:
+    #     # Option A: Use a fallback flat rate
+    #     price = 5000.00 
+    #     logger.warning(f"No pricing tier found for {distance}km. Applied fallback.")
+        
+    #     # Option B: Block the order (recommended for HTMX)
+    #     # return HttpResponse('<span class="text-danger">Distance outside delivery zone.</span>')
+    # else:
+        # price = pricing.price
     # # Update order shipping price
     # order.shipping_price = price
     # order.save()
     
     # Return updated summary
     # return htmx_get_order_summary(request, order_id)
-
+        # Find pricing tier
+    pricing = DeliveryPricing.objects.filter(
+        tenant=tenant,
+        min_km__lte=distance
+    ).filter(
+        Q(max_km__gte=distance) | Q(max_km__isnull=True)
+    ).order_by('min_km').first() # Get the smallest starting range that fits
+    if not pricing:
+        # Fallback if distance exceeds all defined tiers
+        price = Decimal('5000.00') 
+        logger.warning(f"No tier for {distance:.2f}km. Using fallback ₦{price}")
+    else:
+        price = pricing.price
+        
+        
+    # price = pricing.price if pricing else 0
+    # if not pricing:
+    # # Option A: Use a fallback flat rate
+    #     price = 5000.00 
+    #     logger.warning(f"No pricing tier found for {distance}km. Applied fallback.")
+        
+    #     # Option B: Block the order (recommended for HTMX)
+    #     # return HttpResponse('<span class="text-danger">Distance outside delivery zone.</span>')
+    # else:
+    #     price = pricing.price
+    # # Update order shipping price
+   
+    logger.info(f" Distance {distance:.2f}km -> Shipping ₦{price}")
 
     return render(request, 'htmx/delivery_price_snippet.html', {
         'distance': round(distance, 2),
@@ -721,7 +788,7 @@ def htmx_update_shipping(request, order_id):
     
     delivery_option = request.POST.get('delivery_option')
     order.delivery_option = delivery_option
-    
+    logger.info(f"Selected delivery option: {delivery_option}")
     if delivery_option == 'home_delivery':
         order.recipient_name = request.POST.get('recipient_name')
         order.recipient_phone = request.POST.get('recipient_phone')
@@ -746,10 +813,11 @@ def htmx_update_shipping(request, order_id):
                 ).first()
                 order.shipping_price = pricing.price if pricing else 0
     else:
-        order.shipping_price = 0
         
+        order.shipping_price = 0
+        logger.info(f"Selected delivery option: {delivery_option}")
     order.save()
-    
+    logger.info(f"Order {order_id} updated successfully.")
     # Return updated summary via HTMX
     return htmx_get_order_summary(request, order.id)
 
@@ -992,8 +1060,15 @@ def htmx_edit_item(request, item_id):
         form = OrderItemForm(request.POST, instance=item)
         if form.is_valid():
             logger.info(f"User {request.user} is editing item {item_id}. Form is valid.")
-            form.save()
-            return render(request, 'htmx/item_table_row.html', {'item': item})
+            item = form.save(commit=False)
+            # Sync price and delivery time from the selected package
+            item.price = item.package.price
+            item.delivery_time_days = item.package.delivery_time_days
+            item.save()
+            
+            response = render(request, 'htmx/item_table_row.html', {'item': item})
+            response['HX-Trigger'] = 'refresh-summary'
+            return response
         else:
             return HttpResponseBadRequest(render_to_string('htmx/add_item_errors.html', {'errors': form.errors}))
     else:
@@ -1016,7 +1091,7 @@ def htmx_delete_item(request, item_id):
     item.delete()
     return HttpResponse(status=200, headers={'HX-Trigger': 'refresh-summary'})
 
-@require_http_methods(["GET"])
+# @require_http_methods(["GET"])
 def htmx_get_order_summary(request, order_id):
     """
     Returns an updated order summary snippet.

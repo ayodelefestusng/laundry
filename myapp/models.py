@@ -376,7 +376,25 @@ class DeliveryPricing(TenantModel):
     class Meta:
         verbose_name = "Delivery Pricing"
         verbose_name_plural = "Delivery Pricing Tiers"
+    def clean(self):
+        # Ensure min is not greater than max
+        if self.max_km and self.min_km > self.max_km:
+            raise ValidationError("Minimum KM cannot be greater than Maximum KM.")
+            
+        # Optional: Check for overlapping ranges for the same tenant
+        overlapping = DeliveryPricing.objects.filter(
+            tenant=self.tenant,
+            min_km__lt=self.max_km if self.max_km else 9999,
+            max_km__gt=self.min_km
+        ).exclude(pk=self.pk)
+        
+        if overlapping.exists():
+            raise ValidationError("This range overlaps with an existing pricing tier.")
 
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+        
     def __str__(self):
         if self.max_km:
             return f"{self.min_km}km - {self.max_km}km: {self.price}"

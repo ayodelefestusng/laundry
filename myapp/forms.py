@@ -217,7 +217,7 @@ class OrderItemForm(forms.ModelForm):
     """
     class Meta:
         model = OrderItem
-        fields = ['name', 'color']
+        fields = ['package', 'name', 'color']
 
 class AddItemForm(forms.Form):
     """
