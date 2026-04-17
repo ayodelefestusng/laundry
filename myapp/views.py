@@ -1403,9 +1403,23 @@ def htmx_send_invoice(request, order_id):
         return HttpResponse("No items to invoice.", status=400)
 
     # Calculate totals
-    total_price = sum(item.price for item in items)
+    items_total = sum(item.price for item in items)
     max_delivery_days = max(item.delivery_time_days for item in items) if items else 0
     estimated_delivery_date = timezone.now().date() + timedelta(days=max_delivery_days)
+    
+    # Validation & Shipping Cost logic
+    shipping_cost = 0  # Default to 0 based on user request
+    if order.delivery_option == 'home_delivery':
+        # Enforce lat/lng validation
+        if not order.recipient_latitude or not order.recipient_longitude:
+            return HttpResponse(
+                '<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> '
+                'A valid Google Maps address is required for Home Delivery. Please Edit Shipping Details and drop a pin.</div>',
+                status=400
+            )
+        # shipping_cost can be calculated dynamically here. Defaulting to 0.
+
+    total_price = items_total + shipping_cost
 
     order.total_price = total_price
     order.estimated_delivery_date = estimated_delivery_date
@@ -1448,6 +1462,9 @@ def htmx_send_invoice(request, order_id):
     # Prepare email content
     summary = {
         'total_items': items.count(),
+        'items_total': items_total,
+        'shipping_cost': shipping_cost,
+        'delivery_option_display': order.get_delivery_option_display(),
         'total_price': total_price,
         'delivery_date': estimated_delivery_date,
     }
@@ -2249,6 +2266,55 @@ def dispatch_delivery(request):
             return HttpResponse(b"Server error processing scan.", status=500)
             
     return render(request, 'dispatch_scanner.html', {'scan_mode': 'delivery'})
+
+@require_http_methods(["POST"])
+def htmx_update_shipping(request, order_id):
+    """
+    Updates the delivery option and recipient address details via HTMX.
+    """
+    logger.info(f"User {request.user} updating shipping for order {order_id}")
+    order = get_object_or_404(Order, id=order_id)
+    
+    delivery_option = request.POST.get('delivery_option')
+    address_source = request.POST.get('address_source')
+    
+    if delivery_option:
+        order.delivery_option = delivery_option
+    
+    if delivery_option == 'home_delivery':
+        if address_source == 'shipping':
+            order.recipient_name = request.POST.get('recipient_name')
+            order.recipient_phone = request.POST.get('recipient_phone')
+            order.recipient_email = request.POST.get('recipient_email')
+            order.recipient_address = request.POST.get('recipient_address')
+            
+            # Safely capture lat/lng
+            lat = request.POST.get('recipient_latitude')
+            lng = request.POST.get('recipient_longitude')
+            if lat: order.recipient_latitude = lat
+            if lng: order.recipient_longitude = lng
+        else:
+            # Force default to customer source
+            order.recipient_name = order.customer_name
+            order.recipient_phone = order.customer_phone
+            order.recipient_email = order.customer_email
+            order.recipient_address = order.address
+            
+    elif delivery_option == 'on_premise':
+        pass
+        
+    order.save()
+    
+    # If the request comes from the "Save Shipping Details" button (which has no value but triggers submit),
+    # or basically if it's the full form submission rather than a radio 'change' event:
+    if 'HX-Trigger' not in request.headers or request.headers.get('HX-Trigger') not in ['home_delivery', 'on_premise']:
+        # This means the user clicked Save on the form
+        response = HttpResponse()
+        response['HX-Refresh'] = 'true'
+        return response
+
+    # Otherwise, it's just a radio button change, return the summary
+    return htmx_get_order_summary(request, order.id)
 
 
 #Business Itelligence 

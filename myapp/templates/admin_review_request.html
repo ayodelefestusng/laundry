@@ -250,11 +250,18 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('click', function(e) {
         const editBtn = e.target.closest('#toggle-shipping-edit');
         if (editBtn) {
+            console.log("Edit button clicked!"); // LOGGING
             e.preventDefault();
+            e.stopPropagation();  // Addition 
             const displaySection = document.getElementById('shipping-display-section');
             const editSection = document.getElementById('shipping-edit-section');
-            
+            if (!displaySection || !editSection) {
+                console.error("Sections not found in DOM"); // LOGGING
+                return;
+            }
+            try {
             if (editSection.style.display === 'none') {
+                console.log("Switching to Edit Mode");
                 editSection.style.display = 'block';
                 displaySection.style.display = 'none';
                 editBtn.innerHTML = '<i class="fas fa-times me-1"></i> Cancel';
@@ -267,6 +274,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 editSection.style.display = 'none';
                 displaySection.style.display = 'block';
                 editBtn.innerHTML = '<i class="fas fa-edit me-1"></i> Edit';
+            }} catch (error) {
+                console.error("Toggle failed:", error); // TRY-CATCH
             }
         }
     });

@@ -58,6 +58,7 @@ urlpatterns = [
     path('transit/scan/', views.htmx_transit_scan, name='htmx_transit_scan'),
     path('dispatch/inward/', views.dispatch_inward, name='dispatch_inward'),
     path('dispatch/delivery/', views.dispatch_delivery, name='dispatch_delivery'),
+    path('htmx_update_shipping/<uuid:order_id>/', views.htmx_update_shipping, name='htmx_update_shipping'),
 
     # HTMX endpoints
     path('htmx/get_services/', views.htmx_get_package_options, name='htmx_get_package_options'),
