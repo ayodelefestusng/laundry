@@ -348,6 +348,11 @@ class Tenant(models.Model):
     # Tenant Location for distance calculation
     location_lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     location_lng = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    whatsapp_number = models.CharField(
+        max_length=20, 
+        default="+2349068770054", 
+        help_text="WhatsApp phone number"
+    )
 
     def __str__(self):
         return f"{self.name} ({self.code})"

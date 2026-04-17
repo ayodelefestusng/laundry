@@ -345,10 +345,14 @@
 </div>
 
 <!-- Floating Elements -->
-<a href="https://wa.me/+2349068770054" class="whatsapp-float" target="_blank">
+{#  <a href="https://wa.me/{{ tenant.whatsapp_number|default:'+2349068770054' }}" class="whatsapp-float" target="_blank">
+    <i class="fab fa-whatsapp"></i>
+</a>  #}
+
+
+<a href="https://wa.me/{{ tenant_whatsapp_number|default:'+2349068770054' }}" class="whatsapp-float" target="_blank">
     <i class="fab fa-whatsapp"></i>
 </a>
-
 <div class="chat-pane" id="chat-pane">
     <div class="chat-header">
         <span><i class="fas fa-robot me-2"></i> AI Assistant</span>

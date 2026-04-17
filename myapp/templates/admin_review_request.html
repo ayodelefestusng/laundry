@@ -47,7 +47,7 @@
 
         <!-- Edit Mode -->
         <div id="shipping-edit-section" {% if order.recipient_name or order.delivery_option != 'home_delivery' %}style="display:none;"{% endif %}>
-            <form id="shipping-update-form" hx-post="{% url 'laundry:htmx_update_shipping' order.id %}" hx-target="#order-summary-section" hx-swap="innerHTML" _="on htmx:afterRequest if event.detail.xhr.status == 200 window.location.reload()">
+            <form id="shipping-update-form" hx-post="{% url 'laundry:htmx_update_shipping' order.id %}" hx-target="#order-summary-section" hx-swap="innerHTML">
                 {% csrf_token %}
                 <div class="row g-3">
                     <div class="col-md-12">

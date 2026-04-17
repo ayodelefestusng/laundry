@@ -13,4 +13,4 @@ whitenoise
 django-otp
 django-htmx
 PyJWT<2
-
+googlemaps

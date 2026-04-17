@@ -1,0 +1,48 @@
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Executive Insights</h2>
+        <form hx-get="{% url 'dashboard' %}" hx-target="#bi-content" hx-indicator=".loader" class="d-flex gap-2">
+            <input type="date" name="start_date" class="form-control">
+            <input type="date" name="end_date" class="form-control">
+            <button type="submit" class="btn btn-primary">Refresh</button>
+        </form>
+    </div>
+
+    <div id="bi-content">
+        {% include "partials/bi_stats_cards.html" %}
+    </div>
+</div>
+
+<div class="mt-5" 
+     hx-get="{% url 'dashboard_details_async' %}?start_date={{ start_date }}&end_date={{ end_date }}" 
+     hx-trigger="load" 
+     hx-indicator="#details-loader">
+    
+    <div id="details-loader" class="text-center p-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Analyzing high-volume data...</span>
+        </div>
+        <p class="mt-2 text-muted">Resolving top locations and customer insights...</p>
+    </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    function renderCharts() {
+        const ctx = document.getElementById('statusChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: {{ labels|safe }},
+                datasets: [{
+                    data: {{ values|safe }},
+                    backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e']
+                }]
+            },
+            options: { maintainAspectRatio: false }
+        });
+    }
+    document.addEventListener("DOMContentLoaded", renderCharts);
+    document.body.addEventListener("htmx:afterSwap", renderCharts); // Re-render on HTMX update
+</script>

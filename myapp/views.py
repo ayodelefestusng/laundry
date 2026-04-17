@@ -770,7 +770,7 @@ def admin_review_request(request, order_id):
     """
     Renders the admin review page for a specific order.
     """
-    logger.info(f"Admin {request.user} is reviewing order {order_id}.")
+    logger.info(f"Admin Review Request:  {request.user} is reviewing order {order_id}.")
     order = get_object_or_404(Order, id=order_id)
     form = OrderItemForm()
     packages = Package.objects.all()
@@ -826,8 +826,10 @@ def htmx_update_shipping(request, order_id):
         logger.info(f"Selected delivery option: {delivery_option}")
     order.save()
     logger.info(f"Order {order_id} updated successfully.")
-    # Return updated summary via HTMX
-    return htmx_get_order_summary(request, order.id)
+    # Force a full reload on success
+    response = htmx_get_order_summary(request, order.id)
+    response['HX-Refresh'] = 'true'
+    return response
 
 @require_http_methods(["POST"])
 def admin_approve_comment(request, order_id):
@@ -2245,3 +2247,42 @@ def dispatch_delivery(request):
             return HttpResponse(b"Server error processing scan.", status=500)
             
     return render(request, 'dispatch_scanner.html', {'scan_mode': 'delivery'})
+
+
+#Business Itelligence 
+
+# views.py
+from django.shortcuts import render
+from .utils import WorkflowBI
+
+
+
+
+def dashboard_view(request):
+    """The main entry point. Loads fast without heavy reports."""
+    start = request.GET.get('start_date')
+    end = request.GET.get('end_date')
+    
+    bi = WorkflowBI(request.tenant, start, end)
+    # Only get the light KPIs
+    context = bi.get_dashboard_stats()
+    
+    # Store dates in context so the async call knows which range to use
+    context['start_date'] = start
+    context['end_date'] = end
+    
+    return render(request, "dashboard.html", context)
+
+def dashboard_details_async(request):
+    """The async endpoint. Fetches heavy data like Top Locations."""
+    start = request.GET.get('start_date')
+    end = request.GET.get('end_date')
+    
+    bi = WorkflowBI(request.tenant, start, end)
+    context = {
+        'top_customers': bi.get_top_customers(limit=5),
+        'top_locations': bi.get_top_locations(limit=5),
+    }
+    
+    # Return only the detailed report partial
+    return render(request, "partials/top_performers.html", context)
