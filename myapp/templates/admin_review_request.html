@@ -47,18 +47,30 @@
 
         <!-- Edit Mode -->
         <div id="shipping-edit-section" {% if order.recipient_name or order.delivery_option != 'home_delivery' %}style="display:none;"{% endif %}>
-            <form id="shipping-update-form" hx-post="{% url 'laundry:htmx_update_shipping' order.id %}" hx-target="#order-summary-section" hx-swap="outerHTML">
+            <form id="shipping-update-form" hx-post="{% url 'laundry:htmx_update_shipping' order.id %}" hx-target="#order-summary-section" hx-swap="innerHTML">
                 {% csrf_token %}
                 <div class="row g-3">
                     <div class="col-md-12">
                         <label class="form-label fw-bold">Delivery Option</label>
                         <div class="d-flex gap-3">
                             <div class="form-check">
-                                <input class="form-check-input" type="radio" name="delivery_option" id="home_delivery" value="home_delivery" {% if order.delivery_option == 'home_delivery' or not order.delivery_option %}checked{% endif %}>
+                                <input class="form-check-input" type="radio" name="delivery_option" id="home_delivery" value="home_delivery" 
+                                    {% if order.delivery_option == 'home_delivery' or not order.delivery_option %}checked{% endif %}
+                                    hx-post="{% url 'laundry:htmx_update_shipping' order.id %}" 
+                                    hx-trigger="change" 
+                                    hx-target="#order-summary-section"
+                                    hx-swap="innerHTML"
+                                    hx-include="closest form">
                                 <label class="form-check-label" for="home_delivery">Home Delivery</label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" type="radio" name="delivery_option" id="on_premise" value="on_premise" {% if order.delivery_option == 'on_premise' %}checked{% endif %}>
+                                <input class="form-check-input" type="radio" name="delivery_option" id="on_premise" value="on_premise" 
+                                    {% if order.delivery_option == 'on_premise' %}checked{% endif %}
+                                    hx-post="{% url 'laundry:htmx_update_shipping' order.id %}" 
+                                    hx-trigger="change" 
+                                    hx-target="#order-summary-section"
+                                    hx-swap="innerHTML"
+                                    hx-include="closest form">
                                 <label class="form-check-label" for="on_premise">On-Premise Pickup</label>
                             </div>
                         </div>
@@ -255,6 +267,25 @@ document.addEventListener('DOMContentLoaded', function() {
             homeDeliveryFields.style.display = this.value === 'home_delivery' ? 'block' : 'none';
         });
     });
+
+    // Address Validation before form submission
+    const shippingForm = document.getElementById('shipping-update-form');
+    if (shippingForm) {
+        shippingForm.addEventListener('htmx:confirm', function(evt) {
+            const deliveryOption = document.querySelector('input[name="delivery_option"]:checked').value;
+            if (deliveryOption === 'home_delivery') {
+                const lat = document.getElementById('id_recipient_latitude').value;
+                const lng = document.getElementById('id_recipient_longitude').value;
+                
+                if (!lat || !lng) {
+                    evt.preventDefault();
+                    alert("Please select a valid Google address. We need the coordinates for delivery calculation.");
+                    document.getElementById('recipient-map-error').style.display = 'block';
+                    document.getElementById('id_recipient_address').focus();
+                }
+            }
+        });
+    }
 
     addressSources.forEach(src => {
         src.addEventListener('change', function() {

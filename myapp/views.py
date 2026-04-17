@@ -284,6 +284,7 @@ def customer_order(request):
                 pickup_lat = request.POST.get('pickup_latitude')
                 pickup_lng = request.POST.get('pickup_longitude')
                 current_address = form.cleaned_data.get('address')
+                pickup_date = form.cleaned_data.get('pickup_date')
                 if pickup_lat and pickup_lng:
                     logger.info(f"Received pickup coordinates: ({pickup_lat}, {pickup_lng})")
                     order.pickup_latitude = pickup_lat
@@ -344,9 +345,10 @@ def customer_order(request):
                 except Exception as e:
                     logger.error(f"Critical error saving order: {str(e)}", exc_info=True)
                     # Handle order save failure (e.g., return error response)
-                    
-                logger.info(f"Order created successfully: {order}")
-                messages.success(request, 'Order placed successfully! We will contact you shortly.')
+                if 'book_and_pick' in request.POST:
+                    return redirect('laundry:admin_review_request', order_id=order.id)    
+                
+                messages.success(request, f'Request placed successfully! We will visit your location  on {order.pickup_date}.')
                 
                 # Send confirmation email
                 try:
@@ -360,12 +362,11 @@ def customer_order(request):
                 except Exception as e:
                     logger.error(f"Email sending failed: {e}")
 
-                if 'book_and_pick' in request.POST:
-                    return redirect('laundry:admin_review_request', order_id=order.id)
+                logger.info(f"Request created successfully: {order}")
                 return redirect('laundry:order_detail', order_id=order.id)
             except Exception as e:
                 logger.error(f"Error in customer_order: {e}")
-                messages.error(request, "An error occurred while placing the order. Please try again.")
+                messages.error(request, "An error occurred while placing the request. Please try again.")
         else:
             logger.warning(f"Form errors: {form.errors}")
 
@@ -1033,7 +1034,7 @@ def htmx_add_item(request, order_id):
             # return render(request, 'htmx/item_table_row.html', {'item': new_item})
         
             response = render(request, 'htmx/item_table_row.html', {'item': new_item})
-            response['HX-Trigger'] = 'refresh-summary'
+            response['HX-Refresh'] = 'true'
             return response
 
 
@@ -1047,6 +1048,7 @@ def htmx_add_item(request, order_id):
         logger.error(f"Form validation failed in htmx_add_item. Errors: {form.errors}")
         return HttpResponseBadRequest(render_to_string('htmx/add_item_errors.html', {'errors': form.errors}))
     
+@csrf_exempt
 @require_http_methods(["GET", "POST"])
 def htmx_edit_item(request, item_id):
     """
@@ -1081,6 +1083,7 @@ def htmx_edit_item(request, item_id):
             'all_categories': all_categories
         })
 
+@csrf_exempt
 @require_http_methods(["DELETE"])
 def htmx_delete_item(request, item_id):
     """

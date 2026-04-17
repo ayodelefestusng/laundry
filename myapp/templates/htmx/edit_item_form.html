@@ -1,4 +1,4 @@
-<tr hx-target="this" hx-swap="outerHTML">
+<tr id="item-row-{{ item.id }}" hx-target="this" hx-swap="outerHTML">
     <td>
         <!-- Category selection with HTMX to dynamically load services -->
         <select 
@@ -60,6 +60,7 @@
             class="btn btn-primary btn-sm"
             hx-post="{% url 'laundry:htmx_edit_item' item.id %}"
             hx-include="closest tr"
+            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
             _="on htmx:afterRequest if event.detail.xhr.status == 200 trigger refresh-summary from:body"
         >
             Save
