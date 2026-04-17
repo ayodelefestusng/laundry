@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
     :root {
-        --primary-gradient: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        --primary-gradient: linear-gradient(135deg, var(--primary-color, #0d6efd), var(--secondary-color, #6c757d));
         --glass-bg: rgba(255, 255, 255, 0.95);
         --glass-border: rgba(255, 255, 255, 0.2);
     }
@@ -14,19 +14,44 @@
     body {
         background: #f0f2f5;
         background-image: 
-            radial-gradient(at 0% 0%, rgba(var(--primary-color-rgb, 13, 110, 253), 0.05) 0px, transparent 50%),
-            radial-gradient(at 50% 0%, rgba(var(--secondary-color-rgb, 108, 117, 125), 0.05) 0px, transparent 50%);
+            radial-gradient(at 0% 0%, rgba(13, 110, 253, 0.05) 0px, transparent 50%),
+            radial-gradient(at 50% 0%, rgba(108, 117, 125, 0.05) 0px, transparent 50%);
         min-height: 100vh;
     }
 
+    /* Enhanced Navigation */
+    .navbar-glass {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(12px);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        border-bottom: 1px solid var(--glass-border);
+    }
+
+    .nav-link {
+        font-weight: 600;
+        color: #495057;
+        padding: 10px 15px;
+        transition: color 0.3s ease;
+    }
+    
+    .nav-link:hover {
+        color: var(--primary-color, #0d6efd);
+    }
+
     .hero-section {
-        padding: 60px 0 40px;
+        padding: 80px 0 60px;
         text-align: center;
+        animation: fadeIn 1s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
     }
 
     .hero-title {
         font-weight: 800;
-        font-size: 3rem;
+        font-size: 3.5rem;
         background: var(--primary-gradient);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
@@ -62,8 +87,8 @@
     }
 
     .form-control:focus {
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 0.25rem rgba(var(--primary-color-rgb, 13, 110, 253), 0.1);
+        border-color: var(--primary-color, #0d6efd);
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.1);
     }
 
     .btn-submit {
@@ -75,14 +100,28 @@
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 1px;
-        box-shadow: 0 10px 20px rgba(var(--primary-color-rgb, 13, 110, 253), 0.3);
+        box-shadow: 0 10px 20px rgba(13, 110, 253, 0.3);
         transition: all 0.3s ease;
     }
 
     .btn-submit:hover {
         transform: scale(1.05);
-        box-shadow: 0 15px 25px rgba(var(--primary-color-rgb, 13, 110, 253), 0.4);
+        box-shadow: 0 15px 25px rgba(13, 110, 253, 0.4);
         color: white;
+    }
+
+    .btn-outline-primary {
+        padding: 15px 40px;
+        border-width: 2px;
+        border-radius: 50px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-outline-primary:hover {
+        transform: scale(1.05);
     }
 
     /* Floating WhatsApp */
@@ -183,92 +222,7 @@
     }
 
     .message-user {
-        background: var(--primary-color);
-        color: white;
-        align-self: flex-end;
-        border-bottom-right-radius: 2px;
-    }
-
-    .chat-footer {
-        padding: 15px;
-        border-top: 1px solid #eee;
-        display: flex;
-        gap: 10px;
-    }
-
-    .chat-input {
-        flex: 1;
-        border: 1px solid #ddd;
-        border-radius: 20px;
-        padding: 8px 15px;
-        outline: none;
-    }
-
-    .btn-send {
-        background: var(--primary-color);
-        color: white;
-        border: none;
-        width: 35px;
-        height: 35px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    /* Chat Pane Styles */
-    .chat-pane {
-        position: fixed;
-        bottom: 100px;
-        left: 30px;
-        width: 350px;
-        height: 450px;
-        background: white;
-        border-radius: 20px;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-        display: none;
-        flex-direction: column;
-        z-index: 1001;
-        overflow: hidden;
-        border: 1px solid #eee;
-    }
-
-    .chat-header {
-        background: var(--primary-gradient);
-        color: white;
-        padding: 15px 20px;
-        font-weight: 700;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .chat-body {
-        flex: 1;
-        padding: 20px;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        background: #f8f9fa;
-    }
-
-    .chat-message {
-        padding: 10px 15px;
-        border-radius: 15px;
-        max-width: 85%;
-        font-size: 0.9rem;
-    }
-
-    .message-bot {
-        background: white;
-        align-self: flex-start;
-        border-bottom-left-radius: 2px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }
-
-    .message-user {
-        background: var(--primary-color);
+        background: var(--primary-color, #0d6efd);
         color: white;
         align-self: flex-end;
         border-bottom-right-radius: 2px;
@@ -289,7 +243,7 @@
     }
 
     .btn-send {
-        background: var(--primary-color);
+        background: var(--primary-color, #0d6efd);
         color: white;
         border: none;
         width: 35px;
@@ -301,24 +255,51 @@
     }
 </style>
 
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-glass sticky-top">
+    <div class="container">
+        <a class="navbar-brand fw-bold text-primary" style="font-size: 1.5rem;" href="#">
+            <i class="fas fa-tshirt me-2"></i>{{ tenant.name|default:"Premium Laundry" }}
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto fw-semibold align-items-center">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#order-form">Services</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link btn btn-primary text-white rounded-pill px-4 ms-lg-3 mt-2 mt-lg-0" href="#order-form">
+                        <i class="fas fa-calendar-alt me-1"></i> Schedule Pickup
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
 <div class="hero-section">
     <div class="container">
         <h1 class="hero-title">Elevate Your Lifestyle</h1>
         <p class="lead text-muted mx-auto" style="max-width: 600px;">
-            Experience premium laundry care with the touch of a button. We handle the dirty work so you can focus on what matters.
+            Experience premium laundry care with the touch of a button. We handle the dirty work so you can focus on what matters. Seamlessly request a pickup or manage your orders right here!
         </p>
     </div>
 </div>
 
-<div class="container">
+<div class="container pb-5">
     <div class="row justify-content-center">
-        <div class="col-lg-7">
-            <div class="order-card">
-                <h3 class="fw-bold mb-4 text-center">Start Your Order</h3>
+        <div class="col-lg-8">
+            <div class="order-card" id="order-form-container">
+                <h3 class="fw-bold mb-4 text-center">Schedule A Pickup or an Order</h3>
                 <form method="post" action="{% url 'laundry:customer_order' %}" id="order-form">
 
                     {% csrf_token %}
-                    <div class="row g-3">
+                    <div class="row g-4">
                         <div class="col-md-6">
                             {{ form.customer_name|as_crispy_field }}
                         </div>
@@ -329,12 +310,11 @@
                             {{ form.customer_phone|as_crispy_field }}
                         </div>
                         
-                        <div class="col-md-12" id="pickup_address_section">
+                        <div class="col-md-12 position-relative" id="pickup_address_section">
                             {{ form.address|as_crispy_field }}
                             {{ form.pickup_latitude }}
                             {{ form.pickup_longitude }}
-                            <div id="delivery-price-display"></div>
-                            
+                            <div id="delivery-price-display" class="mt-2"></div>
                         </div>
                         
                         {# Delivery Option and Recipient Section moved to admin_review_request.html #}
@@ -346,12 +326,16 @@
                             {{ form.special_instructions|as_crispy_field }}
                         </div>
                     </div>
+                    
                     <div class="text-center mt-5 d-flex flex-column gap-3">
-                        <button type="submit" name="book_only" class="btn btn-submit w-100">
-                            Schedule A Pick Up<i class="fas fa-calendar-check ms-2"></i>
+                        <button type="submit" name="book_only" class="btn btn-submit w-100 d-flex justify-content-center align-items-center shadow">
+                            <span class="me-2">Schedule A Pick Up</span> <i class="fas fa-calendar-check ms-2 fs-5"></i>
                         </button>
-                        <button type="submit" name="book_and_pick" class="btn btn-outline-primary btn-lg rounded-pill fw-bold text-uppercase" style="border-width: 2px;">
-                            Submit Your Order <i class="fas fa-arrow-right ms-2"></i>
+                        <div class="d-flex align-items-center my-2">
+                            <hr class="flex-grow-1"><span class="mx-3 text-muted">OR</span><hr class="flex-grow-1">
+                        </div>
+                        <button type="submit" name="book_and_pick" class="btn btn-outline-primary w-100 btn-lg rounded-pill fw-bold text-uppercase d-flex justify-content-center align-items-center">
+                            <span class="me-2">Book An Order Directly</span> <i class="fas fa-arrow-right ms-2 fs-5"></i>
                         </button>
                     </div>
                 </form>
@@ -368,7 +352,7 @@
 <div class="chat-pane" id="chat-pane">
     <div class="chat-header">
         <span><i class="fas fa-robot me-2"></i> AI Assistant</span>
-        <i class="fas fa-times cursor-pointer" id="close-chat"></i>
+        <i class="fas fa-times cursor-pointer" id="close-chat" style="cursor: pointer;"></i>
     </div>
     <div class="chat-body" id="chat-body">
         <div class="chat-message message-bot">

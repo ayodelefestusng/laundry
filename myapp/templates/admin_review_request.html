@@ -47,7 +47,7 @@
 
         <!-- Edit Mode -->
         <div id="shipping-edit-section" {% if order.recipient_name or order.delivery_option != 'home_delivery' %}style="display:none;"{% endif %}>
-            <form id="shipping-update-form" hx-post="{% url 'laundry:htmx_update_shipping' order.id %}" hx-target="#order-summary-section" hx-swap="innerHTML">
+            <form id="shipping-update-form" hx-post="{% url 'laundry:htmx_update_shipping' order.id %}" hx-target="#order-summary-section" hx-swap="innerHTML" _="on htmx:afterRequest if event.detail.xhr.status == 200 window.location.reload()">
                 {% csrf_token %}
                 <div class="row g-3">
                     <div class="col-md-12">
@@ -137,11 +137,13 @@
         hx-swap="beforeend" 
         _="on htmx:afterRequest if event.detail.xhr.status == 200 window.location.reload()"
 
-        class="card shadow p-4 mb-4"
+        class="card shadow-lg p-4 mb-4 border-top border-success border-4"
     >
         {% csrf_token %}
-        <h5 class="mb-3">Add New Item</h5>
-        <div class="table-responsive">
+        <div class="d-flex align-items-center mb-4">
+            <h5 class="mb-0 text-success fw-bold"><i class="fas fa-plus-circle me-2"></i> Add New Item</h5>
+        </div>
+        <div class="table-responsive bg-light p-3 rounded">
             <table class="table mb-0">
                 <thead>
                     <tr>

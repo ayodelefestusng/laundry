@@ -10,7 +10,7 @@
             class="form-select"
         >
 
-            <option value="">---------</option>
+            <option value="" selected disabled>Select Category</option>
             {% for category in categories %}
                 <option value="{{ category.id }}">{{ category.name }}</option>
             {% endfor %}
@@ -26,11 +26,12 @@
             hx-swap="innerHTML"
             class="form-select"
         >
-            <option value="">---------</option>
+            <option value="" selected disabled>Select Service Type</option>
         </select>
     </td>
     <td>
         {{ form.name }}
+        
     </td>
     <td>
         {{ form.color }}

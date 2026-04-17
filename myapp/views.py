@@ -348,17 +348,24 @@ def customer_order(request):
                 if 'book_and_pick' in request.POST:
                     return redirect('laundry:admin_review_request', order_id=order.id)    
                 
-                messages.success(request, f'Request placed successfully! We will visit your location  on {order.pickup_date}.')
+                messages.success(request, f'Request placed successfully! A dispatch agent will visit your location on {order.pickup_date} to pick up your items. Thank you!')
                 
-                # Send confirmation email
+                # Send confirmation HTML email
                 try:
-                    send_mail(
-                        'Laundry Service Request Confirmation',
-                        'Your request has been received. A dispatch agent will visit shortly.',
-                        settings.DEFAULT_FROM_EMAIL,
-                        [order.customer_email],
-                        fail_silently=False,
+                    html_content = render_to_string('emails/customer_request_email.html', {
+                        'order': order,
+                        'tenant': tenant,
+                    })
+                    text_content = strip_tags(html_content)
+                    
+                    msg = EmailMultiAlternatives(
+                        subject='Laundry Service Request Confirmation',
+                        body=text_content,
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        to=[order.customer_email],
                     )
+                    msg.attach_alternative(html_content, "text/html")
+                    msg.send()
                 except Exception as e:
                     logger.error(f"Email sending failed: {e}")
 
@@ -1464,11 +1471,13 @@ def htmx_send_invoice(request, order_id):
         email.content_subtype = "html"
         email.send()
         logger.info(f"Invoice email sent successfully to {order.customer_email} for Order {order.id}.")
-        messages.success(request, 'Invoice successfully sent to the email of the customer!')
-        if request.user.is_authenticated:
-            destination = reverse('laundry:admin_dashboard')
-        else:
+        is_order_customer = request.user.is_authenticated and request.user.email == order.customer_email
+        if is_order_customer:
+            messages.success(request, f'Notice: A dispatch agent will visit on {order.pickup_date} to pick up your items. Invoice successfully sent to your email {order.customer_email}! Thank you for choosing us.')
             destination = reverse('laundry:customer_order')
+        else:
+            messages.success(request, 'Invoice successfully sent to the email of the customer!')
+            destination = reverse('laundry:admin_dashboard')
 
         if hasattr(request, 'htmx') and request.htmx:
             response = HttpResponse()
@@ -1584,11 +1593,13 @@ def htmx_send_invoicev2(request, order_id):
         email.content_subtype = "html"
         email.send()
         logger.info(f"Invoice email sent successfully to {order.customer_email} for Order {order.id}.")
-        messages.success(request, 'Invoice successfully sent to the email of the customer!')
-        if request.user.is_authenticated:
-            destination = reverse('laundry:admin_dashboard')
-        else:
+        is_order_customer = request.user.is_authenticated and request.user.email == order.customer_email
+        if is_order_customer:
+            messages.success(request, f'Notice: A dispatch agent will visit on {order.pickup_date} to pick up your items. Invoice successfully sent to your email {order.customer_email}! Thank you for choosing us.')
             destination = reverse('laundry:customer_order')
+        else:
+            messages.success(request, 'Invoice successfully sent to the email of the customer!')
+            destination = reverse('laundry:admin_dashboard')
 
         if hasattr(request, 'htmx') and request.htmx:
             response = HttpResponse()
