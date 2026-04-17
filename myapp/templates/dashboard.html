@@ -1,48 +1,57 @@
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Executive Insights</h2>
-        <form hx-get="{% url 'dashboard' %}" hx-target="#bi-content" hx-indicator=".loader" class="d-flex gap-2">
-            <input type="date" name="start_date" class="form-control">
-            <input type="date" name="end_date" class="form-control">
-            <button type="submit" class="btn btn-primary">Refresh</button>
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4 mb-5 pb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <h2 class="fw-bold mb-0 text-primary"><i class="fas fa-chart-pie me-2"></i>Executive Insights</h2>
+        <form hx-get="{% url 'laundry:dashboard' %}" hx-target="#bi-content" hx-indicator=".loader" class="d-flex gap-2 align-items-center">
+            <span class="text-muted small fw-semibold">Date Range:</span>
+            <input type="date" name="start_date" class="form-control form-control-sm" value="{{ start_date|default:'' }}">
+            <input type="date" name="end_date" class="form-control form-control-sm" value="{{ end_date|default:'' }}">
+            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-sync-alt me-1"></i>Refresh</button>
+            <a href="{% url 'laundry:export_bi_csv' %}?start_date={{ start_date|default:'' }}&end_date={{ end_date|default:'' }}" class="btn btn-outline-success btn-sm ms-2" target="_blank"><i class="fas fa-file-csv me-1"></i>Export</a>
         </form>
     </div>
 
     <div id="bi-content">
-        {% include "partials/bi_stats_cards.html" %}
+        {% include "htmx/bi_stats_cards.html" %}
     </div>
-</div>
 
-<div class="mt-5" 
-     hx-get="{% url 'dashboard_details_async' %}?start_date={{ start_date }}&end_date={{ end_date }}" 
-     hx-trigger="load" 
-     hx-indicator="#details-loader">
-    
-    <div id="details-loader" class="text-center p-5">
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Analyzing high-volume data...</span>
+    <div class="mt-5" 
+         hx-get="{% url 'laundry:dashboard_details_async' %}?start_date={{ start_date|default:'' }}&end_date={{ end_date|default:'' }}" 
+         hx-trigger="load" 
+         hx-indicator="#details-loader">
+        
+        <div id="details-loader" class="text-center p-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Analyzing high-volume data...</span>
+            </div>
+            <p class="mt-2 text-muted">Resolving top locations and customer insights...</p>
         </div>
-        <p class="mt-2 text-muted">Resolving top locations and customer insights...</p>
     </div>
 </div>
+{% endblock %}
 
-
+{% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     function renderCharts() {
-        const ctx = document.getElementById('statusChart').getContext('2d');
-        new Chart(ctx, {
+        const ctx = document.getElementById('statusChart');
+        if(!ctx) return;
+        new Chart(ctx.getContext('2d'), {
             type: 'doughnut',
             data: {
-                labels: {{ labels|safe }},
+                labels: {{ labels|safe|default:"[]" }},
                 datasets: [{
-                    data: {{ values|safe }},
-                    backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e']
+                    data: {{ values|safe|default:"[]" }},
+                    backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#858796']
                 }]
             },
             options: { maintainAspectRatio: false }
         });
     }
     document.addEventListener("DOMContentLoaded", renderCharts);
-    document.body.addEventListener("htmx:afterSwap", renderCharts); // Re-render on HTMX update
+    document.body.addEventListener("htmx:afterSwap", renderCharts);
 </script>
+{% endblock %}

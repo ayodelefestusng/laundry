@@ -1,135 +1,145 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice for Order #{{ order.order_code }}</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-            color: #333;
-        }
-        .container {
-            max-width: 600px;
-            margin: 20px auto;
-            background-color: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
-        .header {
-            background-color: #4CAF50;
-            color: white;
-            padding: 20px;
-            text-align: center;
-        }
-        .content {
-            padding: 20px;
-        }
-        .summary-box {
-            background-color: #f9f9f9;
-            border: 1px solid #eee;
-            border-radius: 6px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-        .item-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-        .item-table th, .item-table td {
-            border: 1px solid #ddd;
-            padding: 12px;
-            text-align: left;
-        }
-        .item-table th {
-            background-color: #f2f2f2;
-        }
-        .footer {
-            text-align: center;
-            padding: 20px;
-            font-size: 12px;
-            color: #777;
-            border-top: 1px solid #eee;
-        }
-        .button {
-            display: inline-block;
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 20px;
-            text-decoration: none;
-            border-radius: 5px;
-        }
-        .text-center {
-            text-align: center;
-        }
-        .text-right {
-            text-align: right;
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Invoice #{{ order.order_code }}</title>
+    <style type="text/css">
+        /* Client-specific Styles */
+        body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; border-collapse: collapse !important; }
+        img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+        body { height: 100% !important; margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #f0ede8; }
+
+        /* Hover Styles */
+        .btn-primary:hover { opacity: 0.9 !important; }
+        
+        @media screen and (max-width: 600px) {
+            .container { width: 100% !important; border-radius: 0 !important; }
+            .mobile-padding { padding: 20px !important; }
+            .stack { display: block !important; width: 100% !important; padding-right: 0 !important; }
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h2>Invoice for Your Laundry Order </h2>
-        </div>
-        <div class="content">
-            <p>Dear {{ customer_name }},</p>
-            <p>Your invoice for Order #{{ order.order_code }} is ready. Please review the details below and proceed with payment when you are ready.</p>
-
-            <div class="summary-box">
-                <h3 class="text-center">Order Summary</h3>
-                <p><strong>Total Items:</strong> {{ summary.total_items }}</p>
-                <p><strong>Total Price:</strong> ₦{{ summary.total_price|floatformat:2 }}</p>
-                <p><strong>Estimated Delivery Date:</strong> {{ summary.delivery_date|date:"F j, Y" }}</p>
-            </div>
-            
-            <h3>Order Details</h3>
-            <table class="item-table">
-                <thead>
+<body style="margin: 0; padding: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f0ede8;">
+        <tr>
+            <td align="center" style="padding: 30px 10px;">
+                <table border="0" cellpadding="0" cellspacing="0" width="600" class="container" style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.1);">
+                    
                     <tr>
-                        <th>Service Type</th>
-                        <th>Item</th>
-                        <th>Color</th>
-                        <th>Price</th>
+                        <td align="center" style="background-color: #0f1b2d; padding: 50px 40px;">
+                            <div style="background-color: rgba(220, 170, 80, 0.2); border: 1px solid #dcaa50; color: #dcaa50; font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; padding: 6px 16px; border-radius: 100px; display: inline-block; margin-bottom: 20px;">✦ Laundry Invoice</div>
+                            <h1 style="color: #ffffff; font-family: Georgia, serif; font-size: 28px; font-weight: 700; margin: 0; line-height: 1.2;">Your Order is Ready<br/>for Review</h1>
+                            <p style="color: #8a96a3; font-size: 14px; margin-top: 15px;">Fresh, clean &amp; on time — always.</p>
+                            <div style="margin-top: 20px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #ffffff; font-size: 13px; padding: 8px 20px; border-radius: 100px; display: inline-block;">Order #{{ order.order_code }}</div>
+                        </td>
                     </tr>
-                </thead>
-                <tbody>
-                    {% for item in items %}
-                    <tr>
-                        <td>{{item.package.service_type}}</td>
-                        <td>{{ item.name }}</td>
-                        <td>{{ item.color }}</td>
-                        <td class="text-right"><span>&#8358;</span>{{ item.package.price|floatformat:2 }}</td>
-                    </tr>
-                    {% endfor %}
-                    <tr>
-                        <td colspan="2" class="text-right"><strong>Total:</strong></td>
-                        <td class="text-right"><strong><span>&#8358;</span>{{ summary.total_price|floatformat:2 }}</strong></td>
-                    </tr>
-                </tbody>
-            </table>
 
-            <div class="text-center" style="margin-top: 20px;">
-                <p>To proceed with your order, please use the link below:</p>
-                {% if is_premium %}
-                    <a href="{{ confirm_url }}" class="button">Confirm Order</a>
-                {% else %}
-                    <a href="{{ paystack_url }}" class="button">Pay</a>
-                {% endif %}
-                <p style="margin-top: 20px;">If you have any questions or concerns, please leave us a comment:</p>
-                <a href="{{ comment_url }}" class="button" style="background-color: #555;">Leave a Comment</a>
-            </div>
+                    {% if is_order_customer %}
+                    <tr>
+                        <td style="background-color: #dcaa50; padding: 25px 40px;" class="mobile-padding">
+                            <p style="font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #0f1b2d; margin: 0 0 5px 0; opacity: 0.6;">📍 Pickup Scheduled</p>
+                            <h2 style="font-family: Georgia, serif; font-size: 20px; color: #0f1b2d; margin: 0 0 15px 0;">We're coming to you</h2>
+                            
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                <tr>
+                                    <td class="stack" width="50%" valign="top">
+                                        <p style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #0f1b2d; margin-bottom: 4px; opacity: 0.5;">Reference</p>
+                                        <p style="font-size: 14px; font-weight: 600; color: #0f1b2d; margin: 0;">{{ order.order_code|default:order.id }}</p>
+                                    </td>
+                                    <td class="stack" width="50%" valign="top" style="padding-left: 20px;">
+                                        <p style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #0f1b2d; margin-bottom: 4px; opacity: 0.5;">Pickup Date</p>
+                                        <p style="font-size: 14px; font-weight: 600; color: #0f1b2d; margin: 0;">{{ order.pickup_date|date:"D, d M Y" }}</p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2" style="padding-top: 15px;">
+                                        <p style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #0f1b2d; margin-bottom: 4px; opacity: 0.5;">Pickup Address</p>
+                                        <p style="font-size: 14px; font-weight: 600; color: #0f1b2d; margin: 0;">{{ order.address }}</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    {% endif %}
 
-        </div>
-        <div class="footer">
-            <p>Thank you for choosing our service!</p>
-            <p>This is an automated email. Please do not reply directly to this message.</p>
-        </div>
-    </div>
+                    <tr>
+                        <td style="padding: 40px;" class="mobile-padding">
+                            <p style="font-size: 16px; margin-bottom: 10px;">Hello, <strong>{{ customer_name }}</strong> 👋</p>
+                            <p style="font-size: 14px; color: #666; line-height: 1.6;">Your invoice for <strong>Order #{{ order.order_code }}</strong> is ready. Please review the details below.</p>
+
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f7f5f2; border: 1px solid #ede9e3; border-radius: 12px; margin: 30px 0;">
+                                <tr>
+                                    <td style="padding: 24px;">
+                                        <div style="font-family: Georgia, serif; font-size: 16px; font-weight: 600; color: #0f1b2d; border-bottom: 1px solid #e8e3db; padding-bottom: 15px; margin-bottom: 15px;">Order Summary</div>
+                                        <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                            <tr>
+                                                <td style="font-size: 14px; color: #888; padding: 5px 0;">Total Items</td>
+                                                <td align="right" style="font-size: 14px; font-weight: 600;">{{ summary.total_items }} items</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-size: 14px; color: #888; padding: 5px 0; border-bottom: 1px solid #ede9e3;">Estimated Delivery</td>
+                                                <td align="right" style="font-size: 14px; font-weight: 600; border-bottom: 1px solid #ede9e3;">{{ summary.delivery_date|date:"F j, Y" }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-size: 13px; font-weight: 700; color: #0f1b2d; padding-top: 15px; text-transform: uppercase;">Amount Due</td>
+                                                <td align="right" style="font-family: Georgia, serif; font-size: 24px; font-weight: 700; color: #0f1b2d; padding-top: 15px;">₦{{ summary.total_price|floatformat:2 }}</td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="font-family: Georgia, serif; font-size: 17px; font-weight: 600; color: #0f1b2d; margin-bottom: 15px;">Order Details</p>
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-size: 13px; border-bottom: 2px solid #f0ede8;">
+                                <tr style="background-color: #0f1b2d;">
+                                    <th align="left" style="color: #ffffff; padding: 12px; font-size: 10px; text-transform: uppercase; letter-spacing: 1px;">Service/Item</th>
+                                    <th align="right" style="color: #ffffff; padding: 12px; font-size: 10px; text-transform: uppercase; letter-spacing: 1px;">Price</th>
+                                </tr>
+                                {% for item in items %}
+                                <tr style="border-bottom: 1px solid #f0ede8;">
+                                    <td style="padding: 15px 12px;">
+                                        <span style="background-color: #eef2f7; color: #1a2f4a; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; margin-bottom: 5px; display: inline-block;">{{ item.package.service_type }}</span><br/>
+                                        <span style="font-weight: 600; color: #2a2a2a;">{{ item.name }}</span> <span style="color: #888;">({{ item.color }})</span>
+                                    </td>
+                                    <td align="right" style="padding: 15px 12px; font-weight: 600; color: #0f1b2d;">₦{{ item.package.price|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </table>
+
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #0f1b2d; border-radius: 14px; margin-top: 40px;">
+                                <tr>
+                                    <td align="center" style="padding: 40px 30px;">
+                                        <p style="font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: #dcaa50; margin-bottom: 10px;">✦ Next Step</p>
+                                        <h2 style="font-family: Georgia, serif; font-size: 22px; color: #ffffff; margin-bottom: 10px;">{% if is_premium %}Complete Your Order{% else %}Secure Your Order{% endif %}</h2>
+                                        <p style="font-size: 13px; color: #8a96a3; margin-bottom: 25px;">{% if is_premium %}One tap to confirm — no payment needed.{% else %}Fast, secure payment via Paystack.{% endif %}</p>
+                                        
+                                        <a href="{% if is_premium %}{{ confirm_url }}{% else %}{{ paystack_url }}{% endif %}" class="btn-primary" style="background-color: #dcaa50; color: #0f1b2d; font-size: 14px; font-weight: 700; text-decoration: none; padding: 16px 40px; border-radius: 100px; display: inline-block;">
+                                            {% if is_premium %}Confirm Order →{% else %}Pay Now →{% endif %}
+                                        </a>
+                                        
+                                        <div style="margin-top: 25px;">
+                                            <a href="{{ comment_url }}" style="color: #8a96a3; font-size: 13px; text-decoration: underline;">💬 Leave a Comment</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td align="center" style="padding: 40px; border-top: 1px solid #f0ede8;">
+                            <p style="font-family: Georgia, serif; font-size: 15px; color: #0f1b2d; margin-bottom: 10px;">Thank you for choosing us ✦</p>
+                            <p style="font-size: 11px; color: #aaa; line-height: 1.6;">
+                                This is an automated message — please do not reply directly.<br/>
+                                © 2026 Dignity Management Concept Limited
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>

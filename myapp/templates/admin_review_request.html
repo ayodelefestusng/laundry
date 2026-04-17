@@ -240,29 +240,36 @@ function initAutocomplete() {
         }
     });
 }
-
 document.addEventListener('DOMContentLoaded', function() {
-    const editBtn = document.getElementById('toggle-shipping-edit');
-    const displaySection = document.getElementById('shipping-display-section');
-    const editSection = document.getElementById('shipping-edit-section');
     const homeDeliveryFields = document.getElementById('home-delivery-fields');
     const deliveryOptions = document.querySelectorAll('input[name="delivery_option"]');
     const addressSources = document.querySelectorAll('input[name="address_source"]');
     const recipientFields = document.getElementById('recipient-form-fields');
 
-    if (editBtn) {
-        editBtn.addEventListener('click', function() {
+    // Delegated event listener for the Edit Toggle to survive HTMX re-renders or dynamic loads
+    document.addEventListener('click', function(e) {
+        const editBtn = e.target.closest('#toggle-shipping-edit');
+        if (editBtn) {
+            e.preventDefault();
+            const displaySection = document.getElementById('shipping-display-section');
+            const editSection = document.getElementById('shipping-edit-section');
+            
             if (editSection.style.display === 'none') {
                 editSection.style.display = 'block';
                 displaySection.style.display = 'none';
                 editBtn.innerHTML = '<i class="fas fa-times me-1"></i> Cancel';
+                
+                // Re-init maps autocomplete in case it was hidden or detached
+                if (typeof initAutocomplete === 'function') {
+                    initAutocomplete();
+                }
             } else {
                 editSection.style.display = 'none';
                 displaySection.style.display = 'block';
                 editBtn.innerHTML = '<i class="fas fa-edit me-1"></i> Edit';
             }
-        });
-    }
+        }
+    });
 
     deliveryOptions.forEach(opt => {
         opt.addEventListener('change', function() {

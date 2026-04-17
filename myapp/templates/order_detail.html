@@ -1,22 +1,163 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Order Details{% endblock %}
+{% block title %}Request Confirmed | {{ order.order_code }}{% endblock %}
 
 {% block content %}
-<div class="container mt-0">
-    <div class="card">
-        <div class="card-header bg-success text-white" style="background: linear-gradient(90deg, #00B140 0%, #0072CE 100%);">
-            <h3 class="mb-0">Order Submitted Successfully!</h3>
-        </div>
-        <div class="card-body">
-            <h5 class="card-title">Order #{{ order.order_code }}</h5>
-            <p class="card-text">Thank you for your request. We've received your order and a dispatch agent will be in touch shortly to collect your items.</p>
-            <hr>
-            <h6>Details Provided:</h6>
-            <p><strong>Address:</strong> {{ order.address }}</p>
-            <p><strong>Contact Number:</strong> {{ order.customer_phone }}</p>
-            <a href="{% url 'laundry:customer_order' %}" class="btn btn-primary">Return to Home</a>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6 text-center">
+            
+            <div class="mb-4">
+                <div class="success-checkmark">
+                    <div class="check-icon">
+                        <span class="icon-line line-tip"></span>
+                        <span class="icon-line line-long"></span>
+                        <div class="icon-circle"></div>
+                        <div class="icon-fix"></div>
+                    </div>
+                </div>
+            </div>
+
+            <h2 class="fw-bold text-dark">Request Confirmed!</h2>
+            <p class="text-muted mb-4">We've received your request. Sit back and relax, we’re on our way.</p>
+
+            <div class="d-inline-block px-4 py-2 bg-light rounded-pill mb-5 border">
+                <span class="text-muted small text-uppercase fw-bold ls-1">Reference:</span>
+                <span class="text-primary fw-bold">#{{ order.order_code }}</span>
+            </div>
+
+            <div class="order-stepper mb-5">
+                <div class="step active">
+                    <div class="step-icon"><i class="fas fa-file-invoice"></i></div>
+                    <div class="step-label">Received</div>
+                </div>
+                <div class="step">
+                    <div class="step-icon"><i class="fas fa-user-check"></i></div>
+                    <div class="step-label">Assigned</div>
+                </div>
+                <div class="step">
+                    <div class="step-icon"><i class="fas fa-truck-loading"></i></div>
+                    <div class="step-label">Pickup</div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm rounded-4 text-start mb-4">
+                <div class="card-body p-4">
+                    <h6 class="fw-bold mb-3"><i class="fas fa-map-marker-alt text-primary me-2"></i>Pickup Summary</h6>
+                    
+                    <div class="d-flex mb-3">
+                        <div class="text-muted small w-25">Location</div>
+                        <div class="fw-medium w-75">{{ order.address }}</div>
+                    </div>
+                    
+                    <div class="d-flex mb-3">
+                        <div class="text-muted small w-25">Phone</div>
+                        <div class="fw-medium w-75">{{ order.customer_phone }}</div>
+                    </div>
+
+                    <div class="d-flex">
+                        <div class="text-muted small w-25">Scheduled</div>
+                    
+                    <div class="fw-medium w-75 text-success">{{ order.pickup_date|date:"l, d M Y" }} -<strong>{{ order.pickup_date|date:"h:i A" }}</strong></div>
+                    
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-grid gap-2">
+                <a href="{% url 'laundry:customer_order' %}" class="btn btn-primary btn-lg rounded-3 shadow-sm py-3 fw-bold">
+                    <i class="fas fa-home me-2"></i> Return to Dashboard
+                </a>
+                <button onclick="window.print()" class="btn btn-link text-muted btn-sm">
+                    <i class="fas fa-print me-1"></i> Print Receipt
+                </button>
+            </div>
+
         </div>
     </div>
 </div>
+
+<style>
+    /* Premium Stepper Styling */
+    .order-stepper {
+        display: flex;
+        justify-content: space-between;
+        position: relative;
+    }
+    .order-stepper::before {
+        content: "";
+        position: absolute;
+        top: 20px;
+        left: 10%;
+        right: 10%;
+        height: 2px;
+        background: #e9ecef;
+        z-index: 0;
+    }
+    .step {
+        position: relative;
+        z-index: 1;
+        width: 33%;
+    }
+    .step-icon {
+        width: 40px;
+        height: 40px;
+        background: #fff;
+        border: 2px solid #e9ecef;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 10px;
+        color: #adb5bd;
+        transition: 0.3s;
+    }
+    .step.active .step-icon {
+        background: #00B140;
+        border-color: #00B140;
+        color: #fff;
+        box-shadow: 0 0 15px rgba(0, 177, 64, 0.3);
+    }
+    .step.active .step-label {
+        color: #212529;
+        font-weight: 600;
+    }
+    .step-label {
+        font-size: 0.75rem;
+        color: #adb5bd;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Custom Checkmark Animation */
+    .success-checkmark {
+        width: 80px;
+        height: 115px;
+        margin: 0 auto;
+    }
+    .check-icon {
+        width: 80px;
+        height: 80px;
+        position: relative;
+        border-radius: 50%;
+        box-sizing: content-box;
+        border: 4px solid #4CAF50;
+    }
+    .check-icon::before {
+        top: 3px; left: -2px;
+        width: 30px; transform-origin: 100% 50%;
+        border-radius: 100px 0 0 100px;
+    }
+    .icon-line {
+        height: 5px; background-color: #4CAF50;
+        display: block; border-radius: 2px;
+        position: absolute; z-index: 10;
+    }
+    .line-tip { top: 46px; left: 14px; width: 25px; transform: rotate(45deg); }
+    .line-long { top: 38px; right: 8px; width: 47px; transform: rotate(-45deg); }
+    .icon-circle { top: -4px; left: -4px; z-index: 10; width: 80px; height: 80px; border-radius: 50%; border: 4px solid rgba(76, 175, 80, .5); position: absolute; box-sizing: content-box; }
+</style>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 {% endblock %}

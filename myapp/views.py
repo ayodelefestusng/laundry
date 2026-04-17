@@ -348,13 +348,14 @@ def customer_order(request):
                 if 'book_and_pick' in request.POST:
                     return redirect('laundry:admin_review_request', order_id=order.id)    
                 
-                messages.success(request, f'Request placed successfully! A dispatch agent will visit your location on {order.pickup_date} to pick up your items. Thank you!')
+                # messages.success(request, f'Request placed successfully! A dispatch agent will visit your location on {order.pickup_date} to pick up your items. Thank you!')
                 
                 # Send confirmation HTML email
                 try:
                     html_content = render_to_string('emails/customer_request_email.html', {
                         'order': order,
                         'tenant': tenant,
+                        
                     })
                     text_content = strip_tags(html_content)
                     
@@ -1395,7 +1396,7 @@ def initiate_paystack_transaction(request, email, amount, order_id):
 def htmx_send_invoice(request, order_id):
     logger.info(f"User {request.user} is sending invoice for order {order_id}.")
     order = get_object_or_404(Order, id=order_id)
-
+    is_order_customer = request.user.is_authenticated and request.user.email == order.customer_email
     items = order.items.all()
     if not items:
         logger.error(f"User {request.user} tried to send an invoice for an empty order.")
@@ -1460,6 +1461,7 @@ def htmx_send_invoice(request, order_id):
         'comment_url': comment_url,
         'confirm_url': confirm_url,
         'is_premium': is_premium,  # pass flag to template
+    'is_order_customer': is_order_customer,  # <-- add this
     })
 
     # Send email
@@ -1473,7 +1475,7 @@ def htmx_send_invoice(request, order_id):
         email.content_subtype = "html"
         email.send()
         logger.info(f"Invoice email sent successfully to {order.customer_email} for Order {order.id}.")
-        is_order_customer = request.user.is_authenticated and request.user.email == order.customer_email
+        
         if is_order_customer:
             messages.success(request, f'Notice: A dispatch agent will visit on {order.pickup_date} to pick up your items. Invoice successfully sent to your email {order.customer_email}! Thank you for choosing us.')
             destination = reverse('laundry:customer_order')
@@ -2258,6 +2260,14 @@ from .utils import WorkflowBI
 
 
 
+from django.contrib.auth.decorators import login_required, user_passes_test
+import csv
+
+def is_manager(user):
+    return user.is_authenticated and user.is_manager
+
+@login_required
+@user_passes_test(is_manager)
 def dashboard_view(request):
     """The main entry point. Loads fast without heavy reports."""
     start = request.GET.get('start_date')
@@ -2273,6 +2283,8 @@ def dashboard_view(request):
     
     return render(request, "dashboard.html", context)
 
+@login_required
+@user_passes_test(is_manager)
 def dashboard_details_async(request):
     """The async endpoint. Fetches heavy data like Top Locations."""
     start = request.GET.get('start_date')
@@ -2284,5 +2296,45 @@ def dashboard_details_async(request):
         'top_locations': bi.get_top_locations(limit=5),
     }
     
-    # Return only the detailed report partial
-    return render(request, "partials/top_performers.html", context)
+    # Return only the detailed report partial via HTMX
+    return render(request, "htmx/top_performers.html", context)
+
+@login_required
+@user_passes_test(is_manager)
+def export_bi_csv(request):
+    """Export the BI Analytics to CSV for reporting."""
+    start = request.GET.get('start_date')
+    end = request.GET.get('end_date')
+    
+    bi = WorkflowBI(request.tenant, start, end)
+    
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="Business_Analytics_Report.csv"'
+    
+    writer = csv.writer(response)
+    
+    # Top Level Overview
+    stats = bi.get_dashboard_stats()
+    writer.writerow(['EXECUTIVE HIGHLIGHTS'])
+    writer.writerow(['Metric', 'Value'])
+    rev = stats.get('revenue', {})
+    writer.writerow(['Total Revenue Generated', rev.get('total_rev', 0)])
+    writer.writerow(['Total Orders Created', rev.get('count', 0)])
+    writer.writerow(['Average Order Value', rev.get('avg_order', 0)])
+    writer.writerow(['Average Turnaround Time (Hours)', round(stats.get('avg_tat_hours', 0), 2)])
+    writer.writerow([])
+    
+    # Status Breakdown
+    writer.writerow(['ORDER STATUS DISTRIBUTION'])
+    writer.writerow(['Status', 'Count'])
+    for status_dict in stats.get('status_dist', []):
+        writer.writerow([status_dict['status'], status_dict['total']])
+    writer.writerow([])
+    
+    # Customer Data
+    writer.writerow(['TOP CUSTOMERS'])
+    writer.writerow(['Customer Email', 'Phone', 'Orders Count', 'Total Spend'])
+    for cust in bi.get_top_customers(limit=100):
+        writer.writerow([cust['customer_email'], cust['customer_phone'], cust['order_count'], cust['total_revenue']])
+        
+    return response

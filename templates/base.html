@@ -12,40 +12,78 @@
             --secondary-color: {{ tenant_secondary_color|default:"#6c757d" }};
             --tenant-font: {{ tenant_font_family|default:"'Inter', sans-serif" }};
         }
-        body { font-family: var(--tenant-font); }
+        body { 
+            font-family: var(--tenant-font); 
+            background-color: #f8f9fa;
+        }
         .bg-primary { background-color: var(--primary-color) !important; }
         .text-primary { color: var(--primary-color) !important; }
         .btn-primary { background-color: var(--primary-color) !important; border-color: var(--primary-color) !important; }
+        
+        /* Glass-morphism Navbar */
+        .navbar-glass {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        .nav-link {
+            font-weight: 600;
+            color: #495057;
+            padding: 10px 15px;
+            transition: color 0.3s ease;
+        }
+        .nav-link:hover {
+            color: var(--primary-color, #0d6efd);
+        }
+        .navbar-brand span {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <header class="p-3 mb-3 border-bottom">
+    <!-- Global Glass-morphism Header -->
+    <nav class="navbar navbar-expand-lg navbar-glass sticky-top py-3">
         <div class="container">
-            <nav class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
-                <a href="{% url 'laundry:customer_order' %}" class="d-flex align-items-center mb-2 mb-lg-0 text-dark text-decoration-none">
-                    {% if tenant_logo_url %}
-                        <img src="{{ tenant_logo_url }}" alt="{{ tenant_name }}" height="40" class="me-2">
-                    {% endif %}
-                    <span class="fs-4">{{ tenant_name|default:"🧺 Vectra Laundry Hub" }}</span>
-                </a>
-                <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
-                    <li><a href="{% url 'laundry:customer_order' %}" class="nav-link px-2 link-secondary">Request Service</a></li>
+            <a class="navbar-brand fw-bold text-primary d-flex align-items-center" href="{% url 'laundry:customer_order' %}">
+                {% if tenant_logo_url %}
+                    <img src="{{ tenant_logo_url }}" alt="{{ tenant_name }}" height="40" class="me-2 rounded shadow-sm">
+                {% else %}
+                    <i class="fas fa-tshirt me-2"></i>
+                {% endif %}
+                <span class="fs-4">{{ tenant_name|default:"🧺 Premium Laundry Services" }}</span>
+            </a>
+            <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#globalNavbar">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="globalNavbar">
+                <ul class="navbar-nav mx-auto fw-semibold">
+                    <li class="nav-item"><a href="{% url 'laundry:customer_order' %}" class="nav-link">Home</a></li>
+                    
                     {% if user.is_authenticated and user.is_staff %}
-                        <li><a href="{% url 'laundry:admin_dashboard' %}" class="nav-link px-2 link-secondary">Admin Dashboard</a></li>
+                        <li class="nav-item"><a href="{% url 'laundry:admin_dashboard' %}" class="nav-link">Admin</a></li>
+                    {% endif %}
+                    
+                    {% if user.is_authenticated and user.is_manager %}
+                        <li class="nav-item"><a href="{% url 'laundry:dashboard' %}" class="nav-link"><i class="fas fa-chart-pie me-1"></i> BI Hub</a></li>
                     {% endif %}
                 </ul>
-                <div class="text-end">
+                <div class="d-flex align-items-center gap-2 mt-3 mt-lg-0">
                     {% if user.is_authenticated %}
-                        <a href="{% url 'laundry:logout' %}" class="btn btn-outline-danger me-2">Logout</a>
+                        <a href="{% url 'laundry:logout' %}" class="btn btn-outline-danger shadow-sm rounded-pill px-4">Logout</a>
                     {% else %}
-                        <a href="{% url 'laundry:login' %}" class="btn btn-outline-primary me-2">Login</a>
-                        <a href="{% url 'laundry:register' %}" class="btn btn-primary">Register</a>
+                        <a href="{% url 'laundry:login' %}" class="btn btn-outline-primary shadow-sm rounded-pill px-4">Login</a>
+                        <a href="{% url 'laundry:register' %}" class="btn btn-primary shadow-sm rounded-pill px-4">Register</a>
                     {% endif %}
                 </div>
-            </nav>
+            </div>
         </div>
-    </header>
+    </nav>
     <main class="container">
         {% if messages %}
             {% for message in messages %}

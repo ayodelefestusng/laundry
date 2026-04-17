@@ -45,6 +45,11 @@ urlpatterns = [
     path('approve_comment/<uuid:order_id>/', views.admin_approve_comment, name='admin_approve_comment'),
     path('view_order_admin/<uuid:order_id>/', views.view_order_admin, name='view_order_admin'),
     
+    # BI Dashboard Views
+    path('bi/dashboard/', views.dashboard_view, name='dashboard'),
+    path('bi/dashboard-async/', views.dashboard_details_async, name='dashboard_details_async'),
+    path('bi/export/', views.export_bi_csv, name='export_bi_csv'),
+    
     # Employee Workflow views
     path('employee/queue/', views.employee_queue, name='employee_queue'),
     path('employee/accept/<int:item_id>/', views.accept_item, name='accept_item'),

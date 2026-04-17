@@ -11,33 +11,6 @@
         --glass-border: rgba(255, 255, 255, 0.2);
     }
 
-    body {
-        background: #f0f2f5;
-        background-image: 
-            radial-gradient(at 0% 0%, rgba(13, 110, 253, 0.05) 0px, transparent 50%),
-            radial-gradient(at 50% 0%, rgba(108, 117, 125, 0.05) 0px, transparent 50%);
-        min-height: 100vh;
-    }
-
-    /* Enhanced Navigation */
-    .navbar-glass {
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(12px);
-        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-        border-bottom: 1px solid var(--glass-border);
-    }
-
-    .nav-link {
-        font-weight: 600;
-        color: #495057;
-        padding: 10px 15px;
-        transition: color 0.3s ease;
-    }
-    
-    .nav-link:hover {
-        color: var(--primary-color, #0d6efd);
-    }
-
     .hero-section {
         padding: 80px 0 60px;
         text-align: center;
@@ -255,34 +228,7 @@
     }
 </style>
 
-<!-- Navbar -->
-<nav class="navbar navbar-expand-lg navbar-glass sticky-top">
-    <div class="container">
-        <a class="navbar-brand fw-bold text-primary" style="font-size: 1.5rem;" href="#">
-            <i class="fas fa-tshirt me-2"></i>{{ tenant.name|default:"Premium Laundry" }}
-        </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto fw-semibold align-items-center">
-                <li class="nav-item">
-                    <a class="nav-link active" href="#">Home</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#order-form">Services</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link btn btn-primary text-white rounded-pill px-4 ms-lg-3 mt-2 mt-lg-0" href="#order-form">
-                        <i class="fas fa-calendar-alt me-1"></i> Schedule Pickup
-                    </a>
-                </li>
-            </ul>
-        </div>
-    </div>
-</nav>
-
-<div class="hero-section">
+<div class="hero-section mt-5">
     <div class="container">
         <h1 class="hero-title">Elevate Your Lifestyle</h1>
         <p class="lead text-muted mx-auto" style="max-width: 600px;">
