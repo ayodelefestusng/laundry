@@ -6,17 +6,18 @@ def tenant_assets(request):
     """
     tenant = getattr(request, 'tenant', None)
     if tenant:
-        whatsapp_number = tenant.whatsapp_number or ''
+        # Avoid crashing if TenantAttribute is missing for an old Tenant
+        attr = getattr(tenant, 'attribute', None)
+        whatsapp_number = attr.whatsapp_number if attr else ''
         # Normalize Nigerian numbers: replace leading 0 with +234
         if whatsapp_number.startswith('0'):
             whatsapp_number = '+234' + whatsapp_number[1:]
         return {
-            'tenant_primary_color': tenant.primary_color or '#007bff',
-            'tenant_secondary_color': tenant.secondary_color or '#6c757d',
-            'tenant_font_family': tenant.font_family or 'system-ui, -apple-system, sans-serif',
-            'tenant_logo_url': tenant.logo.url if tenant.logo else None,
+            'tenant_primary_color': attr.primary_color if attr else '#007bff',
+            'tenant_secondary_color': attr.secondary_color if attr else '#6c757d',
+            'tenant_font_family': attr.font_family if attr else 'system-ui, -apple-system, sans-serif',
+            'tenant_logo_url': attr.logo.url if attr and attr.logo else None,
             'tenant_name': tenant.name,
             'tenant_whatsapp_number': whatsapp_number,
-            'tenant_secondary_color': tenant.secondary_color or '#6c757d'
         }
     return {}

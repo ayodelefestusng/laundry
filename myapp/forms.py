@@ -116,9 +116,9 @@ class OrderForm(forms.ModelForm):
     class Meta:
         model = Order
         fields = [
-            'customer_name', 'customer_email', 'customer_phone', 'address', 'pickup_latitude', 'pickup_longitude',
+            'customer_name', 'customer_email', 'customer_phone', 'state', 'town', 'address', 'pickup_latitude', 'pickup_longitude',
             'delivery_option', 'recipient_name', 'recipient_email', 
-            'recipient_phone', 'recipient_address', 'recipient_latitude', 'recipient_longitude',
+            'recipient_phone', 'recipient_state', 'recipient_town', 'recipient_address', 'recipient_latitude', 'recipient_longitude',
             'pickup_date', 'special_instructions'
         ]
         widgets = {
@@ -130,6 +130,19 @@ class OrderForm(forms.ModelForm):
                 'hx-target': '#email-error'
             }),
             'customer_phone': forms.TextInput(attrs={'class': 'form-control'}),
+            'state': forms.Select(attrs={
+                'class': 'form-select select2', 
+                'hx-get': reverse_lazy('laundry:htmx_get_towns'), 
+                'hx-target': '#id_town', 
+                'hx-trigger': 'change'
+            }),
+            'town': forms.Select(attrs={
+                'class': 'form-select select2', 
+                'id': 'id_town',
+                'hx-get': reverse_lazy('laundry:htmx_calculate_deliverys'),
+                'hx-target': '#delivery-price-display',
+                'hx-trigger': 'change'
+            }),
             'address': forms.TextInput(attrs={'class': 'form-control', 'id': 'id_address', 'placeholder': 'Enter your pickup address'}),
             
             'delivery_option': forms.RadioSelect(attrs={'class': 'form-check-input'}),
@@ -137,6 +150,13 @@ class OrderForm(forms.ModelForm):
             'recipient_name': forms.TextInput(attrs={'class': 'form-control'}),
             'recipient_email': forms.EmailInput(attrs={'class': 'form-control'}),
             'recipient_phone': forms.TextInput(attrs={'class': 'form-control'}),
+            'recipient_state': forms.Select(attrs={
+                'class': 'form-select select2',
+                'hx-get': reverse_lazy('laundry:htmx_get_towns'),
+                'hx-target': '#id_recipient_town',
+                'hx-trigger': 'change'
+            }),
+            'recipient_town': forms.Select(attrs={'class': 'form-select select2', 'id': 'id_recipient_town'}),
             'recipient_address': forms.TextInput(attrs={'class': 'form-control', 'id': 'id_recipient_address', 'placeholder': 'Enter recipient address'}),
             'pickup_latitude': forms.HiddenInput(),
             'pickup_longitude': forms.HiddenInput(),
@@ -159,7 +179,11 @@ class OrderForm(forms.ModelForm):
             'customer_name': 'Customer Name',
             'customer_email': 'Customer Email',
             'customer_phone': 'Customer Phone',
+            'state': 'State',
+            'town': 'Town',
             'address': 'Address',
+            'recipient_state': 'Recipient State',
+            'recipient_town': 'Recipient Town',
             'pickup_date': 'Pickup Date',
             'special_instructions': 'Special Instructions',
         }
@@ -181,7 +205,8 @@ class OrderForm(forms.ModelForm):
         # Make recipient and pickup coordinates optional by default
         optional_fields = [
             'recipient_name', 'recipient_email', 'recipient_phone', 
-            'recipient_address', 'recipient_latitude', 'recipient_longitude',
+            'recipient_state', 'recipient_town', 'recipient_address', 
+            'recipient_latitude', 'recipient_longitude',
             'pickup_latitude', 'pickup_longitude', 'delivery_option', 'special_instructions'
         ]
         for field in optional_fields:

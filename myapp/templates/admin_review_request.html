@@ -102,14 +102,28 @@
                                     <label class="small text-muted">Recipient Email</label>
                                     <input type="email" name="recipient_email" class="form-control form-control-sm" value="{{ order.recipient_email|default:order.customer_email }}">
                                 </div>
+                                <div class="col-md-6 mt-2">
+                                    <label class="small text-muted">Recipient State</label>
+                                    <select name="recipient_state" class="form-select form-select-sm select2" hx-get="{% url 'laundry:htmx_get_towns' %}" hx-target="#admin_recipient_town" hx-trigger="change">
+                                        <option value="">Select State...</option>
+                                        {% for s in states %}
+                                        <option value="{{ s.id }}" {% if order.recipient_state_id == s.id %}selected{% endif %}>{{ s.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mt-2">
+                                    <label class="small text-muted">Recipient Town</label>
+                                    <select name="recipient_town" id="admin_recipient_town" class="form-select form-select-sm select2">
+                                        {% if order.recipient_town %}
+                                        <option value="{{ order.recipient_town.id }}" selected>{{ order.recipient_town.name }}</option>
+                                        {% else %}
+                                        <option value="">Select a state first</option>
+                                        {% endif %}
+                                    </select>
+                                </div>
                                 <div class="col-md-12 mt-2">
                                     <label class="small text-muted">Recipient Address</label>
                                     <input type="text" id="id_recipient_address" name="recipient_address" class="form-control form-control-sm" value="{{ order.recipient_address|default:order.address }}">
-                                    <input type="hidden" id="id_recipient_latitude" name="recipient_latitude" value="{{ order.recipient_latitude|default:'' }}">
-                                    <input type="hidden" id="id_recipient_longitude" name="recipient_longitude" value="{{ order.recipient_longitude|default:'' }}">
-                                    <div id="recipient-map-error" class="text-danger small mt-1" style="display:none;">
-                                        <i class="fas fa-exclamation-triangle"></i> Please select a valid address from the dropdown or drop a pin on the map.
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -200,48 +214,27 @@
 </div>
 
 {% block extra_js %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
-// Use legacy Autocomplete API (more compatible)
 function initAutocomplete() {
-    const input = document.getElementById('id_recipient_address');
-    if (!input) {
-        console.log("No address input found");
-        return;
-    }
-
-    console.log("Initializing legacy Autocomplete API");
+    // We keep this function name because a setTimeout calls it below
+    $('.select2').select2({
+        width: '100%',
+        placeholder: "Search and select...",
+        allowClear: true
+    });
     
-    const options = {
-        componentRestrictions: { country: "ng" },
-        fields: ["address_components", "geometry", "name", "formatted_address"],
-    };
+    // Ensure HTMX gets the event when Select2 changes
+    $('.select2').on('change', function (e) {
+        if (typeof htmx !== 'undefined') {
+            htmx.trigger(this, 'change');
+        }
+    });
 
-    try {
-        const autocomplete = new google.maps.places.Autocomplete(input, options);
-        
-        autocomplete.addListener("place_changed", () => {
-            const place = autocomplete.getPlace();
-            if (!place.geometry) {
-                document.getElementById('recipient-map-error').style.display = 'block';
-                return;
-            }
-            document.getElementById('recipient-map-error').style.display = 'none';
-            document.getElementById('id_recipient_latitude').value = place.geometry.location.lat();
-            document.getElementById('id_recipient_longitude').value = place.geometry.location.lng();
-            input.value = place.formatted_address || input.value;
-
-            console.log("Address selected:", place.formatted_address);
-
-            const shippingForm = document.getElementById('shipping-update-form');
-            if (shippingForm && typeof htmx !== 'undefined') {
-                htmx.trigger(shippingForm, 'submit');
-            }
-        });
-        
-        console.log("Autocomplete initialized successfully");
-    } catch (error) {
-        console.error("Error initializing autocomplete:", error);
-    }
+    console.log("Select2 initialized successfully");
 }
 
 // ── FIX: DOMContentLoaded may have already fired when Django's template

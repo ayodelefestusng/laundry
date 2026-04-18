@@ -131,7 +131,9 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=255, blank=True, null=True)
     phone = models.CharField(max_length=15, blank=True, null=True, validators=[validate_nigerian_phone])
-    address = models.CharField(max_length=255, blank=True, null=True)
+    state = models.ForeignKey('State', on_delete=models.SET_NULL, null=True, blank=True)
+    town = models.ForeignKey('Town', on_delete=models.SET_NULL, null=True, blank=True)
+    address = models.CharField(max_length=255, blank=True, null=True, help_text="House/Street address")
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
 
@@ -273,6 +275,33 @@ def tenant_directory_path(instance, filename):
 
 
 
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+# Add post_save signal for Partner Assignment
+@receiver(post_save, sender=CustomUser)
+def assign_partner_group(sender, instance, created, **kwargs):
+    if created and instance.tenant and instance.is_staff and not instance.is_superuser:
+        from django.contrib.auth.models import Group
+        group, _ = Group.objects.get_or_create(name='Partner')
+        instance.groups.add(group)
+
+class State(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    class Meta:
+        ordering = ['id']
+    def __str__(self):
+        return self.name
+
+class Town(models.Model):
+    name = models.CharField(max_length=100)
+    state = models.ForeignKey(State, on_delete=models.CASCADE, related_name='towns')
+    class Meta:
+        ordering = ['id']
+        unique_together = ('name', 'state')
+    def __str__(self):
+        return f"{self.name}, {self.state.name}"
+
 class TenantManager(models.Manager):
     def get_queryset(self):
         qs = super().get_queryset()
@@ -297,66 +326,9 @@ class Tenant(models.Model):
     subdomain = models.CharField(max_length=50, unique=True, default="127.0.0.1", help_text="Subdomain for the tenant (e.g., dignity)")
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    brand_name = models.CharField(
-        max_length=210,
-        default="Dignity",
-        help_text="Brand name , e.g., Dignity",
-    )
-    # Branding Fields
-    logo = models.ImageField(
-        upload_to=tenant_directory_path,
-        null=True,
-        blank=True,
-        help_text="Primary logo for the tenant (displayed in header)",
-    )
-    favicon = models.ImageField(
-        upload_to=tenant_directory_path,
-        null=True,
-        blank=True,
-        help_text="Tenant-specific favicon",
-    )
-    primary_color = models.CharField(
-        max_length=7,
-        default="#4f46e5",
-        help_text="Brand primary color (Hex), e.g., #4f46e5",
-    )
-    secondary_color = models.CharField(
-        max_length=7,
-        default="#6366f1",
-        help_text="Brand secondary color (Hex), e.g., #6366f1",
-    )
-    font_family = models.CharField(
-        max_length=255,
-        default="'Inter', sans-serif",
-        help_text="CSS Font family for the tenant",
-    )
-    custom_css = models.TextField(
-        blank=True,
-        help_text="Custom CSS overrides for this tenant",
-    )
-
-    # Google Maps & Delivery Configuration
-    component_restrictions = models.CharField(max_length=50, default="NG", help_text="ISO country code for Places API")
-    strict_bounds = models.BooleanField(default=True)
     
-    # Map Bounds for Autocomplete
-    southwest_lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    southwest_lng = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    northeast_lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    northeast_lng = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    
-    # Tenant Location for distance calculation
-    location_lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    location_lng = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    whatsapp_number = models.CharField(
-        max_length=20, 
-        default="+2349068770054", 
-        help_text="WhatsApp phone number"
-    )
-
     def __str__(self):
         return f"{self.name} ({self.code})"
-
 
 class TenantModel(models.Model):
     # tenant = models.ForeignKey('org.Tenant', on_delete=models.CASCADE)
@@ -372,38 +344,55 @@ class TenantModel(models.Model):
     class Meta:
         abstract = True
 
+class TenantAttribute(TenantModel):
+    tenant = models.OneToOneField(Tenant, on_delete=models.CASCADE, related_name='attribute')
+    brand_name = models.CharField(max_length=210, default="Dignity", help_text="Brand name , e.g., Dignity")
+    
+    logo = models.ImageField(upload_to=tenant_directory_path, null=True, blank=True, help_text="Primary logo for the tenant (displayed in header)")
+    favicon = models.ImageField(upload_to=tenant_directory_path, null=True, blank=True, help_text="Tenant-specific favicon")
+    primary_color = models.CharField(max_length=7, default="#4f46e5", help_text="Brand primary color (Hex), e.g., #4f46e5")
+    secondary_color = models.CharField(max_length=7, default="#6366f1", help_text="Brand secondary color (Hex), e.g., #6366f1")
+    font_family = models.CharField(max_length=255, default="'Inter', sans-serif", help_text="CSS Font family for the tenant")
+    custom_css = models.TextField(blank=True, help_text="Custom CSS overrides for this tenant")
+
+    component_restrictions = models.CharField(max_length=50, default="NG", help_text="ISO country code for Places API")
+    strict_bounds = models.BooleanField(default=True)
+    
+    southwest_lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    southwest_lng = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    northeast_lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    northeast_lng = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    
+    location_lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    location_lng = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    whatsapp_number = models.CharField(max_length=20, default="+2349068770054", help_text="WhatsApp phone number")
+
+    def __str__(self):
+        return f"{self.tenant.name} Attributes"
+
+    # def __str__(self):
+    #     return f"{self.name} ({self.code})"
+
+
+
+class Cluster(TenantModel):
+    name = models.CharField(max_length=100)
+    towns = models.ManyToManyField(Town, related_name='clusters')
+    
+    def __str__(self):
+        return f"{self.name} Cluster"
+
 class DeliveryPricing(TenantModel):
-    """3-tier pricing based on distance."""
-    min_km = models.DecimalField(max_digits=5, decimal_places=2)
-    max_km = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text="Leave blank for 'above X km'")
+    """Cluster-based pricing."""
+    cluster = models.ForeignKey(Cluster, on_delete=models.CASCADE, related_name='delivery_prices', null=True, blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
 
     class Meta:
         verbose_name = "Delivery Pricing"
         verbose_name_plural = "Delivery Pricing Tiers"
-    def clean(self):
-        # Ensure min is not greater than max
-        if self.max_km and self.min_km > self.max_km:
-            raise ValidationError("Minimum KM cannot be greater than Maximum KM.")
-            
-        # Optional: Check for overlapping ranges for the same tenant
-        overlapping = DeliveryPricing.objects.filter(
-            tenant=self.tenant,
-            min_km__lt=self.max_km if self.max_km else 9999,
-            max_km__gt=self.min_km
-        ).exclude(pk=self.pk)
-        
-        if overlapping.exists():
-            raise ValidationError("This range overlaps with an existing pricing tier.")
 
-    def save(self, *args, **kwargs):
-        self.full_clean()
-        super().save(*args, **kwargs)
-        
     def __str__(self):
-        if self.max_km:
-            return f"{self.min_km}km - {self.max_km}km: {self.price}"
-        return f"Above {self.min_km}km: {self.price}"
+        return f"{self.cluster.name}: {self.price}"
 
 class PremiumClient(TenantModel):
     name = models.CharField(max_length=100, unique=True)
@@ -447,20 +436,15 @@ WORKFLOW_STAGES1 = (
 )
 
 
-SERVICE_CHOICES = (
-    ('wash_fold', 'Wash & Fold'),
-    ('dry_clean', 'Dry Cleaning'),
-    ('ironing', 'Ironing'),
-)
 class Package(TenantModel):
     category = models.ForeignKey(ServiceCategory, on_delete=models.CASCADE, related_name='services')
-    service_type = models.CharField(max_length=50, choices=SERVICE_CHOICES)
+    service_type = models.ForeignKey(ServiceChoices, on_delete=models.SET_NULL, null=True, blank=True, related_name='packages')
     price = models.DecimalField(max_digits=10, decimal_places=2)
     delivery_time_days = models.IntegerField(help_text="Estimated delivery time in days.")
     class Meta:
         unique_together = ('category', 'service_type')
     def __str__(self):
-        return f"{self.category.name}-{self.id} - {self.get_service_type_display()}"
+        return f"{self.category.name}-{self.id} - {self.service_type.name if self.service_type else 'Uncategorized'}"
 
 def generate_order_code():
     return get_random_string(8).upper()
@@ -490,7 +474,9 @@ class Order(TenantModel):
     customer_name = models.CharField(max_length=100, blank=True, null=True)
     customer_email = models.EmailField(blank=True, null=True)
     customer_phone = models.CharField(max_length=15, blank=True, null=True)
-    address = models.CharField(max_length=255, blank=True, null=True)
+    state = models.ForeignKey('State', on_delete=models.SET_NULL, null=True, blank=True, related_name='pickup_orders')
+    town = models.ForeignKey('Town', on_delete=models.SET_NULL, null=True, blank=True, related_name='pickup_orders')
+    address = models.CharField(max_length=255, blank=True, null=True, help_text="House/Street address")
     pickup_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     pickup_longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     # pickup_date = models.DateField(default=timezone.now)
@@ -531,7 +517,9 @@ class Order(TenantModel):
     recipient_name = models.CharField(max_length=100, blank=True, null=True)
     recipient_email = models.EmailField(blank=True, null=True)
     recipient_phone = models.CharField(max_length=15, blank=True, null=True)
-    recipient_address = models.CharField(max_length=255, null=True, blank=True)
+    recipient_state = models.ForeignKey('State', on_delete=models.SET_NULL, null=True, blank=True, related_name='delivery_orders')
+    recipient_town = models.ForeignKey('Town', on_delete=models.SET_NULL, null=True, blank=True, related_name='delivery_orders')
+    recipient_address = models.CharField(max_length=255, null=True, blank=True, help_text="House/Street address")
     recipient_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     recipient_longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     

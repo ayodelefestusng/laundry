@@ -3,6 +3,7 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
+from . import tenant_admin_views
 
 app_name = 'laundry'
 
@@ -78,6 +79,7 @@ urlpatterns = [
 
 
 
+ path('htmx/get_towns/', views.htmx_get_towns, name='htmx_get_towns'),
  path('htmx/calculate_deliverys/', views.htmx_calculate_deliverys, name='htmx_calculate_deliverys'),
     # Payment redirects
 #     path('paypal/success/', views.paypal_success, name='paypal_success'),
@@ -102,6 +104,10 @@ path('paystack/success/', views.paystack_success, name='paystack_success'),
 
     path('send_email/', views.laundry_request_confirmation, name='confirm_laundry'),
 
-
-
+    # Tenant Admin Hub Generic Views
+    path('tenant-settings/', tenant_admin_views.tenant_admin_hub, name='tenant_admin_hub'),
+    path('tenant-settings/<str:model_name>/', tenant_admin_views.TenantGenericListView.as_view(), name='tenant_admin_list'),
+    path('tenant-settings/<str:model_name>/create/', tenant_admin_views.TenantGenericCreateView.as_view(), name='tenant_admin_create'),
+    path('tenant-settings/<str:model_name>/<int:pk>/update/', tenant_admin_views.TenantGenericUpdateView.as_view(), name='tenant_admin_update'),
+    path('tenant-settings/<str:model_name>/<int:pk>/delete/', tenant_admin_views.TenantGenericDeleteView.as_view(), name='tenant_admin_delete'),
 ]

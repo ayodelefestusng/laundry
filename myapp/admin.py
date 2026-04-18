@@ -4,8 +4,8 @@ from django.contrib.auth.admin import UserAdmin
 from matplotlib.pylab import qr
 
 from .models import (Comment, CustomUser, Order, OrderItem, Package,
-                     ServiceCategory,Tenant, Workflow, WorkflowStage, WorkflowInstance,Employee,
-                     ServiceChoices,PremiumClient,QR,DeliveryPricing)
+                     ServiceCategory,Tenant, TenantAttribute, Workflow, WorkflowStage, WorkflowInstance,Employee,
+                     ServiceChoices,PremiumClient,QR,DeliveryPricing, Cluster, State, Town)
 
 
 class CustomUserAdmin(UserAdmin):
@@ -103,10 +103,26 @@ admin.site.index_title = "Welcome to the Laundry Service Admin Portal"
 admin.site.register(CustomUser)
 admin.site.register(Employee)
 admin.site.register(ServiceChoices)
-admin.site.register(Tenant, admin.ModelAdmin)
+class TenantAttributeInline(admin.StackedInline):
+    model = TenantAttribute
+    can_delete = False
+
+@admin.register(Tenant)
+class TenantAdmin(admin.ModelAdmin):
+    inlines = [TenantAttributeInline]
+    list_display = ('name', 'code', 'subdomain', 'is_active', 'created_at')
+
+@admin.register(Cluster)
+class ClusterAdmin(admin.ModelAdmin):
+    filter_horizontal = ('towns',)
+    list_display = ('name', 'tenant')
+
+admin.site.register(State)
+admin.site.register(Town)
 admin.site.register(PremiumClient, admin.ModelAdmin)
 admin.site.register(QR)
 admin.site.register(DeliveryPricing)
+
 class WorkflowStepInline(admin.TabularInline):
     model = WorkflowStage
     extra = 1

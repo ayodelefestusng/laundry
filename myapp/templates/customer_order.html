@@ -256,12 +256,21 @@
                             {{ form.customer_phone|as_crispy_field }}
                         </div>
                         
+
                         <div class="col-md-12 position-relative" id="pickup_address_section">
                             {{ form.address|as_crispy_field }}
-                            {{ form.pickup_latitude }}
-                            {{ form.pickup_longitude }}
-                            <div id="delivery-price-display" class="mt-2"></div>
+                            <div id="delivery-price-display" class="mt-2 text-primary fw-bold text-center"></div>
                         </div>
+
+
+                        <div class="col-md-6">
+                            {{ form.state|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.town|as_crispy_field }}
+                        </div>
+                        
+                      
                         
                         {# Delivery Option and Recipient Section moved to admin_review_request.html #}
 
@@ -324,55 +333,27 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
-// 1. Move initAutocomplete to the GLOBAL scope so Google can see it
-function initAutocomplete() {
-    const addrInput = document.getElementById('id_address');
-    const recipientAddrInput = document.getElementById('id_recipient_address');
+document.addEventListener("DOMContentLoaded", function() {
+    // Initialize Select2 natively
+    $('.select2').select2({
+        width: '100%',
+        placeholder: "Search and select...",
+        allowClear: true
+    });
     
-    // Safety check for tenant data from Django context
-    const strictBounds = {{ tenant.strict_bounds|yesno:"true,false" }};
-    const options = {
-        componentRestrictions: { country: "{{ tenant.component_restrictions|default:'ng'|lower }}" },
-        fields: ["address_components", "geometry", "name"],
-        strictBounds: strictBounds,
-    };
-
-    {% if tenant.southwest_lat and tenant.southwest_lng and tenant.northeast_lat and tenant.northeast_lng %}
-    options.bounds = new google.maps.LatLngBounds(
-        new google.maps.LatLng({{ tenant.southwest_lat }}, {{ tenant.southwest_lng }}),
-        new google.maps.LatLng({{ tenant.northeast_lat }}, {{ tenant.northeast_lng }})
-    );
-    {% endif %}
-
-    if (addrInput) {
-        const autocomplete = new google.maps.places.Autocomplete(addrInput, options);
-        autocomplete.addListener("place_changed", () => {
-            const place = autocomplete.getPlace();
-            if (!place.geometry) return;
-
-            const lat = place.geometry.location.lat();
-            const lng = place.geometry.location.lng();
-            
-            // Populate hidden fields
-            document.getElementById('id_pickup_latitude').value = lat.toFixed(6);
-            document.getElementById('id_pickup_longitude').value = lng.toFixed(6);
-
-
-            // Trigger HTMX call for price calculation
-            if (typeof htmx !== 'undefined') {
-                htmx.ajax('GET', '{% url "laundry:htmx_calculate_deliverys" %}', {
-                    target: '#delivery-price-display',
-                    values: { lat: lat, lng: lng }
-                });
-            }
-        });
-    }
-
-    if (recipientAddrInput) {
-        new google.maps.places.Autocomplete(recipientAddrInput, options);
-    }
-}
+    // Ensure HTMX gets the event when Select2 changes
+    $('.select2').on('change', function (e) {
+        if (typeof htmx !== 'undefined') {
+            htmx.trigger(this, 'change');
+        }
+    });
+});
 
 // 2. Keep your other UI logic inside DOMContentLoaded
 document.addEventListener("DOMContentLoaded", function() {
@@ -419,8 +400,5 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 });
-
-
 </script>
-<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initAutocomplete" async defer></script>
 {% endblock %}

@@ -406,154 +406,57 @@ def haversine(lon1, lat1, lon2, lat2):
 
 @require_http_methods(["GET"])
 def htmx_calculate_delivery(request, order_id):
-    """Calculates delivery cost based on distance from tenant location."""
+    """Calculates delivery cost based on Town Cluster."""
     order = get_object_or_404(Order, id=order_id)
     tenant = getattr(request, 'tenant', None)
-    if not tenant or not tenant.location_lat or not tenant.location_lng:
-        return HttpResponse('<span class="text-warning">Tenant location not set. Contact admin.</span>')
 
-    try:
-        dest_lat = float(request.GET.get('lat'))
-        dest_lng = float(request.GET.get('lng'))
-    except (TypeError, ValueError):
-        return HttpResponse('<span class="text-danger">Invalid address.</span>')
+    town_id = request.GET.get('town') or request.GET.get('recipient_town')
+    if not town_id:
+        return HttpResponse('<span class="text-danger">Invalid or missing town.</span>')
 
-    # Calculate distance
-    distance = haversine(
-        float(tenant.location_lng), float(tenant.location_lat),
-        dest_lng, dest_lat
-    )
+    from myapp.models import DeliveryPricing, Town, Cluster
+    town = get_object_or_404(Town, id=town_id)
+    cluster = Cluster.objects.filter(tenant=tenant, towns=town).first()
     
-    # Find pricing tier
-    from myapp.models import DeliveryPricing
-    from django.db.models import Q
-
-    # pricing = DeliveryPricing.objects.filter(
-    #     tenant=tenant,
-    #     min_km__lte=distance
-    # ).filter(
-    #     Q(max_km__gte=distance) | Q(max_km__isnull=True)
-    # ).first()
-
-    
-    # Find pricing tier
-    pricing = DeliveryPricing.objects.filter(
-        tenant=tenant,
-        min_km__lte=distance
-    ).filter(
-        Q(max_km__gte=distance) | Q(max_km__isnull=True)
-    ).order_by('min_km').first() # Get the smallest starting range that fits
-    if not pricing:
-        # Fallback if distance exceeds all defined tiers
-        price = Decimal('5000.00') 
-        logger.warning(f"No tier for {distance:.2f}km. Using fallback ₦{price}")
+    if not cluster:
+        price = Decimal('5000.00')
+        logger.warning(f"Order {order_id}: No cluster for Town {town.name}. Fallback ₦{price}")
     else:
-        price = pricing.price
-        
-        
-    # price = pricing.price if pricing else 0
-    # if not pricing:
-    # # Option A: Use a fallback flat rate
-    #     price = 5000.00 
-    #     logger.warning(f"No pricing tier found for {distance}km. Applied fallback.")
-        
-    #     # Option B: Block the order (recommended for HTMX)
-    #     # return HttpResponse('<span class="text-danger">Distance outside delivery zone.</span>')
-    # else:
-    #     price = pricing.price
-    # # Update order shipping price
+        pricing = DeliveryPricing.objects.filter(tenant=tenant, cluster=cluster).first()
+        price = pricing.price if pricing else Decimal('5000.00')
+
     order.shipping_price = price
     order.save(update_fields=['shipping_price'])
-    logger.info(f"Order {order_id}: Distance {distance:.2f}km -> Shipping ₦{price}")
-    # Return updated summary
+    logger.info(f"Order {order_id}: Town {town.name} -> Shipping ₦{price}")
+    
     return htmx_get_order_summary(request, order_id)
 
 
 @require_http_methods(["GET"])
 def htmx_calculate_deliverys(request):
-    """Calculates delivery cost based on distance from tenant location."""
-    # order = get_object_or_404(Order, id=order_id)
+    """Calculates delivery cost based on Town Cluster."""
     tenant = getattr(request, 'tenant', None)
-    if not tenant or not tenant.location_lat or not tenant.location_lng:
-        return HttpResponse('<span class="text-warning">Tenant location not set. Contact admin.</span>')
 
-    try:
-        dest_lat = float(request.GET.get('lat'))
-        dest_lng = float(request.GET.get('lng'))
-    except (TypeError, ValueError):
-        return HttpResponse('<span class="text-danger">Invalid address.</span>')
+    # HTMX injects the element's name as the key, e.g., 'town' or 'recipient_town'
+    town_id = request.GET.get('town') or request.GET.get('recipient_town')
+    if not town_id:
+        return HttpResponse('<span class="text-danger">Invalid or missing town.</span>')
 
-    # Calculate distance
-    distance = haversine(
-        float(tenant.location_lng), float(tenant.location_lat),
-        dest_lng, dest_lat
-    )
+    from myapp.models import DeliveryPricing, Town, Cluster
+    town = get_object_or_404(Town, id=town_id)
+    cluster = Cluster.objects.filter(tenant=tenant, towns=town).first()
     
-    # Find pricing tier
-    from myapp.models import DeliveryPricing
-    from django.db.models import Q
-
-    # pricing = DeliveryPricing.objects.filter(
-    #     tenant=tenant,
-    #     min_km__lte=distance
-    # ).filter(
-    #     Q(max_km__gte=distance) | Q(max_km__isnull=True)
-    # ).first()
-    # Find pricing tier
-    # pricing = DeliveryPricing.objects.filter(
-    #     tenant=tenant,
-    #     min_km__lte=distance
-    # ).filter(
-    #     Q(max_km__gte=distance) | Q(max_km__isnull=True)
-    # ).order_by('min_km').first() # Get the smallest starting range that fits
-    
-    # price = pricing.price if pricing else 0
-    # if not pricing:
-    #     # Option A: Use a fallback flat rate
-    #     price = 5000.00 
-    #     logger.warning(f"No pricing tier found for {distance}km. Applied fallback.")
-        
-    #     # Option B: Block the order (recommended for HTMX)
-    #     # return HttpResponse('<span class="text-danger">Distance outside delivery zone.</span>')
-    # else:
-        # price = pricing.price
-    # # Update order shipping price
-    # order.shipping_price = price
-    # order.save()
-    
-    # Return updated summary
-    # return htmx_get_order_summary(request, order_id)
-        # Find pricing tier
-    pricing = DeliveryPricing.objects.filter(
-        tenant=tenant,
-        min_km__lte=distance
-    ).filter(
-        Q(max_km__gte=distance) | Q(max_km__isnull=True)
-    ).order_by('min_km').first() # Get the smallest starting range that fits
-    if not pricing:
-        # Fallback if distance exceeds all defined tiers
-        price = Decimal('5000.00') 
-        logger.warning(f"No tier for {distance:.2f}km. Using fallback ₦{price}")
+    if not cluster:
+        price = Decimal('5000.00')
+        logger.warning(f"No cluster for Town {town.name}. Fallback ₦{price}")
     else:
-        price = pricing.price
-        
-        
-    # price = pricing.price if pricing else 0
-    # if not pricing:
-    # # Option A: Use a fallback flat rate
-    #     price = 5000.00 
-    #     logger.warning(f"No pricing tier found for {distance}km. Applied fallback.")
-        
-    #     # Option B: Block the order (recommended for HTMX)
-    #     # return HttpResponse('<span class="text-danger">Distance outside delivery zone.</span>')
-    # else:
-    #     price = pricing.price
-    # # Update order shipping price
-   
-    logger.info(f" Distance {distance:.2f}km -> Shipping ₦{price}")
+        pricing = DeliveryPricing.objects.filter(tenant=tenant, cluster=cluster).first()
+        price = pricing.price if pricing else Decimal('5000.00')
+
+    logger.info(f"Town {town.name} -> Shipping ₦{price}")
 
     return render(request, 'htmx/delivery_price_snippet.html', {
-        'distance': round(distance, 2),
+        'town_name': town.name,
         'price': price
     })
 
@@ -776,13 +679,15 @@ def admin_review_request(request, order_id):
     form = OrderItemForm()
     packages = Package.objects.all()
     categories = ServiceCategory.objects.all()
+    from myapp.models import State
+    states = State.objects.all()
     
     context = {
         'order': order,
         'form': form,
         'packages': packages,
         'categories': categories,
-        'google_maps_api_key': GOOGLE_MAPS_API_KEY,
+        'states': states,
     }
     return render(request, 'admin_review_request.html', context)
 
@@ -1060,6 +965,20 @@ def htmx_delete_item(request, item_id):
     return HttpResponse(status=200, headers={'HX-Trigger': 'refresh-summary'})
 
 # @require_http_methods(["GET"])
+@require_http_methods(["GET"])
+def htmx_get_towns(request):
+    """Returns options for Towns belonging to a State"""
+    state_id = request.GET.get('state') or request.GET.get('recipient_state')
+    if not state_id:
+        return HttpResponse('<option value="">Select a state first...</option>')
+        
+    from myapp.models import Town
+    towns = Town.objects.filter(state_id=state_id)
+    html = '<option value="">Select Town...</option>'
+    for t in towns:
+        html += f'<option value="{t.id}">{t.name}</option>'
+    return HttpResponse(html)
+
 def htmx_get_order_summary(request, order_id):
     """
     Returns an updated order summary snippet.
