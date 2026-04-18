@@ -786,51 +786,6 @@ def admin_review_request(request, order_id):
     }
     return render(request, 'admin_review_request.html', context)
 
-@csrf_exempt
-@require_http_methods(["POST"])
-def htmx_update_shipping(request, order_id):
-    """
-    Updates shipping details and returns the updated order summary.
-    """
-    logger.info(f"Method: {request.method} - Updating shipping for order {order_id}")
-    order = get_object_or_404(Order, id=order_id)
-    
-    delivery_option = request.POST.get('delivery_option')
-    order.delivery_option = delivery_option
-    logger.info(f"Selected delivery option: {delivery_option}")
-    if delivery_option == 'home_delivery':
-        order.recipient_name = request.POST.get('recipient_name')
-        order.recipient_phone = request.POST.get('recipient_phone')
-        order.recipient_email = request.POST.get('recipient_email')
-        order.recipient_address = request.POST.get('recipient_address')
-        order.recipient_latitude = request.POST.get('recipient_latitude') or None
-        order.recipient_longitude = request.POST.get('recipient_longitude') or None
-        
-        # Calculate shipping price based on recipient lat/long
-        if order.recipient_latitude and order.recipient_longitude:
-            tenant = getattr(request, 'tenant', None)
-            if tenant and tenant.location_lat and tenant.location_lng:
-                distance = haversine(
-                    float(tenant.location_lng), float(tenant.location_lat),
-                    float(order.recipient_longitude), float(order.recipient_latitude)
-                )
-                from myapp.models import DeliveryPricing
-                pricing = DeliveryPricing.objects.filter(
-                    tenant=tenant, min_km__lte=distance
-                ).filter(
-                        Q(max_km__gte=distance) | Q(max_km__isnull=True)
-                ).first()
-                order.shipping_price = pricing.price if pricing else 0
-    else:
-        
-        order.shipping_price = 0
-        logger.info(f"Selected delivery option: {delivery_option}")
-    order.save()
-    logger.info(f"Order {order_id} updated successfully.")
-    # Force a full reload on success
-    response = htmx_get_order_summary(request, order.id)
-    response['HX-Refresh'] = 'true'
-    return response
 
 @require_http_methods(["POST"])
 def admin_approve_comment(request, order_id):
@@ -1132,88 +1087,6 @@ def htmx_get_order_summary(request, order_id):
     logger.info(f"Order summary: {summary}")
     context = {'summary': summary}
     return render(request, 'htmx/order_summary.html', context)
-@csrf_exempt
-@require_http_methods(["POST"])
-def htmx_send_invoice1(request, order_id):
-    logger.info(f"User {request.user} is sending invoice for order {order_id}.")
-    order = get_object_or_404(Order, id=order_id)
-    # order.status = 'in_progress' # Mark as in progress after invoicing
-    # order.save()
-
-    items = order.items.all()
-    if not items:
-        return HttpResponse("No items to invoice.", status=400)
-
-    # Calculate summary details
-    total_price = sum(item.price for item in items)
-    if items:
-        max_delivery_days = max(item.delivery_time_days for item in items)
-        estimated_delivery_date = timezone.now().date() + timedelta(days=max_delivery_days)
-    else:
-        estimated_delivery_date = None
-
-    summary = {
-        'total_items': items.count(),
-        'total_price': total_price,
-        'delivery_date': estimated_delivery_date,
-    }
-    
-    # Update order details in the database
-    order.total_price = total_price
-    order.estimated_delivery_date = estimated_delivery_date
-    order.status = 'invoice_sent'
-    order.save()
-
-    # Generate absolute URLs for the email links
-    paypal_url = request.build_absolute_uri(reverse('laundry:paypal_checkout', args=[order.id]))
-    comment_url = request.build_absolute_uri(reverse('laundry:comment_order', args=[order.id]))
-    confirm_url = request.build_absolute_uri(reverse('laundry:confirm_order', args=[order.id]))
-    print ("Ajadi URL",paypal_url)
-    # Render email template as a string
-    email_html_content = render_to_string('htmx/invoice_email.html', {
-        'order': order,
-        'items': items,
-        'summary': summary,
-        # 'customer_name': order.customer.get_full_name() or order.customer.username,
-        'customer_name':  order.customer_name or order.customer.email,
-        'paypal_url': paypal_url,
-        'comment_url': comment_url,
-        'confirm_url': confirm_url,
-    })
-
-    # Send email
-    try:
-        
-        print("Email Content:", order.customer_email)
-    
-        email = EmailMessage(
-        f'Invoice for Order #{order.id}',
-        email_html_content,
-        settings.DEFAULT_FROM_EMAIL,
-        [order.customer_email],
-    )
-        email.content_subtype = "html"  # ✅ Set HTML content type
-        result = email.send()  # ✅ Send the email
-        print("Email send result:", result)
-        return HttpResponse("Invoice Successfully sent")
-
-    
-        # messages.success(request, 'Invoice successfully sent to the email of the customer!')
-        # if request.user.is_authenticated:
-        #     destination = reverse('laundry:admin_dashboard')
-        # else:
-        #     destination = reverse('laundry:customer_order')
-
-        # if hasattr(request, 'htmx') and request.htmx:
-        #     response = HttpResponse()
-        #     response['HX-Redirect'] = destination
-        #     return response
-        # return redirect(destination)
-
-    except Exception as e:
-        print("Email send error:", e)
-        messages.error(request, f'Failed to send email: {e}')
-        return HttpResponse("Failed to send invoice.", status=500)
 
 @csrf_exempt
 def get_paypal_access_token():
@@ -1410,8 +1283,11 @@ def htmx_send_invoice(request, order_id):
     # Validation & Shipping Cost logic
     shipping_cost = 0  # Default to 0 based on user request
     if order.delivery_option == 'home_delivery':
+
         # Enforce lat/lng validation
         if not order.recipient_latitude or not order.recipient_longitude:
+            logger.error(f"Invalid Lattitue Alike {request.user} tried to send an invoice for an empty order.")
+
             return HttpResponse(
                 '<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> '
                 'A valid Google Maps address is required for Home Delivery. Please Edit Shipping Details and drop a pin.</div>',
@@ -1510,129 +1386,6 @@ def htmx_send_invoice(request, order_id):
         messages.error(request, f'Failed to send email: {e}')
         return HttpResponse("Failed to send invoice.", status=500)
 
-@csrf_exempt
-def htmx_send_invoicev2(request, order_id):
-    logger.info(f"User {request.user} is sending invoice for order {order_id}.")
-    order = get_object_or_404(Order, id=order_id)
-    
-    items = order.items.all()
-    if not items:
-        logger.error(f"User {request.user} tried to send an invoice for an empty order.")
-        return HttpResponse("No items to invoice.", status=400)
-
-    # Calculate and update order details
-    total_price = sum(item.price for item in items)
-    max_delivery_days = max(item.delivery_time_days for item in items) if items else 0
-    estimated_delivery_date = timezone.now().date() + timedelta(days=max_delivery_days)
-
-    order.total_price = total_price
-    order.estimated_delivery_date = estimated_delivery_date
-    order.status = 'invoice_sent' # Mark status before attempting payment init
-    order.save()
-    logger.info(f"Order {order_id} updated with total price and estimated delivery date.")
-    # ----------------------------------------------------
-    # ✅ 1. Paystack Initialization
-    # ----------------------------------------------------
-    
-    # Construct the correct callback URL (the view that handles the redirect)
-    # The callback URL in Paystack must be a static path,
-    # but for your dynamic path, Paystack will add the reference as a query param.
-    callback_base_url = request.build_absolute_uri(reverse('laundry:paystack_callback', kwargs={'order_id': order.id}))
-
-    # Call the utility function to initialize the transaction
-    # paystack_url, reference = initiate_paystack_transaction(
-    #     email=order.customer_email,
-    #     amount=order.total_price,
-    #     order_id=order.id,
-    #     callback_url=callback_base_url # Pass the callback URL to the utility
-    # )
-    
-    paystack_url, reference = initiate_paystack_transaction(
-    request=request,  # <-- NEW: Pass the request object here
-    email=order.customer_email,
-    amount=order.total_price,
-    order_id=order.id
-)
-
-    if not paystack_url or not reference:
-        messages.error(request, 'Failed to initialize payment with Paystack.')
-        return HttpResponse("Failed to initialize payment.", status=500)
-
-    # 2. Create the Payment Record in your DB
-    try:
-        Payment.objects.create(
-            # user=order.user.email, # Assuming the order has a 'customer' foreign key to User
-            order=order,
-            amount=order.total_price,
-            reference=reference,
-            verified=False
-        )
-        logger.info(f"Payment record created for Order {order.id} with reference {reference}")
-        
-        # Phase 6: Ensure Order has a secure QR token for dispatch/delivery
-        if not order.qr_secure_token:
-            order.qr_secure_token = get_signed_token(order.id)
-            order.save(update_fields=['qr_secure_token', 'updated_at'])
-            
-    except Exception as e:
-        logger.exception(f"Error creating payment record for Order {order.id}: {e}")
-        messages.error(request, 'Payment record creation failed.')
-        return HttpResponse("Failed to store payment record.", status=500)
-
-    # ----------------------------------------------------
-    # 3. Send Email with Paystack Link
-    # ----------------------------------------------------
-    
-    summary = {
-        'total_items': items.count(),
-        'total_price': total_price,
-        'delivery_date': estimated_delivery_date,
-    }
-    
-    comment_url = request.build_absolute_uri(reverse('laundry:comment_order', args=[order.id]))
-    confirm_url = request.build_absolute_uri(reverse('laundry:confirm_order', args=[order.id]))
-    
-    # The URL sent in the email is the Paystack checkout URL, NOT the callback URL
-    email_html_content = render_to_string('htmx/invoice_email.html', {
-        'order': order,
-        'items': items,
-        'summary': summary,
-        'customer_name': order.customer_name or order.customer.email,
-        'paystack_url': paystack_url, # ✅ Use the actual Paystack checkout URL
-        'comment_url': comment_url,
-        'confirm_url': confirm_url,
-        'qr_code_base64': generate_qr_base64(order.qr_secure_token, sign=False),
-    })
-
-    try:
-        email = EmailMessage(
-            f'Invoice for Order #{order.order_code}',
-            email_html_content,
-            settings.DEFAULT_FROM_EMAIL,
-            [order.customer_email],
-        )
-        email.content_subtype = "html"
-        email.send()
-        logger.info(f"Invoice email sent successfully to {order.customer_email} for Order {order.id}.")
-        is_order_customer = request.user.is_authenticated and request.user.email == order.customer_email
-        if is_order_customer:
-            messages.success(request, f'Notice: A dispatch agent will visit on {order.pickup_date} to pick up your items. Invoice successfully sent to your email {order.customer_email}! Thank you for choosing us.')
-            destination = reverse('laundry:customer_order')
-        else:
-            messages.success(request, 'Invoice successfully sent to the email of the customer!')
-            destination = reverse('laundry:admin_dashboard')
-
-        if hasattr(request, 'htmx') and request.htmx:
-            response = HttpResponse()
-            response['HX-Redirect'] = destination
-            return response
-        return redirect(destination)
-
-    except Exception as e:
-        logger.error(f"Email send error for Order {order.id}: {e}")
-        messages.error(request, f'Failed to send email: {e}')
-        return HttpResponse("Failed to send invoice.", status=500)
-    
 
 
 # Import your models and the verification utility
@@ -1843,24 +1596,30 @@ def api_assign_qr_to_item(request, item_id):
         data = json.loads(request.body)
         code = data.get('qr_code')
         if not code:
+            logger.warning(f"User {request.user} attempted to assign QR code to item {item_id} without providing a code.")
             return JsonResponse({'success': False, 'message': 'QR code is missing.'}, status=400)
             
         item = get_object_or_404(OrderItem, id=item_id)
         
         # Phase 6: Verify that the code is a valid signed token (prevent guessing)
         if not verify_qr_token(code):
+             logger.warning(f"User {request.user} provided an invalid or tampered QR code token for item {item_id}. Code: {code}")
              return JsonResponse({'success': False, 'message': 'Invalid or tampered QR code tag.'}, status=400)
              
         if item.qr_code:
+            logger.warning(f"User {request.user} attempted to assign QR code to item {item_id} which already has a QR code assigned.")
             return JsonResponse({'success': False, 'message': 'Item already has a QR code assigned.'}, status=400)
             
         from myapp.models import QR
         try:
             qr = QR.objects.get(code=code)
+            logger.debug(f"QR code {code} found in database with status: {qr.status}")
         except ObjectDoesNotExist:
+            logger.warning(f"User {request.user} attempted to assign QR code {code} to item {item_id}, but it was not found in the database.")
             return JsonResponse({'success': False, 'message': 'QR code not found.'}, status=404)
             
         if qr.status != 'unused':
+            logger.warning(f"User {request.user} attempted to assign QR code {code} to item {item_id}, but it is already used or invalid. Current status: {qr.status}") 
             return JsonResponse({'success': False, 'message': 'QR code is already used.'}, status=400)
             
         with transaction.atomic():
@@ -1889,7 +1648,8 @@ def api_assign_qr_to_item(request, item_id):
             return JsonResponse({
                 'success': True, 
                 'order_status': item.order.status,
-                'invoice_sent': item.order.has_invoice_sent
+                'invoice_sent': item.order.has_invoice_sent,
+                'message': 'QR Assigned , Workflow Instance Initated'
             })
 
     except Exception as e:
@@ -2268,7 +2028,7 @@ def dispatch_delivery(request):
     return render(request, 'dispatch_scanner.html', {'scan_mode': 'delivery'})
 
 @require_http_methods(["POST"])
-def htmx_update_shipping(request, order_id):
+def htmx_update_shippingv3(request, order_id):
     """
     Updates the delivery option and recipient address details via HTMX.
     """
@@ -2277,12 +2037,14 @@ def htmx_update_shipping(request, order_id):
     
     delivery_option = request.POST.get('delivery_option')
     address_source = request.POST.get('address_source')
-    
+    logger.debug(f"Received delivery option: {delivery_option}, address source: {address_source} for Order {order_id}") 
     if delivery_option:
         order.delivery_option = delivery_option
     
     if delivery_option == 'home_delivery':
+        logger.info(f"Updating home delivery details for Order {order_id}. Address source: {address_source}")
         if address_source == 'shipping':
+            logger.info(f"Using separate shipping details for Order {order_id}.")
             order.recipient_name = request.POST.get('recipient_name')
             order.recipient_phone = request.POST.get('recipient_phone')
             order.recipient_email = request.POST.get('recipient_email')
@@ -2295,6 +2057,7 @@ def htmx_update_shipping(request, order_id):
             if lng: order.recipient_longitude = lng
         else:
             # Force default to customer source
+            logger.info(f"Using customer details for Order {order_id}.")
             order.recipient_name = order.customer_name
             order.recipient_phone = order.customer_phone
             order.recipient_email = order.customer_email
@@ -2404,3 +2167,259 @@ def export_bi_csv(request):
         writer.writerow([cust['customer_email'], cust['customer_phone'], cust['order_count'], cust['total_revenue']])
         
     return response
+
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def htmx_update_shipping(request, order_id):
+    """
+    Updates shipping details and returns the updated order summary.
+    """
+    logger.info(f"Method: {request.method} - Updating shipping for order Aluke {order_id}")
+    order = get_object_or_404(Order, id=order_id)
+    
+    delivery_option = request.POST.get('delivery_option')
+    order.delivery_option = delivery_option
+    logger.info(f"Selected delivery option: {delivery_option}")
+    if delivery_option == 'home_delivery':
+        order.recipient_name = request.POST.get('recipient_name')
+        order.recipient_phone = request.POST.get('recipient_phone')
+        order.recipient_email = request.POST.get('recipient_email')
+        order.recipient_address = request.POST.get('recipient_address')
+        order.recipient_latitude = request.POST.get('recipient_latitude') or None
+        order.recipient_longitude = request.POST.get('recipient_longitude') or None
+        
+        # Calculate shipping price based on recipient lat/long
+        if order.recipient_latitude and order.recipient_longitude:
+            tenant = getattr(request, 'tenant', None)
+            if tenant and tenant.location_lat and tenant.location_lng:
+                distance = haversine(
+                    float(tenant.location_lng), float(tenant.location_lat),
+                    float(order.recipient_longitude), float(order.recipient_latitude)
+                )
+                from myapp.models import DeliveryPricing
+                pricing = DeliveryPricing.objects.filter(
+                    tenant=tenant, min_km__lte=distance
+                ).filter(
+                        Q(max_km__gte=distance) | Q(max_km__isnull=True)
+                ).first()
+                order.shipping_price = pricing.price if pricing else 0
+    else:
+        
+        order.shipping_price = 0
+        logger.info(f"Selected delivery option: {delivery_option}")
+    order.save()
+    logger.info(f"Order {order_id} updated successfully.")
+    # Force a full reload on success
+    response = htmx_get_order_summary(request, order.id)
+    response['HX-Refresh'] = 'true'
+    return response
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def htmx_send_invoice1(request, order_id):
+    logger.info(f"User {request.user} is sending invoice for order {order_id}.")
+    order = get_object_or_404(Order, id=order_id)
+    # order.status = 'in_progress' # Mark as in progress after invoicing
+    # order.save()
+
+    items = order.items.all()
+    if not items:
+        return HttpResponse("No items to invoice.", status=400)
+
+    # Calculate summary details
+    total_price = sum(item.price for item in items)
+    if items:
+        max_delivery_days = max(item.delivery_time_days for item in items)
+        estimated_delivery_date = timezone.now().date() + timedelta(days=max_delivery_days)
+    else:
+        estimated_delivery_date = None
+
+    summary = {
+        'total_items': items.count(),
+        'total_price': total_price,
+        'delivery_date': estimated_delivery_date,
+    }
+    
+    # Update order details in the database
+    order.total_price = total_price
+    order.estimated_delivery_date = estimated_delivery_date
+    order.status = 'invoice_sent'
+    order.save()
+
+    # Generate absolute URLs for the email links
+    paypal_url = request.build_absolute_uri(reverse('laundry:paypal_checkout', args=[order.id]))
+    comment_url = request.build_absolute_uri(reverse('laundry:comment_order', args=[order.id]))
+    confirm_url = request.build_absolute_uri(reverse('laundry:confirm_order', args=[order.id]))
+    print ("Ajadi URL",paypal_url)
+    # Render email template as a string
+    email_html_content = render_to_string('htmx/invoice_email.html', {
+        'order': order,
+        'items': items,
+        'summary': summary,
+        # 'customer_name': order.customer.get_full_name() or order.customer.username,
+        'customer_name':  order.customer_name or order.customer.email,
+        'paypal_url': paypal_url,
+        'comment_url': comment_url,
+        'confirm_url': confirm_url,
+    })
+
+    # Send email
+    try:
+        
+        print("Email Content:", order.customer_email)
+    
+        email = EmailMessage(
+        f'Invoice for Order #{order.id}',
+        email_html_content,
+        settings.DEFAULT_FROM_EMAIL,
+        [order.customer_email],
+    )
+        email.content_subtype = "html"  # ✅ Set HTML content type
+        result = email.send()  # ✅ Send the email
+        print("Email send result:", result)
+        return HttpResponse("Invoice Successfully sent")
+
+    
+        # messages.success(request, 'Invoice successfully sent to the email of the customer!')
+        # if request.user.is_authenticated:
+        #     destination = reverse('laundry:admin_dashboard')
+        # else:
+        #     destination = reverse('laundry:customer_order')
+
+        # if hasattr(request, 'htmx') and request.htmx:
+        #     response = HttpResponse()
+        #     response['HX-Redirect'] = destination
+        #     return response
+        # return redirect(destination)
+
+    except Exception as e:
+        print("Email send error:", e)
+        messages.error(request, f'Failed to send email: {e}')
+        return HttpResponse("Failed to send invoice.", status=500)
+
+
+@csrf_exempt
+def htmx_send_invoicev2(request, order_id):
+    logger.info(f"User {request.user} is sending invoice for order {order_id}.")
+    order = get_object_or_404(Order, id=order_id)
+    
+    items = order.items.all()
+    if not items:
+        logger.error(f"User {request.user} tried to send an invoice for an empty order.")
+        return HttpResponse("No items to invoice.", status=400)
+
+    # Calculate and update order details
+    total_price = sum(item.price for item in items)
+    max_delivery_days = max(item.delivery_time_days for item in items) if items else 0
+    estimated_delivery_date = timezone.now().date() + timedelta(days=max_delivery_days)
+
+    order.total_price = total_price
+    order.estimated_delivery_date = estimated_delivery_date
+    order.status = 'invoice_sent' # Mark status before attempting payment init
+    order.save()
+    logger.info(f"Order {order_id} updated with total price and estimated delivery date.")
+    # ----------------------------------------------------
+    # ✅ 1. Paystack Initialization
+    # ----------------------------------------------------
+    
+    # Construct the correct callback URL (the view that handles the redirect)
+    # The callback URL in Paystack must be a static path,
+    # but for your dynamic path, Paystack will add the reference as a query param.
+    callback_base_url = request.build_absolute_uri(reverse('laundry:paystack_callback', kwargs={'order_id': order.id}))
+
+    # Call the utility function to initialize the transaction
+    # paystack_url, reference = initiate_paystack_transaction(
+    #     email=order.customer_email,
+    #     amount=order.total_price,
+    #     order_id=order.id,
+    #     callback_url=callback_base_url # Pass the callback URL to the utility
+    # )
+    
+    paystack_url, reference = initiate_paystack_transaction(
+    request=request,  # <-- NEW: Pass the request object here
+    email=order.customer_email,
+    amount=order.total_price,
+    order_id=order.id
+)
+
+    if not paystack_url or not reference:
+        messages.error(request, 'Failed to initialize payment with Paystack.')
+        return HttpResponse("Failed to initialize payment.", status=500)
+
+    # 2. Create the Payment Record in your DB
+    try:
+        Payment.objects.create(
+            # user=order.user.email, # Assuming the order has a 'customer' foreign key to User
+            order=order,
+            amount=order.total_price,
+            reference=reference,
+            verified=False
+        )
+        logger.info(f"Payment record created for Order {order.id} with reference {reference}")
+        
+        # Phase 6: Ensure Order has a secure QR token for dispatch/delivery
+        if not order.qr_secure_token:
+            order.qr_secure_token = get_signed_token(order.id)
+            order.save(update_fields=['qr_secure_token', 'updated_at'])
+            
+    except Exception as e:
+        logger.exception(f"Error creating payment record for Order {order.id}: {e}")
+        messages.error(request, 'Payment record creation failed.')
+        return HttpResponse("Failed to store payment record.", status=500)
+
+    # ----------------------------------------------------
+    # 3. Send Email with Paystack Link
+    # ----------------------------------------------------
+    
+    summary = {
+        'total_items': items.count(),
+        'total_price': total_price,
+        'delivery_date': estimated_delivery_date,
+    }
+    
+    comment_url = request.build_absolute_uri(reverse('laundry:comment_order', args=[order.id]))
+    confirm_url = request.build_absolute_uri(reverse('laundry:confirm_order', args=[order.id]))
+    
+    # The URL sent in the email is the Paystack checkout URL, NOT the callback URL
+    email_html_content = render_to_string('htmx/invoice_email.html', {
+        'order': order,
+        'items': items,
+        'summary': summary,
+        'customer_name': order.customer_name or order.customer.email,
+        'paystack_url': paystack_url, # ✅ Use the actual Paystack checkout URL
+        'comment_url': comment_url,
+        'confirm_url': confirm_url,
+        'qr_code_base64': generate_qr_base64(order.qr_secure_token, sign=False),
+    })
+
+    try:
+        email = EmailMessage(
+            f'Invoice for Order #{order.order_code}',
+            email_html_content,
+            settings.DEFAULT_FROM_EMAIL,
+            [order.customer_email],
+        )
+        email.content_subtype = "html"
+        email.send()
+        logger.info(f"Invoice email sent successfully to {order.customer_email} for Order {order.id}.")
+        is_order_customer = request.user.is_authenticated and request.user.email == order.customer_email
+        if is_order_customer:
+            messages.success(request, f'Notice: A dispatch agent will visit on {order.pickup_date} to pick up your items. Invoice successfully sent to your email {order.customer_email}! Thank you for choosing us.')
+            destination = reverse('laundry:customer_order')
+        else:
+            messages.success(request, 'Invoice successfully sent to the email of the customer!')
+            destination = reverse('laundry:admin_dashboard')
+
+        if hasattr(request, 'htmx') and request.htmx:
+            response = HttpResponse()
+            response['HX-Redirect'] = destination
+            return response
+        return redirect(destination)
+
+    except Exception as e:
+        logger.error(f"Email send error for Order {order.id}: {e}")
+        messages.error(request, f'Failed to send email: {e}')
+        return HttpResponse("Failed to send invoice.", status=500)
+    

@@ -245,6 +245,7 @@ function initAutocomplete() {
 }
 
 // ── FIX: DOMContentLoaded may have already fired when Django's template
+//    inheritance places {% block extra_js %} at the bottom of base.html.
 //    Check readyState first so we always run, whether inline or deferred.
 function initShippingForm() {
     const homeDeliveryFields = document.getElementById('home-delivery-fields');
@@ -357,10 +358,6 @@ if (document.readyState === 'loading') {
 } else {
     initShippingForm();
 }
-
-
-
-
 </script>
 <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initAutocomplete" async defer></script>
 {% endblock extra_js %}

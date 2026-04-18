@@ -5,6 +5,7 @@
 <div class="container my-5">
     <h2 class="mb-4">Review Order #{{ order.order_code }}</h2>
 
+
     <!-- HTMX-powered Order Summary Section -->
     <div id="order-summary-section" class="card shadow p-4 mb-4" 
         hx-get="{% url 'laundry:htmx_get_order_summary' order.id %}" 
@@ -17,7 +18,7 @@
     <div class="card shadow p-4 mb-4 border-start border-primary border-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h5 class="text-primary mb-0"><i class="fas fa-truck me-2"></i> Shipping Details</h5>
-            <button class="btn btn-outline-primary btn-sm" id="toggle-shipping-edit" type="button">
+            <button class="btn btn-outline-primary btn-sm" id="toggle-shipping-edit">
                 <i class="fas fa-edit me-1"></i> Edit
             </button>
         </div>
@@ -46,14 +47,7 @@
 
         <!-- Edit Mode -->
         <div id="shipping-edit-section" {% if order.recipient_name or order.delivery_option != 'home_delivery' %}style="display:none;"{% endif %}>
-            <form id="shipping-update-form" 
-                hx-post="{% url 'laundry:htmx_update_shipping' order.id %}" 
-                hx-target="#order-summary-section" 
-                hx-swap="innerHTML"
-                hx-on::after-request="if (event.detail.xhr.status === 200) { 
-                    document.getElementById('toggle-shipping-edit').click(); 
-                }"
-            >
+            <form id="shipping-update-form" hx-post="{% url 'laundry:htmx_update_shipping' order.id %}" hx-target="#order-summary-section" hx-swap="innerHTML">
                 {% csrf_token %}
                 <div class="row g-3">
                     <div class="col-md-12">
@@ -61,12 +55,22 @@
                         <div class="d-flex gap-3">
                             <div class="form-check">
                                 <input class="form-check-input" type="radio" name="delivery_option" id="home_delivery" value="home_delivery" 
-                                    {% if order.delivery_option == 'home_delivery' or not order.delivery_option %}checked{% endif %}>
+                                    {% if order.delivery_option == 'home_delivery' or not order.delivery_option %}checked{% endif %}
+                                    hx-post="{% url 'laundry:htmx_update_shipping' order.id %}" 
+                                    hx-trigger="change" 
+                                    hx-target="#order-summary-section"
+                                    hx-swap="innerHTML"
+                                    hx-include="closest form">
                                 <label class="form-check-label" for="home_delivery">Home Delivery</label>
                             </div>
                             <div class="form-check">
                                 <input class="form-check-input" type="radio" name="delivery_option" id="on_premise" value="on_premise" 
-                                    {% if order.delivery_option == 'on_premise' %}checked{% endif %}>
+                                    {% if order.delivery_option == 'on_premise' %}checked{% endif %}
+                                    hx-post="{% url 'laundry:htmx_update_shipping' order.id %}" 
+                                    hx-trigger="change" 
+                                    hx-target="#order-summary-section"
+                                    hx-swap="innerHTML"
+                                    hx-include="closest form">
                                 <label class="form-check-label" for="on_premise">On-Premise Pickup</label>
                             </div>
                         </div>
@@ -116,14 +120,14 @@
                     </div>
                     
                     <div class="col-md-12 text-end mt-2">
-                        <button type="button" class="btn btn-primary btn-sm" id="save-shipping-btn">Save Shipping Details</button>
+                        <button type="submit" class="btn btn-primary btn-sm">Save Shipping Details</button>
                     </div>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Message area for success/error messages -->
+    <!-- Message area for success/error messages, like after sending an invoice -->
     <div id="invoice-message"></div>
     
     <!-- Form to add a new item -->
@@ -132,6 +136,7 @@
         hx-target="#item-list" 
         hx-swap="beforeend" 
         _="on htmx:afterRequest if event.detail.xhr.status == 200 window.location.reload()"
+
         class="card shadow-lg p-4 mb-4 border-top border-success border-4"
     >
         {% csrf_token %}
@@ -159,6 +164,9 @@
         </div>
     </form>
 
+
+
+     
     <!-- Table to display existing items -->
     <div class="card shadow p-4 mb-4" id="items-card" {% if not order.items.exists %}style="display:none;"{% endif %}>
         <h5 class="mb-3">Existing Items</h5>
@@ -182,6 +190,7 @@
             </table>
         </div>
     </div>
+    </div>
     
     <!-- Send Invoice Button -->
     <div class="d-grid gap-2">
@@ -201,142 +210,102 @@
 
 {% block extra_js %}
 <script>
-// Use legacy Autocomplete API (more compatible)
 function initAutocomplete() {
-    const input = document.getElementById('id_recipient_address');
-    if (!input) {
-        console.log("No address input found");
-        return;
-    }
-
-    console.log("Initializing legacy Autocomplete API");
     
+    const input = document.getElementById('id_recipient_address');
+    if (!input) return;
+
     const options = {
         componentRestrictions: { country: "ng" },
-        fields: ["address_components", "geometry", "name", "formatted_address"],
+        fields: ["address_components", "geometry", "name"],
     };
 
-    try {
-        const autocomplete = new google.maps.places.Autocomplete(input, options);
+    const autocomplete = new google.maps.places.Autocomplete(input, options);
+    autocomplete.addListener("place_changed", () => {
+        const place = autocomplete.getPlace();
+        if (!place.geometry) {
+            document.getElementById('recipient-map-error').style.display = 'block';
+            return;
+        }
+        document.getElementById('recipient-map-error').style.display = 'none';
+        document.getElementById('id_recipient_latitude').value = place.geometry.location.lat();
+        document.getElementById('id_recipient_longitude').value = place.geometry.location.lng();
         
-        autocomplete.addListener("place_changed", () => {
-            const place = autocomplete.getPlace();
-            if (!place.geometry) {
-                document.getElementById('recipient-map-error').style.display = 'block';
-                return;
-            }
-            document.getElementById('recipient-map-error').style.display = 'none';
-            document.getElementById('id_recipient_latitude').value = place.geometry.location.lat();
-            document.getElementById('id_recipient_longitude').value = place.geometry.location.lng();
-            input.value = place.formatted_address || input.value;
+        // Ensure the address input has the full formatted address
+        input.value = place.formatted_address || input.value;
 
-            console.log("Address selected:", place.formatted_address);
-
-            const shippingForm = document.getElementById('shipping-update-form');
-            if (shippingForm && typeof htmx !== 'undefined') {
-                htmx.trigger(shippingForm, 'submit');
-            }
-        });
-        
-        console.log("Autocomplete initialized successfully");
-    } catch (error) {
-        console.error("Error initializing autocomplete:", error);
-    }
+        // Auto-save: Trigger the HTMX form submission
+        const shippingForm = document.getElementById('shipping-update-form');
+        if (shippingForm && typeof htmx !== 'undefined') {
+            htmx.trigger(shippingForm, 'submit');
+        }
+    });
 }
-
-// ── FIX: DOMContentLoaded may have already fired when Django's template
-//    Check readyState first so we always run, whether inline or deferred.
-function initShippingForm() {
+document.addEventListener('DOMContentLoaded', function() {
     const homeDeliveryFields = document.getElementById('home-delivery-fields');
     const deliveryOptions = document.querySelectorAll('input[name="delivery_option"]');
     const addressSources = document.querySelectorAll('input[name="address_source"]');
-    const editBtn = document.getElementById('toggle-shipping-edit');
-    const displaySection = document.getElementById('shipping-display-section');
-    const editSection = document.getElementById('shipping-edit-section');
-    const saveBtn = document.getElementById('save-shipping-btn');
+    const recipientFields = document.getElementById('recipient-form-fields');
 
-    // Edit Toggle Button - Direct event listener
-    if (editBtn) {
-        editBtn.addEventListener('click', function(e) {
+    // Delegated event listener for the Edit Toggle to survive HTMX re-renders or dynamic loads
+    document.addEventListener('click', function(e) {
+        const editBtn = e.target.closest('#toggle-shipping-edit');
+        if (editBtn) {
+            console.log("Edit button clicked!"); // LOGGING
             e.preventDefault();
-            console.log("Edit button clicked!");
-            
-            if (editSection.style.display === 'none' || editSection.style.display === '') {
+            e.stopPropagation();  // Addition 
+            const displaySection = document.getElementById('shipping-display-section');
+            const editSection = document.getElementById('shipping-edit-section');
+            if (!displaySection || !editSection) {
+                console.error("Sections not found in DOM"); // LOGGING
+                return;
+            }
+            try {
+            if (editSection.style.display === 'none') {
                 console.log("Switching to Edit Mode");
                 editSection.style.display = 'block';
                 displaySection.style.display = 'none';
                 editBtn.innerHTML = '<i class="fas fa-times me-1"></i> Cancel';
                 
-                // Initialize Google Maps autocomplete
-                if (typeof google !== 'undefined' && typeof initAutocomplete === 'function') {
-                    setTimeout(initAutocomplete, 200);
+                // Re-init maps autocomplete in case it was hidden or detached
+                if (typeof initAutocomplete === 'function') {
+                    initAutocomplete();
                 }
             } else {
-                console.log("Switching to Display Mode");
                 editSection.style.display = 'none';
                 displaySection.style.display = 'block';
                 editBtn.innerHTML = '<i class="fas fa-edit me-1"></i> Edit';
+            }} catch (error) {
+                console.error("Toggle failed:", error); // TRY-CATCH
             }
-        });
-    }
+        }
+    });
 
-    // Save Shipping Details - Handle form submission with page refresh
-    if (saveBtn) {
-        saveBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            console.log("Save button clicked!");
-            
-            const form = document.getElementById('shipping-update-form');
-            if (!form) {
-                console.error("Form not found");
-                return;
-            }
-            
-            const deliveryOption = document.querySelector('input[name="delivery_option"]:checked');
-            if (!deliveryOption) {
-                console.error("No delivery option selected");
-                return;
-            }
-            
-            const deliveryOptionValue = deliveryOption.value;
-            
-            // Validate address for home delivery
-            if (deliveryOptionValue === 'home_delivery') {
+    deliveryOptions.forEach(opt => {
+        opt.addEventListener('change', function() {
+            homeDeliveryFields.style.display = this.value === 'home_delivery' ? 'block' : 'none';
+        });
+    });
+
+    // Address Validation before form submission
+    const shippingForm = document.getElementById('shipping-update-form');
+    if (shippingForm) {
+        shippingForm.addEventListener('htmx:confirm', function(evt) {
+            const deliveryOption = document.querySelector('input[name="delivery_option"]:checked').value;
+            if (deliveryOption === 'home_delivery') {
                 const lat = document.getElementById('id_recipient_latitude').value;
                 const lng = document.getElementById('id_recipient_longitude').value;
                 
                 if (!lat || !lng) {
+                    evt.preventDefault();
                     alert("Please select a valid Google address. We need the coordinates for delivery calculation.");
                     document.getElementById('recipient-map-error').style.display = 'block';
                     document.getElementById('id_recipient_address').focus();
-                    return;
                 }
             }
-            
-            // Submit form via HTMX
-            if (typeof htmx !== 'undefined') {
-                htmx.trigger(form, 'submit');
-            } else {
-                form.submit();
-            }
-            
-            // Refresh page after short delay to show updated data
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500);
         });
     }
 
-    // Delivery option change handler
-    deliveryOptions.forEach(opt => {
-        opt.addEventListener('change', function() {
-            if (homeDeliveryFields) {
-                homeDeliveryFields.style.display = this.value === 'home_delivery' ? 'block' : 'none';
-            }
-        });
-    });
-
-    // Address source change handler
     addressSources.forEach(src => {
         src.addEventListener('change', function() {
             if (this.value === 'customer') {
@@ -349,18 +318,7 @@ function initShippingForm() {
             }
         });
     });
-}
-
-// Run immediately if DOM is ready, otherwise wait for the event
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initShippingForm);
-} else {
-    initShippingForm();
-}
-
-
-
-
+});
 </script>
 <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initAutocomplete" async defer></script>
 {% endblock extra_js %}

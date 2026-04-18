@@ -244,9 +244,7 @@ function initAutocomplete() {
     }
 }
 
-// ── FIX: DOMContentLoaded may have already fired when Django's template
-//    Check readyState first so we always run, whether inline or deferred.
-function initShippingForm() {
+document.addEventListener('DOMContentLoaded', function() {
     const homeDeliveryFields = document.getElementById('home-delivery-fields');
     const deliveryOptions = document.querySelectorAll('input[name="delivery_option"]');
     const addressSources = document.querySelectorAll('input[name="address_source"]');
@@ -349,18 +347,7 @@ function initShippingForm() {
             }
         });
     });
-}
-
-// Run immediately if DOM is ready, otherwise wait for the event
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initShippingForm);
-} else {
-    initShippingForm();
-}
-
-
-
-
+});
 </script>
 <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initAutocomplete" async defer></script>
 {% endblock extra_js %}
