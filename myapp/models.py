@@ -379,9 +379,25 @@ class Cluster(TenantModel):
     name = models.CharField(max_length=100)
     towns = models.ManyToManyField(Town, related_name='clusters')
     
+    
+    class Meta:
+        ordering = ["name"]
+        unique_together = ("name", "tenant")
     def __str__(self):
         return f"{self.name} Cluster"
 
+    
+    def clean(self):
+        super().clean()
+        # Example: prevent duplicate town assignments within the same tenant
+        for town in self.towns.all():
+            if Cluster.objects.filter(tenant=self.tenant, towns=town).exclude(pk=self.pk).exists():
+                raise ValidationError(
+                    {"towns": f"Town '{town.name}' is already assigned to another cluster for this tenant."}
+                )
+                
+                
+                
 class DeliveryPricing(TenantModel):
     """Cluster-based pricing."""
     cluster = models.ForeignKey(Cluster, on_delete=models.CASCADE, related_name='delivery_prices', null=True, blank=True)

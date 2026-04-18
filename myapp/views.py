@@ -240,13 +240,30 @@ def custom_logout(request):
     return redirect('laundry:customer_order')
 
 
+
+def haversine(lon1, lat1, lon2, lat2):
+    """Calculate the great circle distance between two points on the earth."""
+    # convert decimal degrees to radians 
+    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+    # haversine formula 
+    dlon = lon2 - lon1 
+    dlat = lat2 - lat1 
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a)) 
+    r = 6371 # Radius of earth in kilometers. Use 3956 for miles
+    return c * r
+
+
+
 @csrf_exempt
 def customer_order(request):
     logger.info(f"User {request.user} is placing an order.")
     tenant = getattr(request, 'tenant', None)
     logger.info(f"User {request} is Aleoeoekeekek an order.")
+    logger.info(f"Tenant context: {tenant}")
     if request.method == 'POST':
-        form = OrderForm(request.POST, user=request.user)
+        # form = OrderForm(request.POST, user=request.user)
+        form = OrderForm(request.POST, user=request.user, tenant=tenant)
         if form.is_valid():
             logger.info(f"Form is valid: {form.cleaned_data}")
             try:
@@ -381,7 +398,8 @@ def customer_order(request):
     
     else:
         logger.info(f"User {request.user} is ALUKE g an order.")
-        form = OrderForm(user=request.user)
+        # form = OrderForm(user=request.user)
+        form = OrderForm(user=request.user, tenant=tenant)
     logger.info(f"User {request.user} ALelele  ddjdjd g an order.")
     return render(request, 'customer_order.html', {
         'form': form,
@@ -389,20 +407,35 @@ def customer_order(request):
         'tenant': tenant
     })
 
+@require_http_methods(["GET"])
+def admin_review_request(request, order_id):
+    """
+    Renders the admin review page for a specific order.
+    """
+    logger.info(f"Admin Review Request:  {request.user} is reviewing order {order_id}.")
+    order = get_object_or_404(Order, id=order_id)
+    form = OrderItemForm()
+    packages = Package.objects.all()
+    categories = ServiceCategory.objects.all()
+    from myapp.models import State, Town, Cluster
+    tenant = getattr(request, "tenant", None)
+    
+    
+        # Otherwise, restrict to states that have towns in clusters for this tenant
+    clusters = Cluster.objects.filter(tenant=tenant)
+    towns_in_clusters = Town.objects.filter(clusters__in=clusters).distinct()
+    states = State.objects.filter(towns__in=towns_in_clusters).distinct().order_by("name")
+        
+    context = {
+        'order': order,
+        'form': form,
+        'packages': packages,
+        'categories': categories,
+        'states': states,
+    }
+    return render(request, 'admin_review_request.html', context)
 
 
-
-def haversine(lon1, lat1, lon2, lat2):
-    """Calculate the great circle distance between two points on the earth."""
-    # convert decimal degrees to radians 
-    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
-    # haversine formula 
-    dlon = lon2 - lon1 
-    dlat = lat2 - lat1 
-    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
-    c = 2 * asin(sqrt(a)) 
-    r = 6371 # Radius of earth in kilometers. Use 3956 for miles
-    return c * r
 
 @require_http_methods(["GET"])
 def htmx_calculate_delivery(request, order_id):
@@ -432,33 +465,6 @@ def htmx_calculate_delivery(request, order_id):
     return htmx_get_order_summary(request, order_id)
 
 
-@require_http_methods(["GET"])
-def htmx_calculate_deliverys(request):
-    """Calculates delivery cost based on Town Cluster."""
-    tenant = getattr(request, 'tenant', None)
-
-    # HTMX injects the element's name as the key, e.g., 'town' or 'recipient_town'
-    town_id = request.GET.get('town') or request.GET.get('recipient_town')
-    if not town_id:
-        return HttpResponse('<span class="text-danger">Invalid or missing town.</span>')
-
-    from myapp.models import DeliveryPricing, Town, Cluster
-    town = get_object_or_404(Town, id=town_id)
-    cluster = Cluster.objects.filter(tenant=tenant, towns=town).first()
-    
-    if not cluster:
-        price = Decimal('5000.00')
-        logger.warning(f"No cluster for Town {town.name}. Fallback ₦{price}")
-    else:
-        pricing = DeliveryPricing.objects.filter(tenant=tenant, cluster=cluster).first()
-        price = pricing.price if pricing else Decimal('5000.00')
-
-    logger.info(f"Town {town.name} -> Shipping ₦{price}")
-
-    return render(request, 'htmx/delivery_price_snippet.html', {
-        'town_name': town.name,
-        'price': price
-    })
 
 def admin_dashboard(request):
     """
@@ -501,43 +507,6 @@ def admin_dashboard(request):
 
 
 
-
-@csrf_exempt
-@login_required
-@require_http_methods(["GET", "POST"])
-def customer_order1(request):
-    """
-    Allows a customer to place a new order.
-    """
-    if request.method == 'POST':
-        form = OrderForm(request.POST)
-        print ("Form Data:", request.POST)
-        if form.is_valid():
-            try:
-                order = form.save(commit=False)
-                order.customer = request.user
-                order.save()
-                messages.success(
-                        request, 'Order placed successfully! We will contact you shortly.')
-                send_mail(
-                    'Laundry Service Request Confirmation',
-                    'Your request has been received. A dispatch agent will visit shortly.',
-                    settings.DEFAULT_FROM_EMAIL,
-                    [request.user.email],
-                    fail_silently=False,
-                )
-                return redirect('laundry:admin_dashboard')
-            except IntegrityError:
-                messages.error(
-                    request, "An error occurred while placing the order. Please try again.")    
-            # Redirect to the admin review page for now for testing
-            
-        else:
-            print("Form errors:", form.errors)
-        
-    else:
-        form = OrderForm()
-    return render(request, 'customer_order.html', {'form': form})
 
 
 
@@ -668,28 +637,6 @@ def assign_qr_code(request, order_id):
     return redirect('laundry:order_detail', order_id=order.id)
 # Admin-facing views
 
-
-@require_http_methods(["GET"])
-def admin_review_request(request, order_id):
-    """
-    Renders the admin review page for a specific order.
-    """
-    logger.info(f"Admin Review Request:  {request.user} is reviewing order {order_id}.")
-    order = get_object_or_404(Order, id=order_id)
-    form = OrderItemForm()
-    packages = Package.objects.all()
-    categories = ServiceCategory.objects.all()
-    from myapp.models import State
-    states = State.objects.all()
-    
-    context = {
-        'order': order,
-        'form': form,
-        'packages': packages,
-        'categories': categories,
-        'states': states,
-    }
-    return render(request, 'admin_review_request.html', context)
 
 
 @require_http_methods(["POST"])
@@ -964,9 +911,39 @@ def htmx_delete_item(request, item_id):
     item.delete()
     return HttpResponse(status=200, headers={'HX-Trigger': 'refresh-summary'})
 
-# @require_http_methods(["GET"])
+
+from django.http import HttpResponse
+from django.views.decorators.http import require_http_methods
+from .models import Town, Cluster
+
 @require_http_methods(["GET"])
 def htmx_get_towns(request):
+    """Returns options for Towns belonging to a State, restricted to Cluster towns for tenant"""
+    state_id = request.GET.get('state') or request.GET.get('recipient_state')
+    tenant = getattr(request, "tenant", None)  # assuming tenant context middleware
+
+    if not state_id:
+        return HttpResponse('<option value="">Select a state first...</option>')
+
+    towns = Town.objects.none()
+    if tenant:
+        # Get clusters for this tenant
+        clusters = Cluster.objects.filter(tenant=tenant)
+        # Restrict towns to those in clusters AND under the selected state
+        towns = Town.objects.filter(
+            state_id=state_id,
+            clusters__in=clusters
+        ).distinct().order_by("name")
+
+    html = '<option value="">Select Town...</option>'
+    for t in towns:
+        html += f'<option value="{t.id}">{t.name}</option>'
+    return HttpResponse(html)
+
+
+# @require_http_methods(["GET"])
+@require_http_methods(["GET"])
+def htmx_get_townsv1(request):
     """Returns options for Towns belonging to a State"""
     state_id = request.GET.get('state') or request.GET.get('recipient_state')
     if not state_id:
@@ -2342,3 +2319,67 @@ def htmx_send_invoicev2(request, order_id):
         messages.error(request, f'Failed to send email: {e}')
         return HttpResponse("Failed to send invoice.", status=500)
     
+@csrf_exempt
+@login_required
+@require_http_methods(["GET", "POST"])
+def customer_order1(request):
+    """
+    Allows a customer to place a new order.
+    """
+    if request.method == 'POST':
+        form = OrderForm(request.POST)
+        print ("Form Data:", request.POST)
+        if form.is_valid():
+            try:
+                order = form.save(commit=False)
+                order.customer = request.user
+                order.save()
+                messages.success(
+                        request, 'Order placed successfully! We will contact you shortly.')
+                send_mail(
+                    'Laundry Service Request Confirmation',
+                    'Your request has been received. A dispatch agent will visit shortly.',
+                    settings.DEFAULT_FROM_EMAIL,
+                    [request.user.email],
+                    fail_silently=False,
+                )
+                return redirect('laundry:admin_dashboard')
+            except IntegrityError:
+                messages.error(
+                    request, "An error occurred while placing the order. Please try again.")    
+            # Redirect to the admin review page for now for testing
+            
+        else:
+            print("Form errors:", form.errors)
+        
+    else:
+        form = OrderForm()
+    return render(request, 'customer_order.html', {'form': form})
+
+@require_http_methods(["GET"])
+def htmx_calculate_deliverys(request):
+    """Calculates delivery cost based on Town Cluster."""
+    tenant = getattr(request, 'tenant', None)
+
+    # HTMX injects the element's name as the key, e.g., 'town' or 'recipient_town'
+    town_id = request.GET.get('town') or request.GET.get('recipient_town')
+    if not town_id:
+        return HttpResponse('<span class="text-danger">Invalid or missing town.</span>')
+
+    from myapp.models import DeliveryPricing, Town, Cluster
+    town = get_object_or_404(Town, id=town_id)
+    cluster = Cluster.objects.filter(tenant=tenant, towns=town).first()
+    
+    if not cluster:
+        price = Decimal('5000.00')
+        logger.warning(f"No cluster for Town {town.name}. Fallback ₦{price}")
+    else:
+        pricing = DeliveryPricing.objects.filter(tenant=tenant, cluster=cluster).first()
+        price = pricing.price if pricing else Decimal('5000.00')
+
+    logger.info(f"Town {town.name} -> Shipping ₦{price}")
+
+    return render(request, 'htmx/delivery_price_snippet.html', {
+        'town_name': town.name,
+        'price': price
+    })

@@ -61,7 +61,7 @@ class OrderAdmin(admin.ModelAdmin):
     readonly_fields = ('created_at',)
     fieldsets = (
         ('Order Information', {
-            'fields': ( 'status', 'order_code','total_price', 'estimated_delivery_date',  'has_confirmation_received', 'work_initiator')
+            'fields': ( 'status', 'order_code','total_price', 'estimated_delivery_date',  'has_confirmation_received', 'work_initiator',"state")
         }),
         ('Customer Details', {
             'fields': ('customer_name', 'customer_phone', 'customer_email', 'address', 'pickup_date', 'special_instructions')
