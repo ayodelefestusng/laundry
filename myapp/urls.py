@@ -12,7 +12,7 @@ urlpatterns = [
     path('homes2/', views.homepage, name='homepage'),
     path('register/', views.register, name='register'),
     path('logout/', views.custom_logout, name='logout'),
-    path('login/', auth_views.LoginView.as_view(), name='login'),
+    path('login/', auth_views.LoginView.as_view(authentication_form=views.CustomAuthenticationForm), name='login'),
 
     path("check-username/", views.check_username, name='check_username'),
 
@@ -21,7 +21,9 @@ urlpatterns = [
     path("setup-password/<int:user_id>/<str:token>/", views.setup_password, name="setup_password"),
     path("password-reset/", views.password_reset_request, name="password_reset"),
     path("change-password/", views.change_password, name="change_password"),
-            path('terms-and-privacy/', views.terms_and_privacy, name='terms_and_privacy'),
+    
+    
+    path('terms-and-privacy/', views.terms_and_privacy, name='terms_and_privacy'),
 
 
 

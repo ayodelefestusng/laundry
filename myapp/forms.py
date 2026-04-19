@@ -45,6 +45,17 @@ class CustomUserCreationForm(UserCreationForm):
         model = CustomUser
         fields = ('email', 'name',)
 
+from django.contrib.auth.forms import AuthenticationForm
+
+class CustomAuthenticationForm(AuthenticationForm):
+    def confirm_login_allowed(self, user):
+        if not user.is_active:
+            raise forms.ValidationError(
+                "Your account is inactive. Access denied.",
+                code='inactive',
+            )
+        super().confirm_login_allowed(user)
+
 
 class RegistrationForm(forms.ModelForm):
     class Meta:

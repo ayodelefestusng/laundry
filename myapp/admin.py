@@ -4,7 +4,7 @@ from django.contrib.auth.admin import UserAdmin
 from matplotlib.pylab import qr
 
 from .models import (Comment, CustomUser, Order, OrderItem, Package,
-                     ServiceCategory,Tenant, TenantAttribute, Workflow, WorkflowStage, WorkflowInstance,Employee,
+                     ServiceCategory,Tenant, TenantAttribute, Workflow, WorkflowStage, WorkflowInstance, WorkflowHistory,
                      ServiceChoices,PremiumClient,QR,DeliveryPricing, Cluster, State, Town)
 
 
@@ -101,7 +101,7 @@ admin.site.site_header = "Laundry Service Admin"
 admin.site.site_title = "Laundry Service Admin Portal"
 admin.site.index_title = "Welcome to the Laundry Service Admin Portal"
 admin.site.register(CustomUser)
-admin.site.register(Employee)
+admin.site.register(WorkflowHistory)
 admin.site.register(ServiceChoices)
 class TenantAttributeInline(admin.StackedInline):
     model = TenantAttribute

@@ -137,6 +137,9 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
 
+    line_manager = models.ForeignKey("self", null=True, blank=True, on_delete=models.SET_NULL, related_name="downline")
+    deputy_person = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True, related_name="deputy_for", help_text="Deputy head for automatic delegation.")
+
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
@@ -366,6 +369,7 @@ class TenantAttribute(TenantModel):
     location_lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     location_lng = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     whatsapp_number = models.CharField(max_length=20, default="+2349068770054", help_text="WhatsApp phone number")
+    address = models.CharField(max_length=255, blank=True, null=True, help_text="Tenant physical address")
 
     def __str__(self):
         return f"{self.tenant.name} Attributes"
@@ -437,7 +441,7 @@ class ServiceChoices(TenantModel):
     name = models.CharField(max_length=100, unique=True)
     def __str__(self):
         return self.name
-    
+   
 
 
 
@@ -518,7 +522,7 @@ class Order(TenantModel):
     has_payment_received=models.BooleanField(default=False)
     has_comment_from_customer=models.BooleanField(default=False)
     work_initiator = models.ForeignKey(
-        'Employee', on_delete=models.SET_NULL, related_name="initiated_orders", null=True, blank=True
+        CustomUser, on_delete=models.SET_NULL, related_name="initiated_orders", null=True, blank=True, limit_choices_to={'is_staff': True}
     )
     
     # Dispatch & Delivery Fields
@@ -571,10 +575,10 @@ class Order(TenantModel):
                 latest_item = items.order_by('-updated_at').first()
                 if latest_item and latest_item.qr_initiator:
                     self.work_initiator = latest_item.qr_initiator
-                elif user and hasattr(user, 'employee'):
-                    self.work_initiator = user.employee
+                elif user and user.is_staff:
+                    self.work_initiator = user
                 else:
-                    self.work_initiator = Employee.objects.filter(tenant=self.tenant).first()
+                    self.work_initiator = CustomUser.objects.filter(tenant=self.tenant, is_staff=True).first()
 
                 self.save(update_fields=['status', 'has_confirmation_received', 'updated_at', 'work_initiator'])
                 logger.info(f"Order {self.order_code} transitioned to in_progress. Initiator: {self.work_initiator}")
@@ -629,7 +633,7 @@ class OrderItem(TenantModel):
     qr_code = models.CharField(max_length=100, unique=True, blank=True, null=True)
     
     qr_initiator = models.ForeignKey(
-        'Employee', on_delete=models.SET_NULL, related_name="qr_assigned_items", null=True, blank=True
+        CustomUser, on_delete=models.SET_NULL, related_name="qr_assigned_items", null=True, blank=True, limit_choices_to={'is_staff': True}
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -663,8 +667,8 @@ class WorkflowHistory(TenantModel):
     item = models.ForeignKey(OrderItem, on_delete=models.CASCADE, related_name='workflow_history')
     from_stage = models.CharField(max_length=50, blank=True, null=True)
     to_stage = models.CharField(max_length=50)
-    actor = models.ForeignKey('Employee', on_delete=models.SET_NULL, null=True, blank=True, related_name='actions_performed')
-    previous_actor = models.ForeignKey('Employee', on_delete=models.SET_NULL, null=True, blank=True, related_name='previous_actions')
+    actor = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='actions_performed', limit_choices_to={'is_staff': True})
+    previous_actor = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='previous_actions', limit_choices_to={'is_staff': True})
     timestamp = models.DateTimeField(auto_now_add=True)
     action = models.CharField(max_length=50, help_text="Accept, Reject, Escalate, etc.")
 
@@ -705,43 +709,6 @@ class Payment(TenantModel):
     def __str__(self):
         return f"Payment for {self.order.user.name} - {self.reference}"
     
-class Employee(TenantModel):
-    user = models.OneToOneField(
-        CustomUser,
-        on_delete=models.CASCADE,
-        related_name="employee",
-        help_text="Links to the Django user account for login.",
-    )
-
-    line_manager = models.ForeignKey("self", null=True,blank=True,on_delete=models.SET_NULL,related_name="downline",)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    deputy_person = models.ForeignKey(
-        "self", 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
-        related_name="deputy_for",
-        help_text="Deputy head for automatic delegation."
-    )
-
-    class Meta:
-        ordering = ["user__name"]
-        verbose_name = "Employee Record"
-        verbose_name_plural = "Employee Records"
-       
-
-   
-    @property
-    def full_name(self):
-        """Return the employee's full name as 'First Last'."""
-        return f"{self.user.name}"
-
-
-
-    def __str__(self):
-        return f"{self.user.name} "
-
 class Workflow(TenantModel):
     """Defines a process (e.g., 'Annual Leave Process')"""
     service=models.ForeignKey(Package, on_delete=models.CASCADE, related_name='workflows', null=True, blank=True)
@@ -774,10 +741,11 @@ class WorkflowStage(TenantModel):
     )
     # Changed from CharField to ForeignKey as requested
     responsible_officer = models.ForeignKey(
-        Employee, 
+        CustomUser, 
         on_delete=models.CASCADE, 
         related_name="approver_stages",
-        help_text="The employee responsible for handling this stage."
+        help_text="The employee responsible for handling this stage.",
+        limit_choices_to={'is_staff': True}
     )
     # name = models.CharField(max_length=255, choices=WORKFLOW_STAGES, help_text="Descriptive name of the stage, e.g., 'Manager Approval'")
     service_action = models.ForeignKey(
@@ -879,7 +847,7 @@ class WorkflowInstance(TenantModel):
     target = GenericForeignKey("content_type", "object_id")
     current_stage = models.ForeignKey(WorkflowStage, on_delete=models.PROTECT)
     initiated_by = models.ForeignKey(
-        Employee, on_delete=models.CASCADE, related_name="initiated_workflows"
+        CustomUser, on_delete=models.CASCADE, related_name="initiated_workflows"
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -1125,7 +1093,7 @@ class HistoricalRecord(TenantModel):
         WorkflowInstance, on_delete=models.CASCADE, related_name="history"
     )
     created_at = models.DateTimeField(auto_now_add=True)
-    actor = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True)
+    actor = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True)
     action_description = models.TextField()
     is_closed = models.BooleanField(
         null=True,

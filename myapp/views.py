@@ -45,7 +45,7 @@ from django.contrib.auth.forms import (AuthenticationForm, PasswordResetForm,
                                        SetPasswordForm)
 from .forms import (
 AddItemForm, CommentForm, OrderForm, OrderItemForm,CustomUserChangeForm,RegistrationForm,
-CustomUserCreationForm,PasswordSetupForm,PasswordChangeForm,PasswordSetupForm,
+CustomUserCreationForm,PasswordSetupForm,PasswordChangeForm,PasswordSetupForm,CustomAuthenticationForm,
 ) 
 from .models import(Comment, Order, OrderItem, Package, ServiceCategory, Payment, CustomUser, PremiumClient, QR, WorkflowHistory, WorkflowInstance, WorkflowStage, Tenant,
 
@@ -67,23 +67,6 @@ def homepage(request):
     logger.info(f"User {request.user} accessed the homepage.")
     return render(request, 'homepage.html')
 
-@csrf_exempt
-def registerv1(request):
-    """
-    Renders the user registration form and handles form submission.
-    """
-    if request.method == 'POST':
-        form = CustomUserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            auth.login(request, user)
-            messages.success(request, 'Registration successful. Welcome!')
-            return redirect('homepage')
-        else:
-            messages.error(request, 'There was an error with your registration.')
-    else:
-        form = CustomUserCreationForm()
-    return render(request, 'register.html', {'form': form})
 
 
 
@@ -285,11 +268,19 @@ def customer_order(request):
                             name=form.cleaned_data.get('customer_name'),
                             phone=form.cleaned_data.get('customer_phone'),
                             address=form.cleaned_data.get('address'),
+                            town=form.cleaned_data.get('town'),
                             tenant=tenant
                         )
                         # Add to Customer group
                         customer_group, _ = Group.objects.get_or_create(name='Customer')
                         user.groups.add(customer_group)
+                    else:
+                        logger.info(f"Updating existing unauthenticated user profile for: {email}")
+                        user.name = form.cleaned_data.get('customer_name')
+                        user.phone = form.cleaned_data.get('customer_phone')
+                        user.address = form.cleaned_data.get('address')
+                        user.town = form.cleaned_data.get('town')
+                        user.save(update_fields=['name', 'phone', 'address', 'town'])
                         
                     # Log the user in
                     logger.info(f"Logging in user: {user.email}")
@@ -1531,15 +1522,15 @@ def api_assign_qr_to_item(request, item_id):
             # 2. Assign to item. This triggers OrderItem.save() 
             # which internally triggers item.order.check_and_update_status()
             item.qr_code = code
-            if not hasattr(request.user, 'employee'):
-                logger.error(f"User {request.user.email} is not linked to an Employee record.")
+            if not request.user.is_staff:
+                logger.error(f"User {request.user.email} is not a staff member.")
                 return JsonResponse({
                     'success': False, 
-                    'message': 'You must be registered as an employee to perform this action.'
+                    'message': 'You must be registered as staff to perform this action.'
                 }, status=403)
-            logger.info(f"Employee {request.user.employee} is attempting to assign QR code to item {item_id}.")
-            if hasattr(request.user, 'employee'):
-                item.qr_initiator = request.user.employee
+            logger.info(f"Staff {request.user} is attempting to assign QR code to item {item_id}.")
+            if request.user.is_staff:
+                item.qr_initiator = request.user
             item.save()
             
             # 3. Refresh the order object to get the updated status from the save signal
@@ -1614,9 +1605,11 @@ from django.contrib.contenttypes.models import ContentType
 def employee_queue(request):
     logger.info(f"User {request.user} is accessing the employee queue.")
     try:
-        employee = request.user.employee
+        employee = request.user
+        if not employee.is_staff:
+            raise Exception()
     except Exception:
-        messages.error(request, "Employee profile not found.")
+        messages.error(request, "Staff profile not found.")
         return redirect('homepage')
 
     ct = ContentType.objects.get_for_model(OrderItem)
@@ -1650,9 +1643,11 @@ def accept_item(request, item_id):
     logger.info(f"User {request.user} is attempting to accept item {item_id}.")
     item = get_object_or_404(OrderItem, id=item_id)
     try:
-        employee = request.user.employee
+        employee = request.user
+        if not employee.is_staff:
+            raise Exception()
     except Exception:
-        messages.error(request, "Employee profile required.")
+        messages.error(request, "Staff profile required.")
         return redirect(request.META.get('HTTP_REFERER', '/'))
         
     ct = ContentType.objects.get_for_model(OrderItem)
@@ -1729,9 +1724,11 @@ def reject_item(request, item_id):
     logger.error(f"User {request.user} is attempting to reject item {item_id}.")
     item = get_object_or_404(OrderItem, id=item_id)
     try:
-        employee = request.user.employee
+        employee = request.user
+        if not employee.is_staff:
+            raise Exception()
     except Exception:
-        messages.error(request, "Employee profile required.")
+        messages.error(request, "Staff profile required.")
         return redirect(request.META.get('HTTP_REFERER', '/'))
         
     ct = ContentType.objects.get_for_model(OrderItem)
