@@ -1,0 +1,24 @@
+<div style="max-width: 600px; margin: 0 auto; font-family: {{ user.tenant.attribute.font_family|default:'Arial, sans-serif' }}; color: #333; line-height: 1.6; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+    <div style="background-color: {{ user.tenant.attribute.primary_color|default:'#4f46e5' }}; padding: 30px; text-align: center;">
+        {% if user.tenant.attribute.logo %}
+            <img src="{{ user.tenant.attribute.logo.url }}" alt="Logo" style="max-height: 50px;">
+        {% else %}
+            <h2 style="color: #ffffff; margin: 0; font-size: 24px;">{{ user.tenant.attribute.brand_name|default:'Our Platform' }}</h2>
+        {% endif %}
+    </div>
+    
+    <div style="padding: 40px 30px; background-color: #ffffff;">
+        <h2 style="margin-top: 0; color: #1e293b; font-size: 20px;">Welcome, {{ user.name|default:user.email }}!</h2>
+        <p style="color: #475569; font-size: 15px;">Your account has been created by the administration team. To get started and secure your account, please set up your password.</p>
+        
+        <div style="text-align: center; margin: 35px 0;">
+            <a href="{{ create_link }}" style="background-color: {{ user.tenant.attribute.primary_color|default:'#4f46e5' }}; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 15px;">Set up your password</a>
+        </div>
+        
+        <p style="color: #64748b; font-size: 14px; margin-bottom: 0;">If you have any questions, feel free to reply to this email or reach out to support.</p>
+    </div>
+    
+    <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+        <p style="margin: 0; color: #94a3b8; font-size: 12px;">&copy; {% now "Y" %} {{ user.tenant.attribute.brand_name|default:'Dignity Concept' }}. All rights reserved.</p>
+    </div>
+</div>

@@ -327,6 +327,8 @@ class Tenant(models.Model):
         help_text="Short unique code for the tenant (e.g., MSFT)",
     )
     subdomain = models.CharField(max_length=50, unique=True, default="127.0.0.1", help_text="Subdomain for the tenant (e.g., dignity)")
+    email = models.EmailField(null=True, blank=True, help_text="Primary email for the tenant contact")
+    phone = models.CharField(max_length=20, null=True, blank=True, help_text="Primary phone for the tenant contact")
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     

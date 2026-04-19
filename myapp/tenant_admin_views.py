@@ -5,6 +5,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.apps import apps
 from django import forms
 from django.core.exceptions import ImproperlyConfigured
+from chromadb import logger
 
 # Map URL parameters to models
 MODEL_MAP = {
@@ -27,10 +28,13 @@ class TenantAdminMixin(LoginRequiredMixin, UserPassesTestMixin):
     Filters QuerySets securely to only elements owned by request.tenant.
     """
     def test_func(self):
+        logger.info(f"TenantAdminMixin test_func: {self.request.user}")
         model_name = self.kwargs.get('model_name')
         if model_name == 'tenant':
             return self.request.user.is_superuser
         if model_name in ['tenantattribute', 'user']:
+            logger.info(f"TenantAdmin test_func2: {self.request.user.is_staff}")
+            logger.info(f"TenantAdmin test_func3: {self.request.user.groups.filter(name='Partner').exists()}")    
             return self.request.user.is_superuser or (
                 self.request.user.is_staff and
                 hasattr(self.request, 'tenant') and
@@ -42,7 +46,9 @@ class TenantAdminMixin(LoginRequiredMixin, UserPassesTestMixin):
     def get_model(self):
         model_name = self.kwargs.get('model_name')
         if model_name not in MODEL_MAP:
+            logger.warning(f"TenantAdminMixin get_model: {model_name} is not registered for Tenant Admin.")
             raise ImproperlyConfigured(f"Model {model_name} is not registered for Tenant Admin.")
+        logger.info(f"TenantAdminMixin get_model 2: {MODEL_MAP[model_name]}")
         return apps.get_model(MODEL_MAP[model_name])
     
     def get_queryset(self):
@@ -51,6 +57,8 @@ class TenantAdminMixin(LoginRequiredMixin, UserPassesTestMixin):
         # Enforce Tenant filtering if the model has a tenant field relation
         if hasattr(model, 'tenant'):
             qs = qs.filter(tenant=self.request.tenant)
+            logger.info(f"TenantAdminMixin get_queryset: {qs}")
+        logger.info(f"TenantAdminMixin get_queryset 2: {qs}")
         return qs
 
     def get_context_data(self, **kwargs):
@@ -61,20 +69,24 @@ class TenantAdminMixin(LoginRequiredMixin, UserPassesTestMixin):
         # Decide what fields to show in the list view
         model = self.get_model()
         if hasattr(model, 'get_admin_list_display'):
+            logger.info(f"TenantAdminMixin get_context_data: {model.get_admin_list_display()}")
             context['list_display'] = model.get_admin_list_display()
         else:
             # Fallback to intelligent guessing
+            logger.info(f"TenantAdminMixin get_context_data 2: {model._meta.fields}")
             fields = [f.name for f in model._meta.fields if f.name not in ['id', 'tenant', 'password']]
             context['list_display'] = fields[:4] # max 4 columns
-            
+        logger.info(f"TenantAdminMixin get_context_data 3: {context['list_display']}")
         return context
 
 class TenantGenericListView(TenantAdminMixin, ListView):
+    logger.info(f"TenantAdminMixin:")
     template_name = 'tenant_admin_list.html'
 
 class TenantGenericFormMixin:
     """Auto-generates a ModelForm without tenant and injects it on save"""
     def get_form_class(self):
+        logger.info(f"TenantAdminMixin get_form_class: {self.request.user}")
         model_cls = self.get_model()
         model_name = self.kwargs.get('model_name')
         class GenericModelForm(forms.ModelForm):
@@ -86,10 +98,12 @@ class TenantGenericFormMixin:
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
                 if model_name == 'user' and self.instance.pk:
+                    logger.info(f"TenantAdminMixin get_form_class 2: {self.request.user}")
                     # On edit:
                     # Allow editing of email, is_active, phone number and name.
                     allowed_fields = ['email', 'is_active', 'phone', 'name']
                     self.fields = {k: v for k, v in self.fields.items() if k in allowed_fields}
+        logger.info(f"TenantAdminMixin get_form_class 3: {GenericModelForm}")
         return GenericModelForm
         
     def form_valid(self, form):
@@ -97,8 +111,9 @@ class TenantGenericFormMixin:
         model_name = self.kwargs.get('model_name')
         if hasattr(form.instance, 'tenant_id') and model_name != 'tenant':
             if not form.instance.tenant_id:
+                logger.info(f"TenantAdminMixin form_valid: {self.request.user}")
                 form.instance.tenant = self.request.tenant
-                
+        logger.info(f"Tenant Valid Form Submitted: {form.instance}")        
         response = super().form_valid(form)
         
         # Cross-cutting concerns based on model and action
@@ -113,23 +128,21 @@ class TenantGenericFormMixin:
         is_create = not self.object or not getattr(self, '_was_update', False)
         
         if model_name == 'tenant' and is_create:
+            logger.info(f"TenantAdminMixin form_valid 2: {self.request.user}")
             # Create a user with tenant email, set is_staff=True
             tenant = self.object
-            # We assume tenant has a primary contact email field, 
-            # but if it doesn't, we might need it from another source. Currently using custom input via forms might be needed.
-            # However, Tenant model has no email. We might just create a default admin user based on subdomain?
-            # Creating one for the tenant based on request input email? 
-            # I will use a dummy one unless it's in the payload.
-            email = self.request.POST.get('email', f"admin@{tenant.subdomain}.com")
+            email = tenant.email if tenant.email else f"admin@{tenant.subdomain}.com"
             user, created = CustomUser.objects.get_or_create(
                 email=email,
-                defaults={'name': f"{tenant.name} Admin", 'is_staff': True, 'tenant': tenant}
+                defaults={'name': f"{tenant.name} Admin", 'phone': tenant.phone, 'is_staff': True, 'tenant': tenant}
             )
             if created:
+                logger.info(f"Tenant created form_valid: {self.request.user}")
                 partner_group, _ = Group.objects.get_or_create(name='Partner')
                 user.groups.add(partner_group)
                 
             if not user.has_usable_password():
+                logger.info(f"Tenant password not set form_valid: {self.request.user}")
                 token = default_token_generator.make_token(user)
                 link = self.request.build_absolute_uri(reverse("laundry:setup_password", args=[user.pk, token]))
                 
@@ -138,21 +151,24 @@ class TenantGenericFormMixin:
                 msg = EmailMultiAlternatives(subject, strip_tags(html_message), None, [user.email])
                 msg.attach_alternative(html_message, "text/html")
                 msg.send()
-                
+                logger.info(f"Tenant admin email sent form_valid: {self.request.user}")
         elif model_name == 'tenantattribute':
             # Create or Edit
             tenant_attr = self.object
             admin_users = CustomUser.objects.filter(tenant=tenant_attr.tenant, is_staff=True)
             emails = [u.email for u in admin_users]
             if emails:
+                logger.info(f"Tenant attributes updated form_valid: {self.request.user}")
                 subject = "Tenant Attributes Updated"
                 message = f"Tenant {tenant_attr.brand_name} attributes updated.\nWhatsApp: {tenant_attr.whatsapp_number}\nAddress: {tenant_attr.address}"
                 msg = EmailMultiAlternatives(subject, message, None, emails)
                 msg.send()
                 
         elif model_name == 'user' and is_create:
+            logger.info(f"User created form_valid: {self.request.user}")
             user = self.object
             if user.is_staff and not user.has_usable_password():
+                logger.info(f"User password not set form_valid: {self.request.user}")
                 token = default_token_generator.make_token(user)
                 link = self.request.build_absolute_uri(reverse("laundry:setup_password", args=[user.pk, token]))
                 
@@ -161,16 +177,18 @@ class TenantGenericFormMixin:
                 msg = EmailMultiAlternatives(subject, strip_tags(html_message), None, [user.email])
                 msg.attach_alternative(html_message, "text/html")
                 msg.send()
-
+        logger.info(f"TenantAdminMixin form valid: {response}")
         return response
         
     def get_success_url(self):
+        logger.info(f"TenantAdminMixin get_success_url: {self.request.user}")
         return reverse_lazy('laundry:tenant_admin_list', kwargs={'model_name': self.kwargs.get('model_name')})
 
 class TenantGenericCreateView(TenantAdminMixin, TenantGenericFormMixin, CreateView):
     template_name = 'tenant_admin_form.html'
     
     def form_valid(self, form):
+        logger.info(f"TenantAdminMixin form_create: {self.request.user}")
         self._was_update = False
         return super().form_valid(form)
 
@@ -178,16 +196,20 @@ class TenantGenericUpdateView(TenantAdminMixin, TenantGenericFormMixin, UpdateVi
     template_name = 'tenant_admin_form.html'
     
     def form_valid(self, form):
+        logger.info(f"TenantAdminMixin form_update: {self.request.user}")
         self._was_update = True
         return super().form_valid(form)
 
 class TenantGenericDeleteView(TenantAdminMixin, DeleteView):
     template_name = 'tenant_admin_confirm_delete.html'
     def get_success_url(self):
+        logger.info(f"TenantAdminMixin get_success_url: {self.request.user}")
         return reverse_lazy('laundry:tenant_admin_list', kwargs={'model_name': self.kwargs.get('model_name')})
 
 def tenant_admin_hub(request):
     """Renders the settings hub portal"""
     if not request.user.is_staff:
+        logger.info(f"TenantAdminMixin tenant_admin_hub: {request.user}")
         return redirect('laundry:homepage')
+    logger.info(f"TenantAdminMixin tenant_admin_hub 2: {request.user}")
     return render(request, 'tenant_admin_hub.html')
