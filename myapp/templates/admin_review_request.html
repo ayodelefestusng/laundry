@@ -102,31 +102,50 @@
                                     <label class="small text-muted">Recipient Email</label>
                                     <input type="email" name="recipient_email" class="form-control form-control-sm" value="{{ order.recipient_email|default:order.customer_email }}">
                                 </div>
-                                <div class="col-md-6 mt-2">
-                                    <label class="small text-muted">Recipient State</label>
-                                    <select name="recipient_state" class="form-select form-select-sm select2" hx-get="{% url 'laundry:htmx_get_towns' %}" hx-target="#admin_recipient_town" hx-trigger="change">
-                                        <option value="">Select State...</option>
-                                        {% for s in states %}
-                                        <option value="{{ s.id }}" {% if order.recipient_state_id == s.id %}selected{% endif %}>{{ s.name }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div class="col-md-6 mt-2">
-                                    <label class="small text-muted">Recipient Town</label>
-                                    <select name="recipient_town" id="admin_recipient_town" class="form-select form-select-sm select2">
-                                        {% if order.recipient_town %}
-                                        <option value="{{ order.recipient_town.id }}" selected>{{ order.recipient_town.name }}</option>
-                                        {% else %}
-                                        <option value="">Select a state first</option>
-                                        {% endif %}
-                                    </select>
+                                <div id="custom-shipping-fields" class="row g-2 w-100 m-0 p-0" style="display: none;">
+                                    <div class="col-md-6 mt-2">
+                                        <label class="small text-muted">Recipient State</label>
+                                        <select name="recipient_state" 
+                                                id="admin_recipient_state"
+                                                class="form-select form-select-sm select2" 
+                                                hx-get="{% url 'laundry:htmx_get_towns' %}" 
+                                                hx-trigger="change"
+                                                hx-target="#admin_recipient_town" 
+                                                hx-swap="innerHTML"
+                                                hx-include="#admin_recipient_state">
+                                            <option value="">Select State...</option>
+                                            {% for s in states %}
+                                                <option value="{{ s.id }}" {% if order.recipient_state_id == s.id %}selected{% endif %}>{{ s.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mt-2">
+                                        <label class="small text-muted">Recipient Town</label>
+                                       <select name="recipient_town" 
+                                            id="admin_recipient_town" 
+                                            class="form-select form-select-sm select2"
+                                            hx-get="{% url 'laundry:htmx_calculate_delivery' order.id %}"
+                                            hx-trigger="change"
+                                            hx-target="#order-summary-section"
+                                            hx-swap="innerHTML"
+                                            hx-include="#admin_recipient_town">
+                                            {% if order.recipient_town %}
+                                                <option value="{{ order.recipient_town.id }}" selected>{{ order.recipient_town.name }}</option>
+                                            {% else %}
+                                                <option value="">Select a state first</option>
+                                            {% endif %}
+                                         </select>
+                                    </div>
+
+                                    
+                                   
                                 </div>
 
-                                
-                                <div class="col-md-12 mt-2">
-                                    <label class="small text-muted">Recipient Address</label>
-                                    <input type="text" id="id_recipient_address" name="recipient_address" class="form-control form-control-sm" value="{{ order.recipient_address|default:order.address }}">
-                                </div>
+                                  <div class="col-md-12 mt-2">
+                                        <label class="small text-muted">Recipient Address</label>
+                                        <input type="text" id="id_recipient_address" name="recipient_address" class="form-control form-control-sm" value="{{ order.recipient_address|default:order.address }}">
+                                    </div>
                             </div>
                         </div>
                     </div>
@@ -221,141 +240,127 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
-function initAutocomplete() {
-    // We keep this function name because a setTimeout calls it below
-    $('.select2').select2({
-        width: '100%',
-        placeholder: "Search and select...",
-        allowClear: true
-    });
-    
-    // Ensure HTMX gets the event when Select2 changes
-    $('.select2').on('change', function (e) {
-        if (typeof htmx !== 'undefined') {
-            htmx.trigger(this, 'change');
+// ─────────────────────────────────────────────────────────────────────
+// Select2 helpers
+// ─────────────────────────────────────────────────────────────────────
+function initAllSelect2(context) {
+    const selector = context
+        ? $(context).find('.select2').addBack('.select2')
+        : $('.select2');
+    selector.each(function() {
+        if ($(this).data('select2')) {
+            $(this).select2('destroy');
         }
+        $(this).select2({ width: '100%', placeholder: 'Search...', allowClear: true });
     });
-
-    console.log("Select2 initialized successfully");
 }
 
-// ── FIX: DOMContentLoaded may have already fired when Django's template
-//    Check readyState first so we always run, whether inline or deferred.
-function initShippingForm() {
-    const homeDeliveryFields = document.getElementById('home-delivery-fields');
-    const deliveryOptions = document.querySelectorAll('input[name="delivery_option"]');
-    const addressSources = document.querySelectorAll('input[name="address_source"]');
-    const editBtn = document.getElementById('toggle-shipping-edit');
-    const displaySection = document.getElementById('shipping-display-section');
-    const editSection = document.getElementById('shipping-edit-section');
-    const saveBtn = document.getElementById('save-shipping-btn');
+// Bridge: Select2 selection → HTMX native change event
+$(document).on('select2:select select2:unselect select2:clear', '.select2', function() {
+    this.dispatchEvent(new Event('change', { bubbles: true }));
+});
 
-    // Edit Toggle Button - Direct event listener
+// After HTMX swaps the town <select> innerHTML (state selection), re-init Select2 
+document.addEventListener('htmx:afterSwap', function(evt) {
+    const target = evt.detail.target;
+    // Is it the town select itself, or does it contain one?
+    const townEl = (target.id === 'admin_recipient_town')
+        ? target
+        : target.querySelector('#admin_recipient_town');
+    if (townEl) {
+        // Tear down stale Select2 UI artefacts
+        $(townEl).next('.select2-container').remove();
+        $(townEl).removeClass('select2-hidden-accessible');
+        // Re-apply Select2
+        $(townEl).select2({ width: '100%', placeholder: 'Select Town...', allowClear: true });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// Shipping form UI — runs ONCE when DOM is ready
+// ─────────────────────────────────────────────────────────────────────
+$(document).ready(function() {
+
+    initAllSelect2();
+
+    const editBtn       = document.getElementById('toggle-shipping-edit');
+    const editSection   = document.getElementById('shipping-edit-section');
+    const displaySection= document.getElementById('shipping-display-section');
+    const saveBtn       = document.getElementById('save-shipping-btn');
+    const homeFields    = document.getElementById('home-delivery-fields');
+
+    // ── Edit / Cancel toggle ──────────────────────────────────────────
+    // Use onclick (not addEventListener) so only ONE handler exists
     if (editBtn) {
-        editBtn.addEventListener('click', function(e) {
+        editBtn.onclick = function(e) {
             e.preventDefault();
-            console.log("Edit button clicked!");
-            
-            if (editSection.style.display === 'none' || editSection.style.display === '') {
-                console.log("Switching to Edit Mode");
-                editSection.style.display = 'block';
+            e.stopPropagation();
+            const isHidden = editSection.style.display === 'none' || editSection.style.display === '';
+            if (isHidden) {
+                editSection.style.display  = 'block';
                 displaySection.style.display = 'none';
                 editBtn.innerHTML = '<i class="fas fa-times me-1"></i> Cancel';
-                
-                // Initialize Google Maps autocomplete
-                if (typeof google !== 'undefined' && typeof initAutocomplete === 'function') {
-                    setTimeout(initAutocomplete, 200);
-                }
+                // Re-run Select2 on newly visible elements
+                initAllSelect2(editSection);
             } else {
-                console.log("Switching to Display Mode");
-                editSection.style.display = 'none';
+                editSection.style.display  = 'none';
                 displaySection.style.display = 'block';
                 editBtn.innerHTML = '<i class="fas fa-edit me-1"></i> Edit';
             }
-        });
+        };
     }
 
-    // Save Shipping Details - Handle form submission with page refresh
+    // ── Save button → submit form then reload ────────────────────────
     if (saveBtn) {
-        saveBtn.addEventListener('click', function(e) {
+        saveBtn.onclick = function(e) {
             e.preventDefault();
-            console.log("Save button clicked!");
-            
             const form = document.getElementById('shipping-update-form');
-            if (!form) {
-                console.error("Form not found");
-                return;
-            }
-            
-            const deliveryOption = document.querySelector('input[name="delivery_option"]:checked');
-            if (!deliveryOption) {
-                console.error("No delivery option selected");
-                return;
-            }
-            
-            const deliveryOptionValue = deliveryOption.value;
-            
-            // Validate address for home delivery
-            if (deliveryOptionValue === 'home_delivery') {
-                const lat = document.getElementById('id_recipient_latitude').value;
-                const lng = document.getElementById('id_recipient_longitude').value;
-                
-                if (!lat || !lng) {
-                    alert("Please select a valid Google address. We need the coordinates for delivery calculation.");
-                    document.getElementById('recipient-map-error').style.display = 'block';
-                    document.getElementById('id_recipient_address').focus();
-                    return;
-                }
-            }
-            
-            // Submit form via HTMX
+            if (!form) return;
             if (typeof htmx !== 'undefined') {
                 htmx.trigger(form, 'submit');
             } else {
                 form.submit();
             }
-            
-            // Refresh page after short delay to show updated data
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500);
-        });
+            setTimeout(() => window.location.reload(), 1500);
+        };
     }
 
-    // Delivery option change handler
-    deliveryOptions.forEach(opt => {
+    // ── Delivery option radio ─────────────────────────────────────────
+    document.querySelectorAll('input[name="delivery_option"]').forEach(function(opt) {
         opt.addEventListener('change', function() {
-            if (homeDeliveryFields) {
-                homeDeliveryFields.style.display = this.value === 'home_delivery' ? 'block' : 'none';
-            }
+            if (homeFields) homeFields.style.display = this.value === 'home_delivery' ? 'block' : 'none';
         });
     });
 
-    // Address source change handler
-    addressSources.forEach(src => {
+    // ── Address source radio (customer vs custom shipping) ───────────
+    document.querySelectorAll('input[name="address_source"]').forEach(function(src) {
         src.addEventListener('change', function() {
+            const customFields = document.getElementById('custom-shipping-fields');
             if (this.value === 'customer') {
-                document.getElementsByName('recipient_name')[0].value = "{{ order.customer_name|escapejs }}";
-                document.getElementsByName('recipient_phone')[0].value = "{{ order.customer_phone|escapejs }}";
-                document.getElementsByName('recipient_email')[0].value = "{{ order.customer_email|escapejs }}";
-                document.getElementById('id_recipient_address').value = "{{ order.address|escapejs }}";
-                document.getElementById('id_recipient_latitude').value = "{{ order.pickup_latitude|default:'' }}";
-                document.getElementById('id_recipient_longitude').value = "{{ order.pickup_longitude|default:'' }}";
+                const nameEls  = document.getElementsByName('recipient_name');
+                const phoneEls = document.getElementsByName('recipient_phone');
+                const emailEls = document.getElementsByName('recipient_email');
+                if (nameEls[0])  nameEls[0].value  = "{{ order.customer_name|escapejs }}";
+                if (phoneEls[0]) phoneEls[0].value = "{{ order.customer_phone|escapejs }}";
+                if (emailEls[0]) emailEls[0].value = "{{ order.customer_email|escapejs }}";
+                if (customFields) customFields.style.display = 'none';
+            } else {
+                if (customFields) {
+                    customFields.style.display = 'flex';
+                    // Re-layout Select2 now that the container is visible
+                    initAllSelect2(customFields);
+                }
             }
         });
     });
-}
 
-// Run immediately if DOM is ready, otherwise wait for the event
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initShippingForm);
-} else {
-    initShippingForm();
-}
-
-
-
-
+    // ── Restore visible state if previously set to shipping ──────────
+    const initSrc = document.querySelector('input[name="address_source"]:checked');
+    if (initSrc && initSrc.value === 'shipping') {
+        const customFields = document.getElementById('custom-shipping-fields');
+        if (customFields) customFields.style.display = 'flex';
+    }
+});
 </script>
 <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initAutocomplete" async defer></script>
 {% endblock extra_js %}

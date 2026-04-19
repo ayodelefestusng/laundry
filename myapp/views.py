@@ -51,7 +51,7 @@ from .models import(Comment, Order, OrderItem, Package, ServiceCategory, Payment
 
     ) 
 from .utils import is_admin, analyze_sentiment, verify_qr_token, get_signed_token, generate_qr_base64
-
+from myapp.models import State, Town, Cluster
 from .models import log_with_context
 
 from math import radians, cos, sin, asin, sqrt
@@ -417,7 +417,7 @@ def admin_review_request(request, order_id):
     form = OrderItemForm()
     packages = Package.objects.all()
     categories = ServiceCategory.objects.all()
-    from myapp.models import State, Town, Cluster
+    
     tenant = getattr(request, "tenant", None)
     
     
@@ -755,9 +755,11 @@ def htmx_get_package_options(request):
 
     if not category_id:
         # logger.error(f"User {request.user} is getting packages for category {request.GET.get('category')}.")
+        logger.error(f"User {request.user} is getting Aueenene packages for category {request.GET.get('category')}.")
         return HttpResponse('')
     
     options= Package.objects.filter(category_id=category_id)
+    logger.info(f"User {request.user} found packages: {options}")
     context = {'options': options}
     return render(request, 'htmx/service_options.html', context)
 
@@ -921,12 +923,14 @@ def htmx_get_towns(request):
     """Returns options for Towns belonging to a State, restricted to Cluster towns for tenant"""
     state_id = request.GET.get('state') or request.GET.get('recipient_state')
     tenant = getattr(request, "tenant", None)  # assuming tenant context middleware
-
+    logger.info(f"User {request.user} is getting towns for state {state_id} with tenant context: {tenant}")
     if not state_id:
+        logger.warning(f"User {request.user} requested towns without providing state_id.")
         return HttpResponse('<option value="">Select a state first...</option>')
 
     towns = Town.objects.none()
     if tenant:
+        logger.info(f"Tenant context found: {tenant}. Restricting towns to those in clusters for this tenant.") 
         # Get clusters for this tenant
         clusters = Cluster.objects.filter(tenant=tenant)
         # Restrict towns to those in clusters AND under the selected state
@@ -938,6 +942,7 @@ def htmx_get_towns(request):
     html = '<option value="">Select Town...</option>'
     for t in towns:
         html += f'<option value="{t.id}">{t.name}</option>'
+    logger.info(f"Returning {len(towns)} towns for state {state_id} and tenant {tenant}.")
     return HttpResponse(html)
 
 
@@ -2360,6 +2365,7 @@ def customer_order1(request):
 def htmx_calculate_deliverys(request):
     """Calculates delivery cost based on Town Cluster."""
     tenant = getattr(request, 'tenant', None)
+    logger.info(f"Calculating deliverys price for tenant {tenant.name if tenant else 'Unknown'} with request data: {request.GET.dict()}")
 
     # HTMX injects the element's name as the key, e.g., 'town' or 'recipient_town'
     town_id = request.GET.get('town') or request.GET.get('recipient_town')

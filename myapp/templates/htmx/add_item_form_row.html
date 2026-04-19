@@ -7,7 +7,8 @@
             hx-target="#id_package"
             hx-trigger="change"
             hx-swap="innerHTML"
-            class="form-select"
+            class="form-select select2"
+            hx-on:htmx:after-swap="setTimeout(function(){ $('#id_package').select2({width: '100%'}); }, 50)"
         >
 
             <option value="" selected disabled>Select Category</option>
@@ -24,7 +25,7 @@
             hx-target="#price-delivery-details"
             hx-trigger="change"
             hx-swap="innerHTML"
-            class="form-select"
+            class="form-select select2"
         >
             <option value="" selected disabled>Select Service Type</option>
         </select>

@@ -110,6 +110,30 @@
     v: "weekly",
   });
 </script>
+
+<script>
+    // Universal Select2 re-initialization
+    document.body.addEventListener('htmx:afterSwap', function(event) {
+        const target = event.detail.target;
+        
+        // Find all Select2 elements within the newly swapped content
+        const select2Elements = target.querySelectorAll('.select2');
+        
+        select2Elements.forEach(function(element) {
+            // 1. Destroy existing Select2 instance if it exists
+            if ($(element).hasClass('select2-hidden-accessible')) {
+                $(element).select2('destroy');
+            }
+            
+            // 2. Re-initialize
+            $(element).select2({
+                width: '100%',
+                placeholder: "Search and select...",
+                allowClear: true
+            });
+        });
+    });
+</script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

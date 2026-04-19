@@ -389,14 +389,23 @@ class Cluster(TenantModel):
     
     def clean(self):
         super().clean()
-        # Example: prevent duplicate town assignments within the same tenant
-        for town in self.towns.all():
-            if Cluster.objects.filter(tenant=self.tenant, towns=town).exclude(pk=self.pk).exists():
-                raise ValidationError(
-                    {"towns": f"Town '{town.name}' is already assigned to another cluster for this tenant."}
-                )
-                
-                
+        
+        # Only perform Many-to-Many validation if the object has been saved
+        if self.pk:
+            try:
+                # Restrict towns to those in clusters AND under the selected state
+                for town in self.towns.all():
+                    if Cluster.objects.filter(tenant=self.tenant, towns=town).exclude(pk=self.pk).exists():
+                        raise ValidationError(
+                            {"towns": f"Town '{town.name}' is already assigned to another cluster for this tenant."}
+                        )
+            except ValidationError:
+                # Re-raise validation errors so Django can catch them
+                raise
+            except Exception as e:
+                logger.error(f"Unexpected error during Cluster validation for ID {self.pk}: {e}")
+                raise ValidationError("An unexpected error occurred during validation.")
+ 
                 
 class DeliveryPricing(TenantModel):
     """Cluster-based pricing."""
