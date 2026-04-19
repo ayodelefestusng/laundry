@@ -8,7 +8,7 @@ class TenantMiddleware(MiddlewareMixin):
 
         allowed_dmc_hosts = [
             "127.0.0.1",
-            "127.0.0.0",
+            # "127.0.0.0",
             "laundry.dignityconcept.tech",
             "dignityconcept.tech"
         ]

@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load generic_tags %}
 
 {% block content %}
 <div class="container my-5">
@@ -18,7 +19,7 @@
                     <thead class="table-light">
                         <tr>
                             {% for field in list_display %}
-                                <th class="px-4 py-3">{{ field|title|replace:"_:' '" }}</th>
+                                <th class="px-4 py-3">{{ field|title }}</th>
                             {% endfor %}
                             <th class="px-4 py-3 text-end">Actions</th>
                         </tr>

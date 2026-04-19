@@ -1,10 +1,52 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Invalid Token </title>
-</head>
-<body>
-    <h2>Invalid Token</h2>
-    <p>Try Again</p>
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+:root {
+  --primary-color: {{ request.tenant.attribute.primary_color|default:"#4f46e5" }};
+  --secondary-color: {{ request.tenant.attribute.secondary_color|default:"#6366f1" }};
+  --font-family: {{ request.tenant.attribute.font_family|default:"'Inter', sans-serif"|safe }};
+}
+
+body {
+  font-family: var(--font-family);
+  background: linear-gradient(135deg, rgba(230,240,255,1) 0%, rgba(255,255,255,1) 100%);
+}
+
+.login-card {
+  border-radius: 20px;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.1) !important;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255,255,255,0.4) !important;
+}
+
+.text-danger-custom {
+  color: #dc3545 !important;
+}
+</style>
+
+<div class="container-fluid py-5">
+    <div class="row justify-content-center align-items-center min-vh-100">
+        <div class="col-md-6 col-lg-5 col-xl-4">
+            <div class="card login-card border-0">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <div class="d-inline-flex align-items-center justify-content-center bg-danger bg-opacity-10 text-danger-custom rounded-circle mb-3" style="width: 64px; height: 64px;">
+                            <i class="fas fa-exclamation-triangle fa-2x"></i>
+                        </div>
+                        <h4 class="fw-bold mb-3">Invalid Token</h4>
+                        <p class="text-muted small">The link you followed has expired or is invalid. Please try again or request a new link.</p>
+                        
+                        <div class="mt-4 pt-4 border-top">
+                            <a href="{% url 'laundry:login' %}" class="btn btn-outline-primary py-2 w-100">
+                                <i class="fas fa-arrow-left me-2"></i> Back to Login
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
