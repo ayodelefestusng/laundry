@@ -375,7 +375,11 @@ class TenantAttribute(TenantModel):
 
     def __str__(self):
         return f"{self.tenant.name} Attributes"
-
+    
+    @classmethod
+    def get_admin_list_display(cls):
+        # Limit to only 3 fields
+        return ['brand_name', 'whatsapp_number', 'address']
     # def __str__(self):
     #     return f"{self.name} ({self.code})"
 

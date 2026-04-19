@@ -79,6 +79,7 @@ class TenantAdminMixin(LoginRequiredMixin, UserPassesTestMixin):
         logger.info(f"TenantAdminMixin get_context_data 3: {context['list_display']}")
         return context
 
+
 class TenantGenericListView(TenantAdminMixin, ListView):
     logger.info(f"TenantAdminMixin:")
     template_name = 'tenant_admin_list.html'
@@ -141,7 +142,7 @@ class TenantGenericFormMixin:
                 partner_group, _ = Group.objects.get_or_create(name='Partner')
                 user.groups.add(partner_group)
                 
-            if not user.has_usable_password():
+            if not user.password or not user.has_usable_password():
                 logger.info(f"Tenant password not set form_valid: {self.request.user}")
                 token = default_token_generator.make_token(user)
                 link = self.request.build_absolute_uri(reverse("laundry:setup_password", args=[user.pk, token]))
@@ -167,7 +168,7 @@ class TenantGenericFormMixin:
         elif model_name == 'user' and is_create:
             logger.info(f"User created form_valid: {self.request.user}")
             user = self.object
-            if user.is_staff and not user.has_usable_password():
+            if user.is_staff and (not user.password or not user.has_usable_password()):
                 logger.info(f"User password not set form_valid: {self.request.user}")
                 token = default_token_generator.make_token(user)
                 link = self.request.build_absolute_uri(reverse("laundry:setup_password", args=[user.pk, token]))
@@ -177,6 +178,8 @@ class TenantGenericFormMixin:
                 msg = EmailMultiAlternatives(subject, strip_tags(html_message), None, [user.email])
                 msg.attach_alternative(html_message, "text/html")
                 msg.send()
+                logger.info(f"User password not set form_valid: {self.request.user}")
+                logger.info(f"Email sent to: {user.email}")
         logger.info(f"TenantAdminMixin form valid: {response}")
         return response
         
