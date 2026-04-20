@@ -478,6 +478,8 @@ class Package(TenantModel):
     delivery_time_days = models.IntegerField(help_text="Estimated delivery time in days.")
     class Meta:
         unique_together = ('category', 'service_type')
+        ordering = ["category", 'service_type']
+        
     def __str__(self):
         return f"{self.category.name}-{self.id} - {self.service_type.name if self.service_type else 'Uncategorized'}"
 

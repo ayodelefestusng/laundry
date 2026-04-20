@@ -1174,17 +1174,17 @@ def htmx_send_invoice(request, order_id):
     
     # Validation & Shipping Cost logic
     shipping_cost = 0  # Default to 0 based on user request
-    if order.delivery_option == 'home_delivery':
+    # if order.delivery_option == 'home_delivery':
 
-        # Enforce lat/lng validation
-        if not order.recipient_latitude or not order.recipient_longitude:
-            logger.error(f"Invalid Lattitue Alike {request.user} tried to send an invoice for an empty order.")
+    #     # Enforce lat/lng validation
+    #     if not order.recipient_latitude or not order.recipient_longitude:
+    #         logger.error(f"Invalid Lattitue Alike {request.user} tried to send an invoice for an empty order.")
 
-            return HttpResponse(
-                '<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> '
-                'A valid Google Maps address is required for Home Delivery. Please Edit Shipping Details and drop a pin.</div>',
-                status=400
-            )
+    #         return HttpResponse(
+    #             '<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> '
+    #             'A valid Google Maps address is required for Home Delivery. Please Edit Shipping Details and drop a pin.</div>',
+    #             status=400
+    #         )
         # shipping_cost can be calculated dynamically here. Defaulting to 0.
 
     total_price = items_total + shipping_cost

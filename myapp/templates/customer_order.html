@@ -249,13 +249,13 @@
                         <div class="col-md-6">
                             {{ form.customer_name|as_crispy_field }}
                         </div>
+                       
                         <div class="col-md-6">
-                            {{ form.customer_email|as_crispy_field }}
-                        </div>
-                        <div class="col-md-12">
                             {{ form.customer_phone|as_crispy_field }}
                         </div>
-                        
+                         <div class="col-md-12">
+                            {{ form.customer_email|as_crispy_field }}
+                        </div>
 
                         <div class="col-md-12 position-relative" id="pickup_address_section">
                             {{ form.address|as_crispy_field }}

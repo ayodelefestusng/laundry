@@ -34,7 +34,7 @@ class PackageAdmin(admin.ModelAdmin):
     Admin configuration for the Package model.fpackage
     
     """
-    list_display = ('id', 'category', 'service_type', 'price', 'delivery_time_days')
+    list_display = ('id', 'category', 'service_type', 'price', 'delivery_time_days', 'tenant')
     list_filter = ('category', 'service_type')
     search_fields = ('category__name', 'service_type')
 
