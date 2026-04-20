@@ -1,0 +1,150 @@
+{% load static %}
+<!DOCTYPE html>
+{% with order_status=order.status delivery=order.delivery_option %}
+<div class="tracking-result mt-3">
+
+    {# ─── Order Detail Card ─────────────────────────────────────────────── #}
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-header bg-gradient text-white rounded-top-4 py-3"
+             style="background: linear-gradient(135deg,var(--primary-color,#4f46e5),var(--secondary-color,#6366f1));">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h5 class="mb-0 fw-bold"><i class="fas fa-receipt me-2"></i>Order #{{ order.order_code }}</h5>
+                <span class="badge bg-light text-primary fs-6">{{ order.get_status_display }}</span>
+            </div>
+        </div>
+        <div class="card-body p-4">
+            <div class="row g-3 mb-3">
+                <div class="col-6 col-md-3">
+                    <div class="text-muted small">Submitted</div>
+                    <div class="fw-semibold">{{ order.created_at|date:"d M Y" }}</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="text-muted small">Pickup Date</div>
+                    <div class="fw-semibold">{{ order.pickup_date|date:"d M Y, g:i A"|default:"—" }}</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="text-muted small">Est. Delivery</div>
+                    <div class="fw-semibold">{{ order.estimated_delivery_date|date:"d M Y"|default:"—" }}</div>
+                </div>
+                {% if order.reschedule_date %}
+                <div class="col-6 col-md-3">
+                    <div class="text-muted small">Rescheduled To</div>
+                    <div class="fw-semibold text-warning">{{ order.reschedule_date|date:"d M Y, g:i A" }}</div>
+                </div>
+                {% endif %}
+                {% if order.delivered_date %}
+                <div class="col-6 col-md-3">
+                    <div class="text-muted small">Delivered On</div>
+                    <div class="fw-semibold text-success">{{ order.delivered_date|date:"d M Y, g:i A" }}</div>
+                </div>
+                {% endif %}
+            </div>
+
+            {# ─── Items Table ──────────────────────────────────────────── #}
+            {% if order.items.exists %}
+            <div class="table-responsive mt-3">
+                <table class="table table-sm table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Package</th>
+                            <th>Item</th>
+                            <th>Category</th>
+                            <th class="text-center">Qty</th>
+                            <th class="text-end">Price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in order.items.all %}
+                        <tr>
+                            <td>{{ item.package.service_type.name|default:"—" }}</td>
+                            <td>{{ item.name }}
+                                {% if item.color %}
+                                <span class="ms-1 d-inline-block rounded" style="width:10px;height:10px;background:{{ item.color.hex_code }};border:1px solid #ccc;vertical-align:middle;"></span>
+                                {% endif %}
+                                <small class="text-muted">{{ item.color_display }}</small>
+                            </td>
+                            <td>{{ item.package.category.name }}</td>
+                            <td class="text-center">{{ item.quantity }}</td>
+                            <td class="text-end">&#8358;{{ item.effective_price|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="fw-bold">
+                            <td colspan="4" class="text-end">Total</td>
+                            <td class="text-end text-primary">&#8358;{{ order.total_price|floatformat:2 }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {# ─── Visual Timeline ───────────────────────────────────────────────── #}
+    <div class="card border-0 shadow-sm rounded-4 mb-3">
+        <div class="card-body p-4">
+            <h6 class="fw-bold mb-4"><i class="fas fa-route me-2 text-primary"></i>Tracking Timeline</h6>
+
+            {% comment %}
+            Stage visibility logic:
+              pending           → steps 1,2 active
+              confirmed         → steps 1–4 active
+              in_progress       → steps 1–5 active
+              ready_for_dispatch→ steps 1–6 active
+              assigned_to_dispatcher → steps 1–7 (shown only for home delivery)
+              delivered         → all steps active
+            {% endcomment %}
+
+            {% with s=order.status|lower delivery=order.delivery_option %}
+            <div class="tracking-timeline">
+                <!-- Step 1: Request Received -->
+                {% include "htmx/_tracking_step.html" with step_num=1 label="Request Received" icon="fa-clipboard-check" active=True %}
+                <!-- Step 2: Awaiting Pickup -->
+                {% include "htmx/_tracking_step.html" with step_num=2 label="Awaiting Pickup" icon="fa-hourglass-half" active=True %}
+                <!-- Step 3: Order Confirmed -->
+                {% include "htmx/_tracking_step.html" with step_num=3 label="Order Confirmed" icon="fa-check-circle" active=is_confirmed %}
+                <!-- Step 4: Order Picked Up -->
+                {% include "htmx/_tracking_step.html" with step_num=4 label="Order Picked Up" icon="fa-truck-pickup" active=is_confirmed %}
+                <!-- Step 5: Processing -->
+                {% include "htmx/_tracking_step.html" with step_num=5 label="Processing" icon="fa-cogs" active=is_in_progress %}
+                <!-- Step 6: Ready -->
+                {% if delivery == "on_premise" %}
+                    {% include "htmx/_tracking_step.html" with step_num=6 label="Ready for Pickup" icon="fa-box-open" active=is_ready %}
+                {% else %}
+                    {% include "htmx/_tracking_step.html" with step_num=6 label="Ready for Delivery" icon="fa-box-open" active=is_ready %}
+                {% endif %}
+                <!-- Step 7: Out for Delivery (Home Delivery only) -->
+                {% if delivery != "on_premise" %}
+                    {% include "htmx/_tracking_step.html" with step_num=7 label="Out for Delivery" icon="fa-shipping-fast" active=is_dispatched %}
+                {% endif %}
+                <!-- Step 8: Delivered -->
+                {% include "htmx/_tracking_step.html" with step_num=8 label="Delivered" icon="fa-home" active=is_delivered success=True %}
+            </div>
+            {% endwith %}
+        </div>
+    </div>
+</div>
+
+<style>
+.tracking-timeline { display:flex; flex-wrap:wrap; gap:0; }
+.tracking-step { flex:1; min-width:80px; text-align:center; position:relative; }
+.tracking-step::before {
+    content:''; position:absolute; top:20px; left:50%; right:-50%;
+    height:3px; background:#e9ecef; z-index:0;
+}
+.tracking-step:last-child::before { display:none; }
+.step-icon {
+    width:42px; height:42px; border-radius:50%; display:inline-flex;
+    align-items:center; justify-content:center; font-size:1rem;
+    position:relative; z-index:1; border:3px solid #e9ecef;
+    background:white; transition:all .3s;
+}
+.tracking-step.active .step-icon { background:var(--primary-color,#4f46e5); border-color:var(--primary-color,#4f46e5); color:white; }
+.tracking-step.active::before { background:var(--primary-color,#4f46e5); }
+.tracking-step.success .step-icon { background:#a7afab; border-color:#198754; color:white; }
+.step-label { font-size:.7rem; margin-top:6px; color:#6c757d; }
+.tracking-step.active .step-label { color:var(--primary-color,#4f46e5); font-weight:600; }
+.tracking-step.success .step-label { color:#198754; font-weight:700; }
+</style>
+{% endwith %}

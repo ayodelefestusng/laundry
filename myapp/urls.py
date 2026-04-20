@@ -70,11 +70,13 @@ urlpatterns = [
     path('htmx/edit_item/<int:item_id>/', views.htmx_edit_item, name='htmx_edit_item'),
     path('htmx/delete_item/<int:item_id>/', views.htmx_delete_item, name='htmx_delete_item'),
     path('htmx/get_order_summary/<uuid:order_id>/', views.htmx_get_order_summary, name='htmx_get_order_summary'),
+    path('htmx/track_order/', views.htmx_track_order, name='htmx_track_order'),
     # path('htmx/calculate_delivery/', views.htmx_calculate_delivery, name='htmx_calculate_delivery'),
     path('htmx/calculate_delivery/<uuid:order_id>/', views.htmx_calculate_delivery, name='htmx_calculate_delivery'),
     path('htmx/update_shipping/<uuid:order_id>/', views.htmx_update_shipping, name='htmx_update_shipping'),
     path('htmx/send_invoice/<uuid:order_id>/', views.htmx_send_invoice, name='htmx_send_invoice'),
     path('api/assign_qr_to_item/<int:item_id>/', views.api_assign_qr_to_item, name='api_assign_qr_to_item'),
+    path('reschedule/delivery/', views.reschedule_delivery, name='reschedule_delivery'),
 
 #  # HTMX endpoints
 #     path('htmx/get_services/', views.htmx_get_services, name='htmx_get_services'),

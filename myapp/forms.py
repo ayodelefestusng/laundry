@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from django.forms import widgets
 
-from .models import (Comment, CustomUser, Order, OrderItem, Package, Payment,Package, ServiceCategory
+from .models import (Comment, CustomUser, Order, OrderItem, Package, Payment, Package, ServiceCategory, Color
                      )
 
 
@@ -262,25 +262,61 @@ class OrderItemForm(forms.ModelForm):
     """
     class Meta:
         model = OrderItem
-        fields = ['package', 'name', 'color']
+        fields = ['package', 'name', 'color', 'color_custom', 'quantity']
+        widgets = {
+            'color_custom': forms.TextInput(attrs={
+                'class': 'form-control form-control-sm',
+                'placeholder': 'Describe the color...',
+            }),
+        }
 
 class AddItemForm(forms.Form):
     """
     Form for adding an item with service selection for HTMX requests.
     """
     name = forms.CharField(max_length=100, required=True)
-    color = forms.CharField(max_length=50, required=False)
+    color = forms.ModelChoiceField(
+        queryset=Color.objects.none(),
+        required=False,
+        empty_label="Select color...",
+        widget=forms.Select(attrs={'class': 'form-select color-select'})
+    )
+    color_custom = forms.CharField(
+        max_length=100, required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Describe the color (e.g. Olive Green)',
+        })
+    )
+    quantity = forms.IntegerField(
+        min_value=1, max_value=10, initial=1,
+        widget=forms.Select(
+            choices=[(i, str(i)) for i in range(1, 11)],
+            attrs={'class': 'form-select form-select-sm'}
+        )
+    )
     category = forms.ModelChoiceField(queryset=ServiceCategory.objects.all(), required=True)
     package = forms.ModelChoiceField(queryset=Package.objects.none(), required=True)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, tenant=None, **kwargs):
         super().__init__(*args, **kwargs)
+        if tenant:
+            self.fields['color'].queryset = Color.objects.filter(tenant=tenant)
         if 'category' in self.data:
             try:
                 category_id = int(self.data.get('category'))
                 self.fields['package'].queryset = Package.objects.filter(category_id=category_id).order_by('service_type')
             except (ValueError, TypeError):
-                pass  # invalid input from the client
+                pass
+
+    def clean(self):
+        cleaned_data = super().clean()
+        color = cleaned_data.get('color')
+        color_custom = cleaned_data.get('color_custom', '').strip()
+        # If no standard color chosen, require custom color text
+        if not color and not color_custom:
+            self.add_error('color_custom', 'Please select a color or describe it in the custom field.')
+        return cleaned_data
 class CommentForm(forms.ModelForm):
     """
     Form for a customer to add a comment to their order.

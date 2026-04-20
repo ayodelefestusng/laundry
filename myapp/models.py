@@ -196,6 +196,10 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     def is_hr_admin(self):
         return self.groups.filter(name="HR Admin").exists()
 
+    @property
+    def is_aggregator(self):
+        return self.groups.filter(name="Aggregator").exists()
+
 
 
 # class CustomUser1(AbstractBaseUser, PermissionsMixin):
@@ -331,7 +335,15 @@ class Tenant(models.Model):
     phone = models.CharField(max_length=20, null=True, blank=True, help_text="Primary phone for the tenant contact")
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_tenants',
+        help_text="The user (superuser/aggregator) who created this tenant."
+    )
+
     def __str__(self):
         return f"{self.name} ({self.code})"
 
@@ -447,6 +459,23 @@ class ServiceChoices(TenantModel):
     name = models.CharField(max_length=100, unique=True)
     def __str__(self):
         return self.name
+
+
+class Color(TenantModel):
+    """Per-tenant color palette for garment identification."""
+    name = models.CharField(max_length=100)
+    hex_code = models.CharField(max_length=7, default='#000000', help_text='Hex color code, e.g. #FF5733')
+
+    class Meta:
+        ordering = ['name']
+        unique_together = ('name', 'tenant')
+
+    def __str__(self):
+        return f"{self.name} ({self.hex_code})"
+
+    @property
+    def color_display(self):
+        return self.name
    
 
 
@@ -522,6 +551,8 @@ class Order(TenantModel):
     special_instructions = models.TextField(blank=True, null=True)
     total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     estimated_delivery_date = models.DateField(null=True, blank=True)
+    reschedule_date = models.DateTimeField(null=True, blank=True, help_text="Customer-requested reschedule date for delivery")
+    delivered_date = models.DateTimeField(null=True, blank=True, help_text="Actual date/time the order was delivered")
     notes = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -634,17 +665,37 @@ class OrderItem(TenantModel):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     package = models.ForeignKey(Package, on_delete=models.CASCADE, related_name='order_items')
     name = models.CharField(max_length=100)
-    color = models.CharField(max_length=50, blank=True)
+    color = models.ForeignKey(
+        'Color', on_delete=models.SET_NULL, null=True, blank=True, related_name='order_items'
+    )
+    color_custom = models.CharField(max_length=100, blank=True, null=True, help_text="Custom color name when 'Other' is selected")
+    quantity = models.PositiveIntegerField(default=1, help_text="Number of this item")
     price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     delivery_time_days = models.IntegerField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=WORKFLOW_STAGES, default='pending_dispatch')
     qr_code = models.CharField(max_length=100, unique=True, blank=True, null=True)
-    
+
     qr_initiator = models.ForeignKey(
         CustomUser, on_delete=models.SET_NULL, related_name="qr_assigned_items", null=True, blank=True, limit_choices_to={'is_staff': True}
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    @property
+    def color_display(self):
+        """Returns the display name for the item's color."""
+        if self.color_custom:
+            return self.color_custom
+        if self.color:
+            return self.color.name
+        return '—'
+
+    @property
+    def effective_price(self):
+        """Price × quantity."""
+        if self.price and self.quantity:
+            return self.price * self.quantity
+        return self.price or Decimal('0.00')
     def save(self, *args, **kwargs):
         try:
             # Atomic transaction to ensure data integrity during the double save

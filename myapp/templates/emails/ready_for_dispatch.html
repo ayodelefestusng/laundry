@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if is_early %}🎉 Ahead of Schedule!{% else %}Your Order is Ready{% endif %} — {{ order.order_code }}</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background:#f4f6fb; color:#1e1e2e; }
+        .wrapper { max-width:620px; margin:40px auto; background:#fff; border-radius:20px; overflow:hidden; box-shadow:0 8px 32px rgba(0,0,0,.1); }
+        .header { background: linear-gradient(135deg,{{ tenant_attr.primary_color|default:"#4f46e5" }},{{ tenant_attr.secondary_color|default:"#6366f1" }}); padding:40px 32px; text-align:center; color:#fff; }
+        .logo-wrap { margin-bottom:16px; }
+        .logo-wrap img { height:52px; border-radius:10px; }
+        .header h1 { font-size:1.7rem; font-weight:800; margin-bottom:8px; }
+        .header p { opacity:.9; font-size:1rem; }
+        .badge-early { display:inline-block; background:rgba(255,255,255,.25); border:1px solid rgba(255,255,255,.5); color:#fff; border-radius:50px; padding:6px 20px; font-size:.9rem; font-weight:700; margin-top:12px; letter-spacing:.5px; }
+        .body { padding:36px 32px; }
+        .alert-early { background:linear-gradient(135deg,#fff7ed,#fef3c7); border-left:5px solid #f59e0b; border-radius:12px; padding:20px 24px; margin-bottom:28px; }
+        .alert-early .emoji { font-size:2rem; }
+        .alert-early h2 { font-size:1.1rem; font-weight:800; color:#92400e; margin:8px 0 4px; }
+        .alert-early p { color:#78350f; font-size:.9rem; }
+        .summary-card { background:#f8f9ff; border-radius:14px; padding:20px 24px; margin-bottom:24px; }
+        .summary-card h3 { font-size:.85rem; text-transform:uppercase; letter-spacing:1px; color:#9ca3af; margin-bottom:14px; }
+        .summary-row { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #e5e7eb; font-size:.93rem; }
+        .summary-row:last-child { border:none; font-weight:700; font-size:1rem; }
+        .items-table { width:100%; border-collapse:collapse; font-size:.9rem; margin-bottom:24px; }
+        .items-table th { background:#f1f5f9; padding:10px 12px; text-align:left; color:#64748b; font-weight:600; }
+        .items-table td { padding:10px 12px; border-bottom:1px solid #f1f5f9; }
+        .reschedule-box { background:#f0fdf4; border:1px solid #bbf7d0; border-radius:14px; padding:24px; margin-bottom:24px; }
+        .reschedule-box h3 { font-weight:700; color:#166534; margin-bottom:6px; }
+        .reschedule-box p { color:#15803d; font-size:.9rem; margin-bottom:16px; }
+        .field-group { margin-bottom:14px; }
+        .field-group label { display:block; font-size:.83rem; font-weight:600; color:#374151; margin-bottom:5px; }
+        .field-group input { width:100%; padding:10px 14px; border:1.5px solid #d1fae5; border-radius:9px; font-size:.95rem; color:#1e1e2e; background:#fff; }
+        .btn-cta { display:block; width:100%; padding:15px; border-radius:12px; font-size:1rem; font-weight:700; text-align:center; border:none; cursor:pointer;
+                   background:linear-gradient(135deg,{{ tenant_attr.primary_color|default:"#4f46e5" }},{{ tenant_attr.secondary_color|default:"#6366f1" }}); color:#fff; text-decoration:none; }
+        .footer { background:#f8f9ff; padding:24px 32px; text-align:center; font-size:.82rem; color:#9ca3af; }
+        .color-swatch { display:inline-block; width:12px; height:12px; border-radius:3px; border:1px solid #ccc; vertical-align:middle; margin-right:4px; }
+    </style>
+</head>
+<body>
+<div class="wrapper">
+    <!-- HEADER -->
+    <div class="header">
+        {% if tenant_attr and tenant_attr.logo %}
+        <div class="logo-wrap"><img src="{{ tenant_attr.logo.url }}" alt="{{ tenant_attr.brand_name }}"></div>
+        {% endif %}
+        <h1>
+            {% if is_early %}🚀 Delivered Ahead of Promise!{% else %}
+            Your Order is Ready for {% if order.delivery_option == "on_premise" %}Pickup{% else %}Delivery{% endif %}!
+            {% endif %}
+        </h1>
+        <p>Order #<strong>{{ order.order_code }}</strong></p>
+        {% if is_early %}
+        <span class="badge-early">✨ Faster than expected!</span>
+        {% endif %}
+    </div>
+
+    <div class="body">
+        <!-- EARLY BANNER -->
+        {% if is_early %}
+        <div class="alert-early">
+            <div class="emoji">🎉</div>
+            <h2>We're Ahead of Schedule!</h2>
+            <p>
+                We promised delivery by <strong>{{ order.estimated_delivery_date|date:"d M Y" }}</strong>,
+                but your items are <strong>ready today</strong>! That's the {{ tenant_attr.brand_name|default:"our" }} difference —
+                world-class performance, every single time.
+            </p>
+        </div>
+        {% endif %}
+
+        <p style="margin-bottom:24px;">
+            Dear <strong>{{ order.customer_name|default:order.customer_email }}</strong>,<br><br>
+            {% if order.delivery_option == "on_premise" %}
+            Great news! Your laundry items are clean, fresh and <strong>ready for pickup</strong> at our facility.
+            {% else %}
+            Great news! Your laundry items are clean, fresh and on their way to you.
+            {% endif %}
+        </p>
+
+        <!-- ORDER SUMMARY -->
+        <div class="summary-card">
+            <h3>Order Summary</h3>
+            <div class="summary-row"><span>Order Code</span><strong>{{ order.order_code }}</strong></div>
+            <div class="summary-row"><span>Delivery Option</span><span>{{ order.get_delivery_option_display }}</span></div>
+            {% if order.estimated_delivery_date %}
+            <div class="summary-row"><span>Original Est. Date</span><span>{{ order.estimated_delivery_date|date:"d M Y" }}</span></div>
+            {% endif %}
+            <div class="summary-row"><span>Ready Date</span><span>{{ ready_date|date:"d M Y" }}</span></div>
+            <div class="summary-row"><span>Items Total</span><strong>&#8358;{{ order.total_price|floatformat:2 }}</strong></div>
+        </div>
+
+        <!-- ITEMS TABLE -->
+        {% if order.items.exists %}
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Package</th>
+                    <th>Qty</th>
+                    <th style="text-align:right;">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in order.items.all %}
+                <tr>
+                    <td>{{ item.name }}
+                        {% if item.color %}<span class="color-swatch" style="background:{{ item.color.hex_code }};"></span>{% endif %}
+                        <small style="color:#9ca3af;">{{ item.color_display }}</small>
+                    </td>
+                    <td>{{ item.package.service_type.name|default:"—" }}</td>
+                    <td style="text-align:center;">{{ item.quantity }}</td>
+                    <td style="text-align:right;">&#8358;{{ item.effective_price|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+
+        <!-- RESCHEDULE BOX -->
+        <div class="reschedule-box">
+            <h3>📅 Want a Different Delivery Date?</h3>
+            <p>
+                Select a preferred date and time below (Monday–Saturday, 10am–4pm).
+                We'll do our best to accommodate your schedule.
+            </p>
+            <form action="{{ reschedule_url }}" method="POST" style="text-align:left;">
+                <div class="field-group">
+                    <label>Preferred Date</label>
+                    <input type="date" name="new_date" min="{{ min_date }}" max="{{ max_date }}" required>
+                </div>
+                <div class="field-group">
+                    <label>Preferred Time (10am – 4pm)</label>
+                    <input type="time" name="new_time" min="10:00" max="16:00" value="10:00" required>
+                </div>
+                <button type="submit" class="btn-cta" style="margin-top:8px;">Confirm New Delivery Date</button>
+            </form>
+        </div>
+
+        <p style="font-size:.9rem; color:#6b7280; text-align:center;">
+            Questions? Reply to this email or contact us on WhatsApp:
+            <a href="https://wa.me/{{ tenant_attr.whatsapp_number|default:'+2349068770054' }}" style="color:{{ tenant_attr.primary_color|default:'#4f46e5' }};">{{ tenant_attr.whatsapp_number|default:"+2349068770054" }}</a>
+        </p>
+    </div>
+
+    <div class="footer">
+        <p>© {{ ready_date|date:"Y" }} {{ tenant_attr.brand_name|default:"Laundry Service" }}. All rights reserved.</p>
+        <p style="margin-top:4px;">{{ tenant_attr.address|default:"" }}</p>
+    </div>
+</div>
+
+<script>
+// Disable Sundays in the date picker
+document.addEventListener('DOMContentLoaded', function() {
+    var dateInput = document.querySelector('input[type="date"]');
+    if (!dateInput) return;
+    dateInput.addEventListener('input', function() {
+        var d = new Date(this.value);
+        if (d.getDay() === 0) {  // Sunday
+            this.setCustomValidity('Sundays are not available. Please choose another day.');
+            this.reportValidity();
+            this.value = '';
+        } else {
+            this.setCustomValidity('');
+        }
+    });
+});
+</script>
+</body>
+</html>

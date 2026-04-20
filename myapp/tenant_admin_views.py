@@ -19,6 +19,7 @@ MODEL_MAP = {
     'tenant': 'myapp.Tenant',
     'tenantattribute': 'myapp.TenantAttribute',
     'user': 'myapp.CustomUser',
+    'color': 'myapp.Color',
 }
 
 class TenantAdminMixin(LoginRequiredMixin, UserPassesTestMixin):
@@ -27,14 +28,18 @@ class TenantAdminMixin(LoginRequiredMixin, UserPassesTestMixin):
     Dynamically loads the Model based on the URL parameter.
     Filters QuerySets securely to only elements owned by request.tenant.
     """
+    def _is_aggregator(self):
+        return self.request.user.groups.filter(name='Aggregator').exists()
+
     def test_func(self):
         logger.info(f"TenantAdminMixin test_func: {self.request.user}")
         model_name = self.kwargs.get('model_name')
         if model_name == 'tenant':
-            return self.request.user.is_superuser
+            # Superuser: full access | Aggregator: can list/create their own tenants
+            return self.request.user.is_superuser or self._is_aggregator()
         if model_name in ['tenantattribute', 'user']:
             logger.info(f"TenantAdmin test_func2: {self.request.user.is_staff}")
-            logger.info(f"TenantAdmin test_func3: {self.request.user.groups.filter(name='Partner').exists()}")    
+            logger.info(f"TenantAdmin test_func3: {self.request.user.groups.filter(name='Partner').exists()}")
             return self.request.user.is_superuser or (
                 self.request.user.is_staff and
                 hasattr(self.request, 'tenant') and
@@ -53,7 +58,15 @@ class TenantAdminMixin(LoginRequiredMixin, UserPassesTestMixin):
     
     def get_queryset(self):
         model = self.get_model()
+        model_name = self.kwargs.get('model_name')
         qs = model.objects.all()
+
+        if model_name == 'tenant':
+            # Aggregators see only tenants they created; superusers see all
+            if not self.request.user.is_superuser:
+                qs = qs.filter(created_by=self.request.user)
+            return qs
+
         # Enforce Tenant filtering if the model has a tenant field relation
         if hasattr(model, 'tenant'):
             qs = qs.filter(tenant=self.request.tenant)
@@ -130,6 +143,8 @@ class TenantGenericFormMixin:
         
         if model_name == 'tenant' and is_create:
             logger.info(f"TenantAdminMixin form_valid 2: {self.request.user}")
+            # Stamp created_by with the current user
+            form.instance.created_by = self.request.user
             # Create a user with tenant email, set is_staff=True
             tenant = self.object
             email = tenant.email if tenant.email else f"admin@{tenant.subdomain}.com"
@@ -197,7 +212,17 @@ class TenantGenericCreateView(TenantAdminMixin, TenantGenericFormMixin, CreateVi
 
 class TenantGenericUpdateView(TenantAdminMixin, TenantGenericFormMixin, UpdateView):
     template_name = 'tenant_admin_form.html'
-    
+
+    def test_func(self):
+        """Aggregators can only edit tenants they created."""
+        if not super().test_func():
+            return False
+        model_name = self.kwargs.get('model_name')
+        if model_name == 'tenant' and not self.request.user.is_superuser:
+            obj = self.get_object()
+            return obj.created_by == self.request.user
+        return True
+
     def form_valid(self, form):
         logger.info(f"TenantAdminMixin form_update: {self.request.user}")
         self._was_update = True
@@ -205,6 +230,17 @@ class TenantGenericUpdateView(TenantAdminMixin, TenantGenericFormMixin, UpdateVi
 
 class TenantGenericDeleteView(TenantAdminMixin, DeleteView):
     template_name = 'tenant_admin_confirm_delete.html'
+
+    def test_func(self):
+        """Aggregators can only delete tenants they created."""
+        if not super().test_func():
+            return False
+        model_name = self.kwargs.get('model_name')
+        if model_name == 'tenant' and not self.request.user.is_superuser:
+            obj = self.get_object()
+            return obj.created_by == self.request.user
+        return True
+
     def get_success_url(self):
         logger.info(f"TenantAdminMixin get_success_url: {self.request.user}")
         return reverse_lazy('laundry:tenant_admin_list', kwargs={'model_name': self.kwargs.get('model_name')})

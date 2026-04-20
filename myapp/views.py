@@ -47,9 +47,9 @@ from .forms import (
 AddItemForm, CommentForm, OrderForm, OrderItemForm,CustomUserChangeForm,RegistrationForm,
 CustomUserCreationForm,PasswordSetupForm,PasswordChangeForm,PasswordSetupForm,CustomAuthenticationForm,
 ) 
-from .models import(Comment, Order, OrderItem, Package, ServiceCategory, Payment, CustomUser, PremiumClient, QR, WorkflowHistory, WorkflowInstance, WorkflowStage, Tenant,
+from .models import(Comment, Order, OrderItem, Package, ServiceCategory, Payment, CustomUser, PremiumClient, QR, WorkflowHistory, WorkflowInstance, WorkflowStage, Tenant, Color,
 
-    ) 
+    )
 from .utils import is_admin, analyze_sentiment, verify_qr_token, get_signed_token, generate_qr_base64
 from myapp.models import State, Town, Cluster
 from .models import log_with_context
@@ -244,6 +244,8 @@ def customer_order(request):
     tenant = getattr(request, 'tenant', None)
     logger.info(f"User {request} is Aleoeoekeekek an order.")
     logger.info(f"Tenant context: {tenant}")
+    logger.info(f"Request POST data: {request.POST.dict()}")
+  
     if request.method == 'POST':
         # form = OrderForm(request.POST, user=request.user)
         form = OrderForm(request.POST, user=request.user, tenant=tenant)
@@ -252,7 +254,11 @@ def customer_order(request):
             try:
                 order = form.save(commit=False)
                 order.tenant = tenant
-                
+                shipping_price = request.POST.get('shipping_price', '0.00')
+                logger.info(f"Received shipping price from form: {shipping_price}")
+                order.shipping_price = Decimal(shipping_price)
+
+
                 email = form.cleaned_data.get('customer_email')
                 user = request.user
                 logger.info(f"User {user} is placing an order with email: {email}")
@@ -423,6 +429,9 @@ def admin_review_request(request, order_id):
         'packages': packages,
         'categories': categories,
         'states': states,
+        'colors': Color.objects.filter(tenant=tenant),
+        'quantity_range': range(1, 11),
+        'google_maps_api_key': GOOGLE_MAPS_API_KEY,
     }
     return render(request, 'admin_review_request.html', context)
 
@@ -815,41 +824,36 @@ def htmx_add_item(request, order_id):
     """
     logger.info(f"User {request.user} is adding item to order {order_id}.")
     order = get_object_or_404(Order, id=order_id)
-    form = AddItemForm(request.POST)
-   
-
+    tenant = getattr(request, 'tenant', None)
+    logger.info(f"Tenant context: {tenant} - Request POST: {request.POST}")
+    form = AddItemForm(request.POST, tenant=tenant)
+    logger.info(f"Form data: {request.POST}")
     if form.is_valid():
         try:
             package = form.cleaned_data['package']
             name = form.cleaned_data['name']
-            color = form.cleaned_data['color']
-            
-            # Calculate price and delivery time from the selected service
-           
-            price = package.price
+            color = form.cleaned_data.get('color')  # FK or None
+            color_custom = form.cleaned_data.get('color_custom', '').strip()
+            quantity = form.cleaned_data.get('quantity', 1)
 
+            price = package.price
             delivery_time_days = package.delivery_time_days
-            
-            # Create and save the new OrderItem
+
             new_item = OrderItem.objects.create(
                 order=order,
                 package=package,
                 name=name,
                 color=color,
+                color_custom=color_custom,
+                quantity=quantity,
                 price=price,
-                delivery_time_days=delivery_time_days
+                delivery_time_days=delivery_time_days,
+                tenant=tenant,
             )
             logger.info(f"Item added successfully: {new_item}")
-            # Return the new item row to be appended to the table
-            # return render(request, 'htmx/item_table_row.html', {'item': new_item})
-        
             response = render(request, 'htmx/item_table_row.html', {'item': new_item})
             response['HX-Refresh'] = 'true'
             return response
-
-
-            # After successful creation, redirect to the same page to force a full reload
-            # return redirect('admin_review_request', order_id=order.id)
 
         except KeyError as e:
             logger.error(f"KeyError in htmx_add_item: {e}. Form data: {request.POST}")
@@ -954,31 +958,178 @@ def htmx_get_townsv1(request):
 
 def htmx_get_order_summary(request, order_id):
     """
-    Returns an updated order summary snippet.
+    Returns an updated order summary snippet (price × quantity aware).
     """
     logger.info(f"User {request.user} is getting order summary for order {order_id}.")
     order = get_object_or_404(Order, id=order_id)
-    
-    total_items = order.items.count()
-    total_price = order.items.aggregate(total=Sum('price'))['total'] or 0
-    
+
+    items = order.items.all()
+    total_items = items.count()
+    # Sum price × quantity for each item
+    items_subtotal = sum(
+        (item.price or 0) * (item.quantity or 1) for item in items
+    )
+
     # Calculate earliest possible delivery date
     delivery_date = None
-    if order.items.exists():
-        max_delivery_days = order.items.all().order_by('-delivery_time_days').first().delivery_time_days
+    if items.exists():
+        max_delivery_days = items.order_by('-delivery_time_days').first().delivery_time_days or 0
         delivery_date = order.created_at.date() + timedelta(days=max_delivery_days)
 
     summary = {
         'total_items': total_items,
-        'subtotal': total_price,
+        'subtotal': items_subtotal,
         'shipping_price': order.shipping_price,
-        'total_price': total_price + order.shipping_price,
+        'total_price': items_subtotal + order.shipping_price,
         'delivery_option': order.delivery_option,
         'delivery_date': delivery_date
     }
     logger.info(f"Order summary: {summary}")
-    context = {'summary': summary}
+    context = {'summary': summary, 'order': order}
     return render(request, 'htmx/order_summary.html', context)
+
+
+# ─────────────────────────────────────────────────────────────────
+# Task 2: Order Tracking (HTMX)
+# ─────────────────────────────────────────────────────────────────
+@require_http_methods(["GET"])
+def htmx_track_order(request):
+    """
+    Looks up an order by order_code and returns a tracking timeline partial.
+    """
+    logger.info(f"User {request.user} is tracking order {request.GET.get('order_code')}.")
+    order_code = request.GET.get('order_code', '').strip().upper()
+    tenant = getattr(request, 'tenant', None)
+
+    if not order_code:
+        logger.warning(f"User {request.user} is tracking order without an order code.") 
+        return HttpResponse('<div class="alert alert-warning">Please enter an order code.</div>')
+
+    try:
+        qs = Order.all_objects if hasattr(Order, 'all_objects') else Order.objects
+        order = qs.filter(order_code=order_code)
+        if tenant:
+            order = order.filter(tenant=tenant)
+        order = order.first()
+        if not order:
+            logger.warning(f"User {request.user} is tracking order {order_code} but order not found.")
+            return HttpResponse('<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>Order not found. Please check the code and try again.</div>')
+    except Exception as e:
+        logger.error(f"htmx_track_order error: {e}", exc_info=True)
+        return HttpResponse('<div class="alert alert-danger">Unable to find order. Please try again.</div>')
+
+    status = (order.status or '').lower()
+    context = {
+        'order': order,
+        'is_confirmed': status in ["confirmed", "in_progress", "ready_for_dispatch", "assigned_to_dispatcher", "delivered"],
+        'is_in_progress': status in ["in_progress", "ready_for_dispatch", "assigned_to_dispatcher", "delivered"],
+        'is_ready': status in ["ready_for_dispatch", "assigned_to_dispatcher", "delivered"],
+        'is_dispatched': status in ["assigned_to_dispatcher", "delivered"],
+        'is_delivered': status == "delivered",
+    }
+    logger.info(f"Order status: {status}")
+    return render(request, 'htmx/order_tracking_result.html', context)
+
+
+# ─────────────────────────────────────────────────────────────────
+# Task 4: Ready-for-Dispatch Email
+# ─────────────────────────────────────────────────────────────────
+def send_ready_for_dispatch_email(order, request):
+    """
+    Fires a branded 'ready for delivery' email to the customer with a
+    date-picker so they can reschedule if needed.
+    """
+    try:
+        tenant = order.tenant
+        tenant_attr = getattr(tenant, 'attribute', None)
+        ready_date = timezone.now().date()
+        is_early = (
+            order.estimated_delivery_date is not None
+            and ready_date < order.estimated_delivery_date
+        )
+        min_date = ready_date + timedelta(days=1)
+        max_date = ready_date + timedelta(days=10)
+
+        reschedule_url = request.build_absolute_uri(
+            reverse('laundry:reschedule_delivery')
+            + f'?order_code={order.order_code}&token={order.qr_secure_token or ""}'
+        )
+
+        context = {
+            'order': order,
+            'tenant_attr': tenant_attr,
+            'is_early': is_early,
+            'ready_date': ready_date,
+            'min_date': min_date.isoformat(),
+            'max_date': max_date.isoformat(),
+            'reschedule_url': reschedule_url,
+        }
+        html_content = render_to_string('emails/ready_for_dispatch.html', context)
+        text_content = strip_tags(html_content)
+
+        msg = EmailMultiAlternatives(
+            subject=f"{'🎉 Delivered Ahead of Schedule! ' if is_early else ''}Your Order is Ready for {'Pickup' if order.delivery_option == 'on_premise' else 'Delivery'} — {order.order_code}",
+            body=text_content,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[order.customer_email],
+        )
+        msg.attach_alternative(html_content, "text/html")
+        msg.send()
+        logger.info(f"Ready-for-dispatch email sent for Order {order.order_code}. Early={is_early}")
+    except Exception as e:
+        logger.error(f"Failed to send ready_for_dispatch email for Order {order.order_code}: {e}", exc_info=True)
+
+
+@csrf_exempt
+def reschedule_delivery(request):
+    """
+    Handles customer delivery reschedule requests from the email link.
+    Authenticated via order_code + qr_secure_token (no login required).
+    """
+    order_code = request.GET.get('order_code', '').strip().upper()
+    token = request.GET.get('token', '').strip()
+
+    order = None
+    if order_code:
+        try:
+            order = Order.all_objects.filter(order_code=order_code).first() if hasattr(Order, 'all_objects') else Order.objects.filter(order_code=order_code).first()
+        except Exception:
+            pass
+
+    # Validate token
+    if not order or not order.qr_secure_token or order.qr_secure_token != token:
+        return render(request, 'reschedule_invalid.html', {'message': 'Invalid or expired reschedule link.'})
+
+    if request.method == 'POST':
+        new_date_str = request.POST.get('new_date', '')
+        new_time_str = request.POST.get('new_time', '10:00')
+        try:
+            from datetime import datetime
+            new_dt = datetime.strptime(f"{new_date_str} {new_time_str}", "%Y-%m-%d %H:%M")
+            import pytz
+            tz = pytz.timezone(settings.TIME_ZONE)
+            order.reschedule_date = tz.localize(new_dt)
+            order.save(update_fields=['reschedule_date', 'updated_at'])
+            messages.success(request, f"Delivery rescheduled to {new_date_str} at {new_time_str}.")
+            logger.info(f"Order {order.order_code} rescheduled to {order.reschedule_date} by customer.")
+            return render(request, 'reschedule_success.html', {'order': order})
+        except ValueError as e:
+            logger.error(f"Reschedule date parse error for Order {order_code}: {e}")
+            messages.error(request, "Invalid date/time selected. Please try again.")
+
+    ready_date = order.reschedule_date or timezone.now().date()
+    from datetime import date as dt_date
+    if isinstance(ready_date, dt_date):
+        min_date = (ready_date + timedelta(days=1)).isoformat() if isinstance(ready_date, type(timezone.now().date())) else ready_date.isoformat()
+    else:
+        min_date = (ready_date.date() + timedelta(days=1)).isoformat()
+
+    return render(request, 'reschedule_delivery.html', {
+        'order': order,
+        'min_date': min_date,
+        'max_date': (timezone.now().date() + timedelta(days=10)).isoformat(),
+    })
+
 
 @csrf_exempt
 def get_paypal_access_token():
@@ -1167,9 +1318,9 @@ def htmx_send_invoice(request, order_id):
         logger.error(f"User {request.user} tried to send an invoice for an empty order.")
         return HttpResponse("No items to invoice.", status=400)
 
-    # Calculate totals
-    items_total = sum(item.price for item in items)
-    max_delivery_days = max(item.delivery_time_days for item in items) if items else 0
+    # Calculate totals (price × quantity)
+    items_total = sum((item.price or 0) * (item.quantity or 1) for item in items)
+    max_delivery_days = max((item.delivery_time_days or 0) for item in items) if items else 0
     estimated_delivery_date = timezone.now().date() + timedelta(days=max_delivery_days)
     
     # Validation & Shipping Cost logic
@@ -1705,6 +1856,11 @@ def accept_item(request, item_id):
         item.save()
         to_stage_name = 'Completed'
         messages.success(request, "Item workflow completed.")
+
+        # Task 4 Automation: If the parent order is now ready, notify the customer
+        order.refresh_from_db()
+        if order.status == 'ready_for_dispatch':
+            send_ready_for_dispatch_email(order, request)
 
     WorkflowHistory.objects.create(
         item=item,

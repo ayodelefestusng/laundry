@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5" style="max-width:680px;">
+    <div class="card shadow-sm border-0 rounded-4 p-4 text-center">
+        <div style="font-size:3.5rem;">🎉</div>
+        <h3 class="fw-bold mt-3 text-success">Delivery Rescheduled!</h3>
+        <p class="text-muted">
+            Your order <strong>#{{ order.order_code }}</strong> delivery has been rescheduled to:<br>
+            <strong class="fs-5">{{ order.reschedule_date|date:"l, d F Y \a\t g:i A" }}</strong>
+        </p>
+        <p class="text-muted small">We'll be there on time. Thank you for choosing us!</p>
+    </div>
+</div>
+{% endblock %}

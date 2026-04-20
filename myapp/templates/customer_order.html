@@ -240,9 +240,26 @@
 <div class="container pb-5">
     <div class="row justify-content-center">
         <div class="col-lg-8">
-            <div class="order-card" id="order-form-container">
-                <h3 class="fw-bold mb-4 text-center">Schedule A Pickup or an Order</h3>
-                <form method="post" action="{% url 'laundry:customer_order' %}" id="order-form">
+            <!-- Tabs Navigation -->
+            <ul class="nav nav-pills nav-justified mb-4 p-1 bg-light rounded-pill shadow-sm" id="orderTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active rounded-pill fw-bold py-3" id="book-tab" data-bs-toggle="pill" data-bs-target="#book-pane" type="button" role="tab">
+                        <i class="fas fa-calendar-plus me-2"></i>Schedule A Pickup
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link rounded-pill fw-bold py-3" id="track-tab" data-bs-toggle="pill" data-bs-target="#track-pane" type="button" role="tab">
+                        <i class="fas fa-search-location me-2"></i>Track My Order
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="orderTabsContent">
+                <!-- Tab 1: Book Order -->
+                <div class="tab-pane fade show active" id="book-pane" role="tabpanel">
+                    <div class="order-card" id="order-form-container">
+                        <h3 class="fw-bold mb-4 text-center">Schedule A Pickup or an Order</h3>
+                        <form method="post" action="{% url 'laundry:customer_order' %}" id="order-form">
 
                     {% csrf_token %}
                     <div class="row g-4">
@@ -293,7 +310,47 @@
                             <span class="me-2">Book An Order Directly</span> <i class="fas fa-arrow-right ms-2 fs-5"></i>
                         </button>
                     </div>
-                </form>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Track Order -->
+                <div class="tab-pane fade" id="track-pane" role="tabpanel">
+                    <div class="order-card p-4">
+                        <h3 class="fw-bold mb-4 text-center">Track Your Order</h3>
+                        <div class="row justify-content-center">
+                            <div class="col-md-10">
+                                <p class="text-muted text-center mb-4">Enter your unique order code below to see the real-time status of your laundry.</p>
+                                <div class="input-group mb-4 shadow-sm border rounded-pill overflow-hidden">
+                                    <span class="input-group-text bg-white border-0 px-4">
+                                        <i class="fas fa-barcode text-primary"></i>
+                                    </span>
+                                    <input type="text" name="order_code" id="track-order-code" class="form-control border-0 py-3" placeholder="Enter Order Code (e.g. DMC-XXXX)" style="text-transform: uppercase;">
+                                    <button class="btn btn-primary px-4 fw-bold" 
+                                            hx-get="{% url 'laundry:htmx_track_order' %}" 
+                                            hx-include="#track-order-code" 
+                                            hx-target="#tracking-result-container"
+                                            hx-indicator="#tracking-spinner">
+                                        Track <i class="fas fa-search ms-2"></i>
+                                    </button>
+                                </div>
+
+                                <div id="tracking-spinner" class="htmx-indicator text-center my-4">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <p class="text-muted small mt-2">Searching for your order...</p>
+                                </div>
+
+                                <div id="tracking-result-container">
+                                    <div class="text-center py-5 text-muted bg-light rounded-4 opacity-75">
+                                        <i class="fas fa-search fa-3x mb-3"></i>
+                                        <p>Your tracking results will appear here.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

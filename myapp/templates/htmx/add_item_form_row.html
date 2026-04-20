@@ -1,7 +1,7 @@
 <tr>
     <td>
-        <select 
-            name="category" 
+        <select
+            name="category"
             id="id_category"
             hx-get="{% url 'laundry:htmx_get_package_options' %}"
             hx-target="#id_package"
@@ -10,7 +10,6 @@
             class="form-select select2"
             hx-on:htmx:after-swap="setTimeout(function(){ $('#id_package').select2({width: '100%'}); }, 50)"
         >
-
             <option value="" selected disabled>Select Category</option>
             {% for category in categories %}
                 <option value="{{ category.id }}">{{ category.name }}</option>
@@ -18,8 +17,8 @@
         </select>
     </td>
     <td>
-        <select 
-            name="package" 
+        <select
+            name="package"
             id="id_package"
             hx-get="{% url 'laundry:htmx_get_package_details' %}"
             hx-target="#price-delivery-details"
@@ -33,10 +32,63 @@
     <td class="align-middle">
         <input type="text" name="name" class="form-control" placeholder="Item Name e.g. Shirt" required>
     </td>
-    <td class="align-middle">
-        <input type="text" name="color" class="form-control" placeholder="Color e.g. Blue" required>
+
+    {# ── Color cell ───────────────────────────────────────────────────── #}
+    <td class="align-middle" style="min-width:180px;">
+        <select name="color" id="id_color" class="form-select color-select mb-1">
+            <option value="">Select color…</option>
+            {% for c in colors %}
+                <option value="{{ c.id }}" data-hex="{{ c.hex_code }}">{{ c.name }}</option>
+            {% endfor %}
+            <option value="other">Other / Custom…</option>
+        </select>
+        <input
+            type="text"
+            name="color_custom"
+            id="id_color_custom"
+            class="form-control form-control-sm mt-1"
+            placeholder="Describe color…"
+            style="display:none;"
+        >
     </td>
-    <td colspan="2" id="price-delivery-details">    
-        {#  N/A<br>N/A  #}
+
+    {# ── Quantity cell ────────────────────────────────────────────────── #}
+    <td class="align-middle" style="min-width:80px;">
+        <select name="quantity" id="id_quantity" class="form-select form-select-sm">
+            {% for i in quantity_range %}
+                <option value="{{ i }}" {% if i == 1 %}selected{% endif %}>{{ i }}</option>
+            {% endfor %}
+        </select>
+    </td>
+
+    {# ── Price / Delivery placeholder ─────────────────────────────────── #}
+    <td id="price-delivery-details" class="align-middle text-muted small">
     </td>
 </tr>
+
+<script>
+(function () {
+    // Color swatch rendering in Select2
+    function formatColorOption(option) {
+        if (!option.id) return option.text;
+        var hex = $(option.element).data('hex');
+        if (!hex) return option.text;
+        return $('<span><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:' + hex + ';border:1px solid #ccc;margin-right:6px;vertical-align:middle;"></span>' + option.text + '</span>');
+    }
+
+    $('#id_color').select2({
+        width: '100%',
+        placeholder: 'Select color…',
+        allowClear: true,
+        templateResult: formatColorOption,
+        templateSelection: formatColorOption
+    });
+
+    // Show/hide custom color input
+    $('#id_color').on('select2:select select2:unselect select2:clear', function () {
+        var val = $(this).val();
+        $('#id_color_custom').toggle(val === 'other').prop('required', val === 'other');
+        this.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+})();
+</script>

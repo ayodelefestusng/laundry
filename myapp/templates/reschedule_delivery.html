@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5" style="max-width: 600px;">
+    <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+        <div class="card-header bg-primary text-white p-4">
+            <h4 class="mb-1 fw-bold"><i class="fas fa-calendar-alt me-2"></i>Reschedule Delivery</h4>
+            <p class="mb-0 small opacity-75">Order #{{ order.order_code }}</p>
+        </div>
+        <div class="card-body p-4">
+            <div class="alert alert-info border-0 rounded-3 mb-4">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-info-circle fa-2x me-3"></i>
+                    <div>
+                        <h6 class="fw-bold mb-1">Your order is ready!</h6>
+                        <p class="mb-0 small">Please select a preferred date and time for us to deliver your laundry.</p>
+                    </div>
+                </div>
+            </div>
+
+            <form method="POST">
+                {% csrf_token %}
+                <div class="mb-4">
+                    <label class="form-label fw-bold small text-uppercase text-muted">Select Date</label>
+                    <input type="date" name="new_date" id="reschedule-date" class="form-control form-control-lg rounded-3 shadow-sm"
+                           min="{{ min_date }}" max="{{ max_date }}" required>
+                    <div id="date-helper" class="form-text mt-2">Delivery available Monday to Saturday.</div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold small text-uppercase text-muted">Select Time Slot</label>
+                    <select name="new_time" class="form-select form-select-lg rounded-3 shadow-sm" required>
+                        <option value="" disabled selected>Choose a time...</option>
+                        <option value="10:00">10:00 AM</option>
+                        <option value="11:00">11:00 AM</option>
+                        <option value="12:00">12:00 PM</option>
+                        <option value="13:00">01:00 PM</option>
+                        <option value="14:00">02:00 PM</option>
+                        <option value="15:00">03:00 PM</option>
+                        <option value="16:00">04:00 PM</option>
+                    </select>
+                    <div class="form-text mt-2 text-muted small">Available slots between 10 AM and 4 PM.</div>
+                </div>
+
+                <div class="mt-5">
+                    <button type="submit" class="btn btn-primary btn-lg w-100 rounded-pill fw-bold shadow-sm p-3">
+                        Confirm Reschedule <i class="fas fa-share-square ms-2"></i>
+                    </button>
+                    <div class="text-center mt-3">
+                        <p class="text-muted small mb-0">Need help? <a href="https://wa.me/{{ tenant_whatsapp_number|default:'+2349068770054' }}" class="text-decoration-none">Contact Support</a></p>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dateInput = document.getElementById('reschedule-date');
+    if (dateInput) {
+        dateInput.addEventListener('change', function() {
+            const day = new Date(this.value).getUTCDay();
+            if (day === 0) { // 0 is Sunday
+                alert('Delivery is not available on Sundays. Please select another day.');
+                this.value = '';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}
