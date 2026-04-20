@@ -896,10 +896,13 @@ def htmx_edit_item(request, item_id):
         logger.info(f"User {request.user} is getting item {item_id} for editing.")
         form = OrderItemForm(instance=item)
         all_categories = ServiceCategory.objects.all()
+        tenant = getattr(request, "tenant", None)
         return render(request, 'htmx/edit_item_form.html', {
             'form': form, 
             'item': item,
-            'all_categories': all_categories
+            'all_categories': all_categories,
+            'colors': Color.objects.filter(tenant=tenant),
+            'quantity_range': range(1, 11)
         })
 
 

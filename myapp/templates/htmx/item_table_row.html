@@ -18,15 +18,15 @@
     <td class="text-center"><span class="badge rounded-pill bg-light text-primary border px-3">{{ item.quantity }}</span></td>
     <td class="text-end fw-bold text-success fs-5">₦{{ item.effective_price|intcomma }}</td>
     <td class="text-end">
-        <div class="btn-group btn-group-sm">
-            <button class="btn btn-outline-info border-0 hover-lift"
+        <div class="btn-group shadow-sm rounded-pill overflow-hidden">
+            <button class="btn btn-info text-white px-3 border-0 hover-lift"
                 hx-get="{% url 'laundry:htmx_edit_item' item.id %}"
                 hx-target="#item-row-{{ item.id }}"
                 hx-swap="outerHTML"
                 title="Edit Item">
                 <i class="fas fa-edit"></i>
             </button>
-            <button class="btn btn-outline-danger border-0 hover-lift"
+            <button class="btn btn-danger text-white px-3 border-0 hover-lift"
                 hx-delete="{% url 'laundry:htmx_delete_item' item.id %}"
                 hx-confirm="Remove this item ({{ item.name }}) from the order?"
                 hx-target="#item-row-{{ item.id }}"

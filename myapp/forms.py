@@ -258,17 +258,70 @@ class OrderForm(forms.ModelForm):
 
 class OrderItemForm(forms.ModelForm):
     """
-    Form for adding a single item to an order.
+    Form for editing an existing item.
     """
+    color = forms.ChoiceField(
+        choices=[],
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select color-select-styled'})
+    )
+    quantity = forms.IntegerField(
+        min_value=1, max_value=10,
+        widget=forms.Select(
+            choices=[(i, str(i)) for i in range(1, 11)],
+            attrs={'class': 'form-select shadow-sm'}
+        )
+    )
+
     class Meta:
         model = OrderItem
         fields = ['package', 'name', 'color', 'color_custom', 'quantity']
         widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
             'color_custom': forms.TextInput(attrs={
                 'class': 'form-control form-control-sm',
-                'placeholder': 'Describe the color...',
+                'placeholder': 'Describe color...',
             }),
         }
+
+    def __init__(self, *args, **kwargs):
+        # We need tenant context for color queryset
+        tenant = None
+        if 'instance' in kwargs and kwargs['instance']:
+            tenant = kwargs['instance'].tenant
+        
+        super().__init__(*args, **kwargs)
+        
+        if tenant:
+            color_choices = [('', 'Select color...')]
+            color_choices += [(str(c.id), c.name) for c in Color.objects.filter(tenant=tenant)]
+            color_choices.append(('other', 'Other / Custom...'))
+            self.fields['color'].choices = color_choices
+            
+            # Initial value for color if instance exists
+            if self.instance and self.instance.color:
+                self.fields['color'].initial = str(self.instance.color.id)
+            elif self.instance and self.instance.color_custom:
+                self.fields['color'].initial = 'other'
+
+    def clean(self):
+        cleaned_data = super().clean()
+        color_val = cleaned_data.get('color')
+        color_custom = cleaned_data.get('color_custom', '').strip()
+
+        # Resolve the Color object
+        color_obj = None
+        if color_val and color_val != 'other':
+            try:
+                color_obj = Color.objects.get(id=int(color_val))
+            except (ValueError, Color.DoesNotExist):
+                color_obj = None
+        
+        if not color_obj and not color_custom:
+            self.add_error('color_custom', 'Please select a color or describe it in the custom field.')
+
+        cleaned_data['color'] = color_obj
+        return cleaned_data
 
 class AddItemForm(forms.Form):
     """

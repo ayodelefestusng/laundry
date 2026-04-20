@@ -1,6 +1,6 @@
-<tr id="item-row-{{ item.id }}" hx-target="this" hx-swap="outerHTML">
-    <td>
-        <!-- Category selection with HTMX to dynamically load services -->
+<tr id="item-row-{{ item.id }}" class="align-middle bg-white shadow-sm rounded-4" hx-target="this" hx-swap="outerHTML">
+    <td style="width: 15%;">
+        <label class="small text-muted mb-1 d-block fw-semibold">Category</label>
         <select 
             name="category" 
             id="edit-category-{{ item.id }}"
@@ -8,7 +8,7 @@
             hx-target="#edit-service-{{ item.id }}"
             hx-trigger="change"
             hx-swap="innerHTML"
-            class="form-select"
+            class="form-select select2-edit shadow-none"
         >
             <option value="">---------</option>
             {% for category in all_categories %}
@@ -16,62 +16,99 @@
             {% endfor %}
         </select>
     </td>
-    <td>
-        <!-- Service selection, dynamically loaded -->
+    <td style="width: 20%;">
+        <label class="small text-muted mb-1 d-block fw-semibold">Service Type</label>
         <select 
             name="package" 
             id="edit-service-{{ item.id }}"
             hx-get="{% url 'laundry:htmx_get_package_details' %}"
-            hx-target="#edit-price-delivery-details-{{ item.id }}"
+            hx-target="#edit-price-details-{{ item.id }}"
             hx-trigger="change"
             hx-swap="innerHTML"
             hx-include="#edit-category-{{ item.id }}, #edit-service-{{ item.id }}"
-            class="form-select"
+            class="form-select select2-edit shadow-none"
         >
-            <option value="{{ item.package.id }}">{{ item.package.get_service_type_display }}</option>
+            <option value="{{ item.package.id }}">{{ item.package.service_type.name }}</option>
         </select>
     </td>
-    <td>
-        <!-- Item name input -->
-        <input 
-            type="text" 
-            name="name" 
-            value="{{ item.name }}"
-            class="form-control"
-        >
+    <td style="width: 20%;">
+        <label class="small text-muted mb-1 d-block fw-semibold">Item Name</label>
+        <input type="text" name="name" value="{{ item.name }}" class="form-control shadow-none">
     </td>
-    <td>
-        <!-- Item color input -->
-        <input 
-            type="text" 
-            name="color" 
-            value="{{ item.color }}"
-            class="form-control"
-        >
+    <td style="width: 20%;">
+        <label class="small text-muted mb-1 d-block fw-semibold">Color</label>
+        <select name="color" id="edit-color-{{ item.id }}" class="form-select color-select-edit mb-2">
+            <option value="">Select color…</option>
+            {% for c in colors %}
+                <option value="{{ c.id }}" data-hex="{{ c.hex_code }}" {% if item.color_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+            {% endfor %}
+            <option value="other" class="fw-bold text-primary" {% if item.color_custom %}selected{% endif %}>Other / Custom…</option>
+        </select>
+        <div id="edit-custom-color-field-{{ item.id }}" style="{% if not item.color_custom %}display:none;{% endif %}" class="mt-1">
+            <input type="text" name="color_custom" id="edit-color-custom-{{ item.id }}" value="{{ item.color_custom|default:'' }}" class="form-control form-control-sm border-primary-subtle" placeholder="Describe color…">
+        </div>
     </td>
-    <td colspan="2" id="edit-price-delivery-details-{{ item.id }}">
-        <!-- Price and delivery details, dynamically loaded -->
-        </strong> &#8358;{{ item.price|floatformat:2 }}<br>{{ item.delivery_time_days }} days
+    <td style="width: 10%;">
+        <label class="small text-muted mb-1 d-block fw-semibold">Qty</label>
+        <select name="quantity" class="form-select shadow-none">
+            {% for i in "1234567891"|make_list %}{% with index=forloop.counter %}
+                <option value="{{ index }}" {% if item.quantity == index %}selected{% endif %}>{{ index }}</option>
+            {% endwith %}{% endfor %}
+        </select>
     </td>
-    <td>
-        <!-- Action buttons to save or cancel the edit -->
-        <button 
-            type="submit" 
-            class="btn btn-primary btn-sm"
-            hx-post="{% url 'laundry:htmx_edit_item' item.id %}"
-            hx-include="closest tr"
-            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-            _="on htmx:afterRequest if event.detail.xhr.status == 200 trigger refresh-summary from:body"
-        >
-            Save
-        </button>
-        <button 
-            class="btn btn-secondary btn-sm"
-            hx-get="{% url 'laundry:htmx_edit_item' item.id %}"
-            hx-target="closest tr"
-            hx-swap="outerHTML"
-        >
-            Cancel
-        </button>
+    <td id="edit-price-details-{{ item.id }}" class="smaller text-muted" style="min-width: 100px;">
+        <div class="fw-bold text-dark">₦{{ item.price|floatformat:0 }}</div>
+        <div class="smaller text-muted">{{ item.delivery_time_days }} Days</div>
+    </td>
+    <td class="text-end">
+        <div class="btn-group btn-group-sm">
+            <button type="submit" class="btn btn-primary px-3 shadow-none fw-bold"
+                hx-post="{% url 'laundry:htmx_edit_item' item.id %}"
+                hx-include="closest tr"
+                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                _="on htmx:afterRequest if event.detail.xhr.status == 200 trigger refresh-summary from:body">
+                Save
+            </button>
+            <button class="btn btn-light border px-3 shadow-none"
+                hx-get="{% url 'laundry:htmx_edit_item' item.id %}"
+                hx-target="closest tr"
+                hx-swap="outerHTML">
+                Cancel
+            </button>
+        </div>
     </td>
 </tr>
+
+<script>
+(function() {
+    const $colorSelect = $('#edit-color-{{ item.id }}');
+    const $customField = $('#edit-custom-color-field-{{ item.id }}');
+    const $customInput = $('#edit-color-custom-{{ item.id }}');
+
+    function formatEditColor(option) {
+        if (!option.id) return option.text;
+        var hex = $(option.element).data('hex');
+        if (!hex) return option.text;
+        return $('<span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' + hex + ';border:1px solid rgba(0,0,0,0.1);margin-right:6px;vertical-align:middle;"></span>' + option.text + '</span>');
+    }
+
+    $colorSelect.select2({
+        width: '100%',
+        templateResult: formatEditColor,
+        templateSelection: formatEditColor,
+        dropdownCssClass: 'shadow-lg border-0'
+    });
+
+    function toggleEditCustomColor() {
+        if ($colorSelect.val() === "other") {
+            $customField.show();
+            $customInput.prop('required', true).focus();
+        } else {
+            $customField.hide();
+            $customInput.prop('required', false);
+        }
+    }
+
+    $colorSelect.on('change', toggleEditCustomColor);
+})();
+</script>

@@ -46,12 +46,12 @@
             {% endfor %}
             <option value="other" class="fw-bold text-primary">Other / Custom…</option>
         </select>
-        <div id="custom-color-container" style="display:none;" class="mt-1 animate-fade-in">
+        <div id="custom-color-field" style="display:none;" class="mt-1 animate-fade-in">
             <input
                 type="text"
                 name="color_custom"
                 id="id_color_custom"
-                class="form-control form-control-sm border-primary-subtle"
+                class="form-control form-control-sm border-primary-subtle shadow-none"
                 placeholder="Describe color (e.g. Teal Blue)"
             >
         </div>
@@ -68,8 +68,8 @@
     </td>
 
     {# ── Price / Delivery placeholder ─────────────────────────────────── #}
-    <td id="price-delivery-details" class="align-middle text-muted small" style="min-width: 120px;">
-        <div class="p-2 border rounded-3 bg-light text-center">
+    <td id="price-delivery-details" class="align-middle text-muted small" style="min-width: 150px;">
+        <div class="p-2 border rounded-3 bg-light text-center shadow-none">
             <i class="fas fa-info-circle me-1 opacity-50"></i> <span class="smaller">Select service to see price</span>
         </div>
     </td>
@@ -79,29 +79,28 @@
 .select2-styled, .color-select-styled {
     border-radius: 8px !important;
     border: 1px solid #dee2e6 !important;
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.05) !important;
 }
-.animate-fade-in {
-    animation: fadeIn 0.3s ease-in;
-}
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-5px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+.animate-fade-in { animation: fadeIn 0.3s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 .smaller { font-size: 0.7rem; }
 </style>
 
 <script>
 (function () {
-    // Color swatch rendering in Select2
+    // Standard Color Swatch rendering
     function formatColorOption(option) {
         if (!option.id) return option.text;
         var hex = $(option.element).data('hex');
         if (!hex) return option.text;
-        return $('<span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:' + hex + ';border:1px solid rgba(0,0,0,0.1);margin-right:8px;vertical-align:middle;"></span>' + option.text + '</span>');
+        return $('<span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:' + hex + ';border:1px solid rgba(0,0,0,0.15);margin-right:8px;vertical-align:middle;"></span>' + option.text + '</span>');
     }
 
-    $('#id_color').select2({
+    const $colorSelect = $('#id_color');
+    const $customColorField = $('#custom-color-field');
+    const $customInput = $('#id_color_custom');
+
+    $colorSelect.select2({
         width: '100%',
         placeholder: 'Select color…',
         allowClear: true,
@@ -110,19 +109,17 @@
         dropdownCssClass: 'shadow-lg border-0'
     });
 
-    // Show/hide custom color input
-    $('#id_color').on('select2:select select2:unselect select2:clear change', function () {
-        var val = $(this).val();
-        const container = $('#custom-color-container');
-        const input = $('#id_color_custom');
-        
-        if (val === 'other') {
-            container.slideDown(200);
-            input.prop('required', true).focus();
+    function toggleCustomColor() {
+        if ($colorSelect.val() === "other") {
+            $customColorField.show();
+            $customInput.prop('required', true);
         } else {
-            container.slideUp(150);
-            input.prop('required', false);
+            $customColorField.hide();
+            $customInput.prop('required', false);
         }
-    });
+    }
+
+    $colorSelect.on('change', toggleCustomColor);
+    toggleCustomColor(); // Run on load
 })();
 </script>
