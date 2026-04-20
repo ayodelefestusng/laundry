@@ -1,27 +1,30 @@
-<div class="card-header bg-primary text-white">
-    <h5 class="mb-0">Order Summary</h5>
-</div>
-<div class="card-body">
-    <div class="row text-center">
-        <div class="col-md-2">
-            <h6 class="text-muted small">Items Count</h6>
-            <h5 class="fw-bold">{{ summary.total_items }}</h5>
-        </div>
-        <div class="col-md-2">
-            <h6 class="text-muted small">Subtotal</h6>
-            <h5 class="fw-bold">&#8358;{{ summary.subtotal|floatformat:2 }}</h5>
-        </div>
-        <div class="col-md-2">
-            <h6 class="text-muted small">Shipping</h6>
-            <h5 class="fw-bold text-primary">&#8358;{{ summary.shipping_price|floatformat:2 }}</h5>
-        </div>
-        <div class="col-md-3">
-            <h6 class="text-muted small text-uppercase">Grand Total</h6>
-            <h4 class="fw-bold text-success">&#8358;{{ summary.total_price|floatformat:2 }}</h4>
-        </div>
-        <div class="col-md-3">
-            <h6 class="text-muted small">Est. Delivery</h6>
-            <h5 class="fw-bold">{{ summary.delivery_date|date:"M d, Y" }}</h5>
+{% load humanize %}
+<div id="order-summary-section" class="card shadow-sm border-0 rounded-4 overflow-hidden">
+    <div class="card-header bg-gradient bg-primary text-white py-3">
+        <h5 class="mb-0 fw-bold"><i class="fas fa-receipt me-2"></i>Order Summary</h5>
+    </div>
+    <div class="card-body p-4">
+        <div class="row g-4 text-center">
+            <div class="col-md-2">
+                <h6 class="text-muted small text-uppercase fw-bold mb-1">Items</h6>
+                <h4 class="fw-bold mb-0">{{ summary.total_items }}</h4>
+            </div>
+            <div class="col-md-2">
+                <h6 class="text-muted small text-uppercase fw-bold mb-1">Subtotal</h6>
+                <h4 class="fw-bold mb-0 text-dark">₦{{ summary.subtotal|intcomma }}</h4>
+            </div>
+            <div class="col-md-2">
+                <h6 class="text-muted small text-uppercase fw-bold mb-1">Shipping</h6>
+                <h4 class="fw-bold mb-0 text-primary">₦{{ summary.shipping_price|intcomma }}</h4>
+            </div>
+            <div class="col-md-3">
+                <h6 class="text-muted small text-uppercase fw-bold mb-1 text-primary">Total Amount</h6>
+                <h3 class="fw-bold mb-0 text-success">₦{{ summary.total_price|intcomma }}</h3>
+            </div>
+            <div class="col-md-3">
+                <h6 class="text-muted small text-uppercase fw-bold mb-1">Est. Delivery</h6>
+                <h4 class="fw-bold mb-0 text-primary small">{{ summary.delivery_date|date:"M d, Y" }}</h4>
+            </div>
         </div>
     </div>
 </div>

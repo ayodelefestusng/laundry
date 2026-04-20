@@ -651,14 +651,39 @@ class Order(TenantModel):
                             logger.info(f"No workflow attached to Package for OrderItem {item.id}")
 
                 return True
-            
-            return False
-        
         except Exception as e:
-            logger.error(f"Error updating status for Order {self.id}: {str(e)}", exc_info=True)
-            return False
+                logger.error(f"Error updating status for Order {self.order_code}: {e}")
+                return False
+    def clean(self):
+        """
+        Dynamically calculate shipping price based on delivery option and recipient town.
+        """
+        super().clean()
+        if self.delivery_option == 'on_premise':
+            self.shipping_price = Decimal('0.00')
+        elif self.delivery_option == 'home_delivery':
+            # Use recipient town if available, fallback to customer town
+            target_town = self.recipient_town or self.town
+            if target_town:
+                # Find a Pricing record via a Cluster that includes this town
+                pricing = DeliveryPricing.objects.filter(
+                    cluster__towns=target_town
+                ).first()
+                if pricing:
+                    self.shipping_price = pricing.price
+                else:
+                    # Fallback or default if no pricing is found
+                    self.shipping_price = Decimal('0.00')
+            else:
+                self.shipping_price = Decimal('0.00')
+
+    def save(self, *args, **kwargs):
+        # Ensure shipping is calculated before save
+        self.clean()
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"Order #for {self.customer_email}"
+        return f"Order {self.order_code} for {self.customer_email}"
 
 
 class OrderItem(TenantModel):

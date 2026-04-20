@@ -2,230 +2,283 @@
 {% load static %}
 
 {% block content %}
-<div class="container my-5">
-    <h2 class="mb-4">Review Order #{{ order.order_code }}</h2>
-
-   
-
-  
-    <!-- Message area for success/error messages -->
-    <div id="invoice-message"></div>
-    
-    <!-- Form to add a new item -->
-    <form id="add-item-form" method="post" 
-        hx-post="{% url 'laundry:htmx_add_item' order.id %}" 
-        hx-target="#item-list" 
-        hx-swap="beforeend" 
-        _="on htmx:afterRequest if event.detail.xhr.status == 200 window.location.reload()"
-        class="card shadow-lg p-4 mb-4 border-top border-success border-4"
-    >
-        {% csrf_token %}
-        <div class="d-flex align-items-center mb-4">
-            <h5 class="mb-0 text-success fw-bold"><i class="fas fa-plus-circle me-2"></i> Add New Item</h5>
-        </div>
-        <div class="table-responsive bg-light p-3 rounded">
-            <table class="table mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th scope="col">Garment Category</th>
-                        <th scope="col">Service Type</th>
-                        <th scope="col">Garment Description</th>
-                        <th scope="col">Color</th>
-                        <th scope="col">Qty</th>
-                    </tr>
-                </thead>
-                <tbody id="add-form-container">
-                    {% include "htmx/add_item_form_row.html" %}
-                </tbody>
-            </table>
-        </div>
-        <div class="text-end">
-            <button type="submit" class="btn btn-primary mt-3">Add Item</button>
-        </div>
-    </form>
-
-
-    
-    <!-- Table to display existing items -->
-    <div class="card shadow p-4 mb-4" id="items-card" {% if not order.items.exists %}style="display:none;"{% endif %}>
-        <h5 class="mb-3">Existing Items</h5>
-        <div class="table-responsive">
-            <table class="table table-striped table-hover mb-0" id="item-table">
-                <thead class="table-light">
-                    <tr>
-                        <th scope="col">Category</th>
-                        <th scope="col">Service Type</th>
-                        <th scope="col">Item Name</th>
-                        <th scope="col">Color</th>
-                        <th scope="col">Unit Price</th>
-                        <th scope="col">Qty</th>
-                        <th scope="col">Total</th>
-                        <th scope="col">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="item-list">
-                    {% for item in order.items.all %}
-                        {% include "htmx/item_table_row.html" %}
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-    
-
-  <div class="card shadow p-4 mb-4 border-start border-primary border-4">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="text-primary mb-0"><i class="fas fa-truck me-2"></i> Shipping Details</h5>
-            <button class="btn btn-outline-primary btn-sm" id="toggle-shipping-edit" type="button">
-                <i class="fas fa-edit me-1"></i> Edit
-            </button>
-        </div>
-        
-        <!-- Display Mode -->
-        <div id="shipping-display-section" {% if not order.recipient_name and order.delivery_option == 'home_delivery' %}style="display:none;"{% endif %}>
-            <div class="row">
-                <div class="col-md-3">
-                    <label class="text-muted small">Recipient Name</label>
-                    <div class="fw-bold">{{ order.recipient_name|default:order.customer_name }}</div>
-                </div>
-                <div class="col-md-3">
-                    <label class="text-muted small">Recipient Phone</label>
-                    <div class="fw-bold">{{ order.recipient_phone|default:order.customer_phone }}</div>
-                </div>
-                <div class="col-md-3">
-                    <label class="text-muted small">Recipient Address</label>
-                    <div class="fw-bold">{{ order.recipient_address|default:order.address }}</div>
-                </div>
-                <div class="col-md-3">
-                    <label class="text-muted small">Delivery Option</label>
-                    <div class="fw-bold text-capitalize">{{ order.get_delivery_option_display }}</div>
+<div class="row">
+    <!-- Sidebar / Navigation Tabs -->
+    <div class="col-lg-3">
+        <div class="card shadow-sm border-0 rounded-4 sticky-top" style="top: 20px; z-index: 1020;">
+            <div class="card-body p-3">
+                <h6 class="text-uppercase text-muted small fw-bold mb-3 px-2">Navigation</h6>
+                <div class="nav flex-column nav-pills" id="admin-nav">
+                    <a class="nav-link mb-2 py-3 shadow-none border-start border-4 border-transparent" href="#order-summary-section">
+                        <i class="fas fa-receipt me-2"></i> Order Summary
+                    </a>
+                    <a class="nav-link mb-2 py-3 shadow-none border-start border-4 border-transparent" href="#add-item-form">
+                        <i class="fas fa-plus-circle me-2"></i> Add New Item
+                    </a>
+                    <a class="nav-link mb-2 py-3 shadow-none border-start border-4 border-transparent" href="#items-card">
+                        <i class="fas fa-tshirt me-2"></i> Existing Items
+                    </a>
+                    <a class="nav-link py-3 shadow-none border-start border-4 border-transparent" href="#shipping-section">
+                        <i class="fas fa-truck me-2"></i> Shipping Details
+                    </a>
                 </div>
             </div>
         </div>
-
-        <!-- Edit Mode -->
-        <div id="shipping-edit-section" {% if order.recipient_name or order.delivery_option != 'home_delivery' %}style="display:none;"{% endif %}>
-            <form id="shipping-update-form" 
-                hx-post="{% url 'laundry:htmx_update_shipping' order.id %}" 
-                hx-target="#order-summary-section" 
-                hx-swap="innerHTML"
-                hx-on::after-request="if (event.detail.xhr.status === 200) { 
-                    document.getElementById('toggle-shipping-edit').click(); 
-                }"
-            >
-                {% csrf_token %}
-                <div class="row g-3">
-                    <div class="col-md-12">
-                        <label class="form-label fw-bold">Delivery Option</label>
-                        <div class="d-flex gap-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="delivery_option" id="home_delivery" value="home_delivery" 
-                                    {% if order.delivery_option == 'home_delivery' or not order.delivery_option %}checked{% endif %}>
-                                <label class="form-check-label" for="home_delivery">Home Delivery</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="delivery_option" id="on_premise" value="on_premise" 
-                                    {% if order.delivery_option == 'on_premise' %}checked{% endif %}>
-                                <label class="form-check-label" for="on_premise">On-Premise Pickup</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="home-delivery-fields" class="col-md-12">
-                        <hr>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Address Source</label>
-                            <div class="d-flex gap-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="address_source" id="source_customer" value="customer" checked>
-                                    <label class="form-check-label" for="source_customer">Use Customer Address</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="address_source" id="source_shipping" value="shipping">
-                                    <label class="form-check-label" for="source_shipping">Use Different Shipping Address</label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div id="recipient-form-fields">
-                            <div class="row g-2">
-                                <div class="col-md-4">
-                                    <label class="small text-muted">Recipient Name</label>
-                                    <input type="text" name="recipient_name" class="form-control form-control-sm" value="{{ order.recipient_name|default:order.customer_name }}">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="small text-muted">Recipient Phone</label>
-                                    <input type="text" name="recipient_phone" class="form-control form-control-sm" value="{{ order.recipient_phone|default:order.customer_phone }}">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="small text-muted">Recipient Email</label>
-                                    <input type="email" name="recipient_email" class="form-control form-control-sm" value="{{ order.recipient_email|default:order.customer_email }}">
-                                </div>
-                                <div id="custom-shipping-fields" class="row g-2 w-100 m-0 p-0" style="display: none;">
-                                    <div class="col-md-6 mt-2">
-                                        <label class="small text-muted">Recipient State</label>
-                                        <select name="recipient_state" 
-                                                id="admin_recipient_state"
-                                                class="form-select form-select-sm select2" 
-                                                hx-get="{% url 'laundry:htmx_get_towns' %}" 
-                                                hx-trigger="change"
-                                                hx-target="#admin_recipient_town" 
-                                                hx-swap="innerHTML"
-                                                hx-include="#admin_recipient_state">
-                                            <option value="">Select State...</option>
-                                            {% for s in states %}
-                                                <option value="{{ s.id }}" {% if order.recipient_state_id == s.id %}selected{% endif %}>{{ s.name }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                    
-                                    <div class="col-md-6 mt-2">
-                                        <label class="small text-muted">Recipient Town</label>
-                                       <select name="recipient_town" 
-                                            id="admin_recipient_town" 
-                                            class="form-select form-select-sm select2"
-                                            hx-get="{% url 'laundry:htmx_calculate_delivery' order.id %}"
-                                            hx-trigger="change"
-                                            hx-target="#order-summary-section"
-                                            hx-swap="innerHTML"
-                                            hx-include="#admin_recipient_town">
-                                            {% if order.recipient_town %}
-                                                <option value="{{ order.recipient_town.id }}" selected>{{ order.recipient_town.name }}</option>
-                                            {% else %}
-                                                <option value="">Select a state first</option>
-                                            {% endif %}
-                                         </select>
-                                    </div>
-
-                                    
-                                   
-                                </div>
-
-                                  <div class="col-md-12 mt-2">
-                                        <label class="small text-muted">Recipient Address</label>
-                                        <input type="text" id="id_recipient_address" name="recipient_address" class="form-control form-control-sm" value="{{ order.recipient_address|default:order.address }}">
-                                    </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-12 text-end mt-2">
-                        <button type="button" class="btn btn-primary btn-sm" id="save-shipping-btn">Save Shipping Details</button>
-                    </div>
-                </div>
-            </form>
-        </div>
     </div>
 
+    <!-- Main Content Area -->
+    <div class="col-lg-9">
+        <!-- Message area for success/error messages -->
+        <div id="invoice-message"></div>
 
+        <!-- HTMX-powered Order Summary Section -->
+        <div id="order-summary-section" class="mb-5 scroll-margin-top" 
+            hx-get="{% url 'laundry:htmx_get_order_summary' order.id %}" 
+            hx-trigger="load, refresh-summary from:body"
+            hx-swap="innerHTML"
+        >
+            <!-- Content loaded via HTMX -->
+        </div>
+        
+        <!-- Form to add a new item -->
+        <form id="add-item-form" method="post" 
+            hx-post="{% url 'laundry:htmx_add_item' order.id %}" 
+            hx-target="#item-list" 
+            hx-swap="beforeend" 
+            _="on htmx:afterRequest if event.detail.xhr.status == 200 window.location.reload()"
+            class="card shadow-sm p-4 mb-5 border-0 rounded-4 scroll-margin-top"
+        >
+            {% csrf_token %}
+            <div class="d-flex align-items-center mb-4">
+                <h5 class="mb-0 text-success fw-bold"><i class="fas fa-plus-circle me-2"></i> Add New Item</h5>
+            </div>
+            <div class="table-responsive bg-light p-3 rounded-4">
+                <table class="table mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col" class="border-0">Service Selection</th>
+                            <th scope="col" class="border-0">Service Type</th>
+                            <th scope="col" class="border-0">Item Details</th>
+                            <th scope="col" class="border-0">Preferences</th>
+                            <th scope="col" class="border-0">Quantity</th>
+                        </tr>
+                    </thead>
+                    <tbody id="add-form-container">
+                        {% include "htmx/add_item_form_row.html" %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-end mt-4">
+                <button type="submit" class="btn btn-primary rounded-pill px-5 shadow-sm">
+                    <i class="fas fa-save me-2"></i>Add to Order
+                </button>
+            </div>
+        </form>
 
+        <!-- Table to display existing items -->
+        <div class="card shadow-sm border-0 rounded-4 p-4 mb-5 scroll-margin-top" id="items-card" {% if not order.items.exists %}style="display:none;"{% endif %}>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="mb-0 fw-bold"><i class="fas fa-list me-2"></i>Existing Items</h5>
+                <span class="badge bg-primary rounded-pill">{{ order.items.count }} Items</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="item-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col" class="border-0">Category</th>
+                            <th scope="col" class="border-0">Service</th>
+                            <th scope="col" class="border-0">Item Name</th>
+                            <th scope="col" class="border-0">Color</th>
+                            <th scope="col" class="border-0">Unit Price</th>
+                            <th scope="col" class="border-0 text-center">Qty</th>
+                            <th scope="col" class="border-0 text-end">Total</th>
+                            <th scope="col" class="border-0 text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="item-list">
+                        {% for item in order.items.all %}
+                            {% include "htmx/item_table_row.html" %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Shipping Section -->
+        <div id="shipping-section" class="card shadow-sm border-0 rounded-4 p-4 mb-5 scroll-margin-top border-start border-primary border-5">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="text-primary mb-0 fw-bold"><i class="fas fa-truck me-2"></i> Shipping & Delivery</h5>
+                <button class="btn btn-outline-primary btn-sm rounded-pill px-3" id="toggle-shipping-edit" type="button">
+                    <i class="fas fa-edit me-1"></i> Edit Details
+                </button>
+            </div>
+            
+            <!-- Display Mode -->
+            <div id="shipping-display-section" {% if not order.recipient_name and order.delivery_option == 'home_delivery' %}style="display:none;"{% endif %}>
+                <div class="row g-4">
+                    <div class="col-md-3">
+                        <label class="text-muted small text-uppercase fw-bold">Recipient</label>
+                        <div class="fw-bold fs-6">{{ order.recipient_name|default:order.customer_name }}</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="text-muted small text-uppercase fw-bold">Contact</label>
+                        <div class="fw-bold fs-6 text-primary">{{ order.recipient_phone|default:order.customer_phone }}</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="text-muted small text-uppercase fw-bold">Destination</label>
+                        <div class="fw-bold fs-6">{{ order.recipient_address|default:order.address }}</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="text-muted small text-uppercase fw-bold">Method</label>
+                        <div>
+                            <span class="badge {% if order.delivery_option == 'home_delivery' %}bg-primary{% else %}bg-info{% endif %} text-uppercase px-3">
+                                {{ order.get_delivery_option_display }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-     <!-- HTMX-powered Order Summary Section -->
-    <div id="order-summary-section" class="card shadow p-4 mb-4" 
-        hx-get="{% url 'laundry:htmx_get_order_summary' order.id %}" 
-        hx-trigger="load, refresh-summary from:body"
-        hx-swap="innerHTML"
-    >
+            <!-- Edit Mode -->
+            <div id="shipping-edit-section" {% if order.recipient_name or order.delivery_option != 'home_delivery' %}style="display:none;"{% endif %}>
+                <form id="shipping-update-form" 
+                    hx-post="{% url 'laundry:htmx_update_shipping' order.id %}" 
+                    hx-target="#order-summary-section" 
+                    hx-swap="innerHTML"
+                    hx-on::after-request="if (event.detail.xhr.status === 200) { 
+                        document.getElementById('toggle-shipping-edit').click(); 
+                    }"
+                >
+                    {% csrf_token %}
+                    <div class="row g-4">
+                        <div class="col-12">
+                            <label class="form-label fw-bold text-dark fs-6">Choose Delivery Method</label>
+                            <div class="d-flex gap-4 p-3 bg-light rounded-4 border">
+                                <div class="form-check custom-radio">
+                                    <input class="form-check-input" type="radio" name="delivery_option" id="home_delivery" value="home_delivery" 
+                                        {% if order.delivery_option == 'home_delivery' or not order.delivery_option %}checked{% endif %}>
+                                    <label class="form-check-label fw-semibold" for="home_delivery">Home Delivery</label>
+                                </div>
+                                <div class="form-check custom-radio text-info">
+                                    <input class="form-check-input" type="radio" name="delivery_option" id="on_premise" value="on_premise" 
+                                        {% if order.delivery_option == 'on_premise' %}checked{% endif %}>
+                                    <label class="form-check-label fw-semibold" for="on_premise">On-Premise Pickup (₦0)</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="home-delivery-fields" class="col-12" style="{% if order.delivery_option == 'on_premise' %}display: none;{% endif %}">
+                            <div class="p-4 rounded-4 border border-light-subtle bg-white shadow-sm">
+                                <label class="form-label fw-bold small text-muted text-uppercase mb-3">Shipping Address</label>
+                                <div class="d-flex gap-4 mb-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="address_source" id="source_customer" value="customer" checked>
+                                        <label class="form-check-label" for="source_customer">Use Customer Address</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="address_source" id="source_shipping" value="shipping">
+                                        <label class="form-check-label" for="source_shipping">Use Custom Address</label>
+                                    </div>
+                                </div>
+
+                                <div id="recipient-form-fields">
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <label class="small text-muted">Recipient Name</label>
+                                            <input type="text" name="recipient_name" class="form-control" value="{{ order.recipient_name|default:order.customer_name }}">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="small text-muted">Recipient Phone</label>
+                                            <input type="text" name="recipient_phone" class="form-control" value="{{ order.recipient_phone|default:order.customer_phone }}">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="small text-muted">Recipient Email</label>
+                                            <input type="email" name="recipient_email" class="form-control" value="{{ order.recipient_email|default:order.customer_email }}">
+                                        </div>
+                                        
+                                        <div id="custom-shipping-fields" class="row g-3 w-100 m-0 mt-2 p-0 animate-fade-in" style="display: none;">
+                                            <div class="col-md-6">
+                                                <label class="small text-muted">Recipient State</label>
+                                                <select name="recipient_state" id="admin_recipient_state" class="form-select select2-admin" hx-get="{% url 'laundry:htmx_get_towns' %}" hx-trigger="change" hx-target="#admin_recipient_town" hx-swap="innerHTML">
+                                                    <option value="">Select State...</option>
+                                                    {% for s in states %}
+                                                        <option value="{{ s.id }}" {% if order.recipient_state_id == s.id %}selected{% endif %}>{{ s.name }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="small text-muted">Recipient Town</label>
+                                                <select name="recipient_town" id="admin_recipient_town" class="form-select select2-admin" hx-get="{% url 'laundry:htmx_calculate_delivery' order.id %}" hx-trigger="change" hx-target="#order-summary-section" hx-swap="innerHTML">
+                                                    {% if order.recipient_town %}
+                                                        <option value="{{ order.recipient_town.id }}" selected>{{ order.recipient_town.name }}</option>
+                                                    {% else %}
+                                                        <option value="">Select a state first</option>
+                                                    {% endif %}
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 mt-3">
+                                            <label class="small text-muted">Detailed Delivery Address</label>
+                                            <input type="text" id="id_recipient_address" name="recipient_address" class="form-control" value="{{ order.recipient_address|default:order.address }}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-12 text-end">
+                            <button type="button" class="btn btn-primary rounded-pill px-4 shadow-sm" id="save-shipping-btn">
+                                <i class="fas fa-check-circle me-2"></i>Update Shipping Details
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Action Section -->
+        <div class="d-grid gap-2 mb-5">
+            <button class="btn btn-success btn-lg rounded-4 shadow-sm py-3 fw-bold" 
+                    id="send-invoice-button"
+                    hx-post="{% url 'laundry:htmx_send_invoice' order.id %}"
+                    hx-target="#invoice-message"
+                    hx-swap="innerHTML"
+                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                    hx-confirm="Send the final invoice to the customer via email?"
+            >
+                <i class="fas fa-paper-plane me-2"></i>Generate & Send Invoice
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+html { scroll-behavior: smooth; }
+.scroll-margin-top { scroll-margin-top: 100px; }
+.sticky-top { transition: all 0.3s ease; }
+#admin-nav .nav-link {
+    color: #6c757d;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+#admin-nav .nav-link:hover {
+    background-color: #f8f9fa;
+    color: var(--bs-primary);
+}
+#admin-nav .nav-link.active {
+    background-color: #e7f1ff;
+    color: var(--bs-primary);
+    border-left-color: var(--bs-primary) !important;
+}
+.custom-radio .form-check-input:checked {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+.hover-shadow:hover {
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+}
+</style>
 
 
 

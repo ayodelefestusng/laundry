@@ -1,5 +1,6 @@
-<tr>
-    <td>
+<tr class="align-middle bg-white">
+    <td style="width: 20%;">
+        <label class="small text-muted mb-1 d-block fw-semibold">Category</label>
         <select
             name="category"
             id="id_category"
@@ -7,7 +8,7 @@
             hx-target="#id_package"
             hx-trigger="change"
             hx-swap="innerHTML"
-            class="form-select select2"
+            class="form-select select2-styled"
             hx-on:htmx:after-swap="setTimeout(function(){ $('#id_package').select2({width: '100%'}); }, 50)"
         >
             <option value="" selected disabled>Select Category</option>
@@ -16,7 +17,8 @@
             {% endfor %}
         </select>
     </td>
-    <td>
+    <td style="width: 20%;">
+        <label class="small text-muted mb-1 d-block fw-semibold">Service Type</label>
         <select
             name="package"
             id="id_package"
@@ -24,37 +26,41 @@
             hx-target="#price-delivery-details"
             hx-trigger="change"
             hx-swap="innerHTML"
-            class="form-select select2"
+            class="form-select select2-styled"
         >
-            <option value="" selected disabled>Select Service Type</option>
+            <option value="" selected disabled>Select Service</option>
         </select>
     </td>
-    <td class="align-middle">
-        <input type="text" name="name" class="form-control" placeholder="Item Name e.g. Shirt" required>
+    <td style="width: 20%;">
+        <label class="small text-muted mb-1 d-block fw-semibold">Garment Name</label>
+        <input type="text" name="name" class="form-control shadow-sm border-light-subtle" placeholder="e.g. White Native" required>
     </td>
 
     {# ── Color cell ───────────────────────────────────────────────────── #}
-    <td class="align-middle" style="min-width:180px;">
-        <select name="color" id="id_color" class="form-select color-select mb-1">
+    <td class="align-middle" style="min-width:200px;">
+        <label class="small text-muted mb-1 d-block fw-semibold">Color</label>
+        <select name="color" id="id_color" class="form-select color-select-styled mb-2">
             <option value="">Select color…</option>
             {% for c in colors %}
                 <option value="{{ c.id }}" data-hex="{{ c.hex_code }}">{{ c.name }}</option>
             {% endfor %}
-            <option value="other">Other / Custom…</option>
+            <option value="other" class="fw-bold text-primary">Other / Custom…</option>
         </select>
-        <input
-            type="text"
-            name="color_custom"
-            id="id_color_custom"
-            class="form-control form-control-sm mt-1"
-            placeholder="Describe color…"
-            style="display:none;"
-        >
+        <div id="custom-color-container" style="display:none;" class="mt-1 animate-fade-in">
+            <input
+                type="text"
+                name="color_custom"
+                id="id_color_custom"
+                class="form-control form-control-sm border-primary-subtle"
+                placeholder="Describe color (e.g. Teal Blue)"
+            >
+        </div>
     </td>
 
     {# ── Quantity cell ────────────────────────────────────────────────── #}
-    <td class="align-middle" style="min-width:80px;">
-        <select name="quantity" id="id_quantity" class="form-select form-select-sm">
+    <td class="align-middle" style="width: 10%;">
+        <label class="small text-muted mb-1 d-block fw-semibold">Qty</label>
+        <select name="quantity" id="id_quantity" class="form-select shadow-sm border-light-subtle">
             {% for i in quantity_range %}
                 <option value="{{ i }}" {% if i == 1 %}selected{% endif %}>{{ i }}</option>
             {% endfor %}
@@ -62,9 +68,28 @@
     </td>
 
     {# ── Price / Delivery placeholder ─────────────────────────────────── #}
-    <td id="price-delivery-details" class="align-middle text-muted small">
+    <td id="price-delivery-details" class="align-middle text-muted small" style="min-width: 120px;">
+        <div class="p-2 border rounded-3 bg-light text-center">
+            <i class="fas fa-info-circle me-1 opacity-50"></i> <span class="smaller">Select service to see price</span>
+        </div>
     </td>
 </tr>
+
+<style>
+.select2-styled, .color-select-styled {
+    border-radius: 8px !important;
+    border: 1px solid #dee2e6 !important;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+}
+.animate-fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.smaller { font-size: 0.7rem; }
+</style>
 
 <script>
 (function () {
@@ -73,7 +98,7 @@
         if (!option.id) return option.text;
         var hex = $(option.element).data('hex');
         if (!hex) return option.text;
-        return $('<span><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:' + hex + ';border:1px solid #ccc;margin-right:6px;vertical-align:middle;"></span>' + option.text + '</span>');
+        return $('<span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:' + hex + ';border:1px solid rgba(0,0,0,0.1);margin-right:8px;vertical-align:middle;"></span>' + option.text + '</span>');
     }
 
     $('#id_color').select2({
@@ -81,14 +106,23 @@
         placeholder: 'Select color…',
         allowClear: true,
         templateResult: formatColorOption,
-        templateSelection: formatColorOption
+        templateSelection: formatColorOption,
+        dropdownCssClass: 'shadow-lg border-0'
     });
 
     // Show/hide custom color input
-    $('#id_color').on('select2:select select2:unselect select2:clear', function () {
+    $('#id_color').on('select2:select select2:unselect select2:clear change', function () {
         var val = $(this).val();
-        $('#id_color_custom').toggle(val === 'other').prop('required', val === 'other');
-        this.dispatchEvent(new Event('change', { bubbles: true }));
+        const container = $('#custom-color-container');
+        const input = $('#id_color_custom');
+        
+        if (val === 'other') {
+            container.slideDown(200);
+            input.prop('required', true).focus();
+        } else {
+            container.slideUp(150);
+            input.prop('required', false);
+        }
     });
 })();
 </script>

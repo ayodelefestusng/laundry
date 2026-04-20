@@ -886,6 +886,11 @@ def htmx_edit_item(request, item_id):
             response['HX-Trigger'] = 'refresh-summary'
             return response
         else:
+            # Log detailed form errors
+            logger.error(
+                f"Form validation failed for item {item_id}. "
+                f"Errors: {form.errors.as_json()}"
+            )
             return HttpResponseBadRequest(render_to_string('htmx/add_item_errors.html', {'errors': form.errors}))
     else:
         logger.info(f"User {request.user} is getting item {item_id} for editing.")
@@ -896,6 +901,8 @@ def htmx_edit_item(request, item_id):
             'item': item,
             'all_categories': all_categories
         })
+
+
 
 @csrf_exempt
 @require_http_methods(["DELETE"])

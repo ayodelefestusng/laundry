@@ -275,10 +275,9 @@ class AddItemForm(forms.Form):
     Form for adding an item with service selection for HTMX requests.
     """
     name = forms.CharField(max_length=100, required=True)
-    color = forms.ModelChoiceField(
-        queryset=Color.objects.none(),
+    color = forms.ChoiceField(
+        choices=[],
         required=False,
-        empty_label="Select color...",
         widget=forms.Select(attrs={'class': 'form-select color-select'})
     )
     color_custom = forms.CharField(
@@ -301,7 +300,11 @@ class AddItemForm(forms.Form):
     def __init__(self, *args, tenant=None, **kwargs):
         super().__init__(*args, **kwargs)
         if tenant:
-            self.fields['color'].queryset = Color.objects.filter(tenant=tenant)
+            color_choices = [('', 'Select color...')]
+            color_choices += [(str(c.id), c.name) for c in Color.objects.filter(tenant=tenant)]
+            color_choices.append(('other', 'Other / Custom...'))
+            self.fields['color'].choices = color_choices
+            
         if 'category' in self.data:
             try:
                 category_id = int(self.data.get('category'))
@@ -311,11 +314,23 @@ class AddItemForm(forms.Form):
 
     def clean(self):
         cleaned_data = super().clean()
-        color = cleaned_data.get('color')
+        color_val = cleaned_data.get('color')
         color_custom = cleaned_data.get('color_custom', '').strip()
-        # If no standard color chosen, require custom color text
-        if not color and not color_custom:
+
+        # Resolve the Color object if a valid ID was provided (not 'other' and not empty)
+        color_obj = None
+        if color_val and color_val != 'other':
+            try:
+                color_obj = Color.objects.get(id=int(color_val))
+            except (ValueError, Color.DoesNotExist):
+                color_obj = None
+        
+        # Validation: Either a standard color must be selected, or a custom one must be described
+        if not color_obj and not color_custom:
             self.add_error('color_custom', 'Please select a color or describe it in the custom field.')
+
+        # Set the resolved object back into cleaned_data for the view to use
+        cleaned_data['color'] = color_obj
         return cleaned_data
 class CommentForm(forms.ModelForm):
     """
