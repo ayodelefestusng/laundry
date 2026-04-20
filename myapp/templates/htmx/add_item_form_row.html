@@ -40,11 +40,11 @@
     <td class="align-middle" style="min-width:200px;">
         <label class="small text-muted mb-1 d-block fw-semibold">Color</label>
         <select name="color" id="id_color" class="form-select color-select-styled mb-2">
-            <option value="">Select color…</option>
+            <option value="">Color…</option>
             {% for c in colors %}
                 <option value="{{ c.id }}" data-hex="{{ c.hex_code }}">{{ c.name }}</option>
             {% endfor %}
-            <option value="other" class="fw-bold text-primary">Other / Custom…</option>
+            <option value="other" class="fw-bold text-primary">Other</option>
         </select>
         <div id="custom-color-field" style="display:none;" class="mt-1 animate-fade-in">
             <input
@@ -86,49 +86,3 @@
 .smaller { font-size: 0.7rem; }
 </style>
 
-<script>
-(function () {
-    // Standard Color Swatch rendering
-    function formatColorOption(option) {
-        if (!option.id) return option.text;
-        var hex = $(option.element).data('hex');
-        if (!hex) return option.text;
-        return $('<span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:' + hex + ';border:1px solid rgba(0,0,0,0.15);margin-right:8px;vertical-align:middle;"></span>' + option.text + '</span>');
-    }
-
-    const $colorSelect = $('#id_color');
-    const $customColorField = $('#custom-color-field');
-    const $customInput = $('#id_color_custom');
-
-    if (!$colorSelect.hasClass('select2-hidden-accessible')) {
-        $colorSelect.select2({
-            width: '100%',
-            placeholder: 'Select color…',
-            allowClear: true,
-            templateResult: formatColorOption,
-            templateSelection: formatColorOption,
-            dropdownCssClass: 'shadow-lg border-0'
-        });
-    }
-
-    function toggleCustomColor() {
-        const val = $colorSelect.val();
-        console.log("Color selected:", val);
-        if (val === "other") {
-            $customColorField.stop(true, true).slideDown(200);
-            $customInput.prop('required', true);
-        } else {
-            $customColorField.stop(true, true).slideUp(150);
-            $customInput.prop('required', false);
-        }
-    }
-
-    // Bind to multiple events for robustness
-    $colorSelect.on('change select2:select select2:unselect select2:clear', function() {
-        toggleCustomColor();
-    });
-
-    // Run once on load
-    setTimeout(toggleCustomColor, 100);
-})();
-</script>

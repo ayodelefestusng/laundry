@@ -8,7 +8,7 @@
             hx-target="#edit-service-{{ item.id }}"
             hx-trigger="change"
             hx-swap="innerHTML"
-            class="form-select select2-edit shadow-none"
+            class="form-select select2-admin shadow-none"
         >
             <option value="">---------</option>
             {% for category in all_categories %}
@@ -26,7 +26,7 @@
             hx-trigger="change"
             hx-swap="innerHTML"
             hx-include="#edit-category-{{ item.id }}, #edit-service-{{ item.id }}"
-            class="form-select select2-edit shadow-none"
+            class="form-select select2-admin shadow-none"
         >
             <option value="{{ item.package.id }}">{{ item.package.service_type.name }}</option>
         </select>
@@ -78,45 +78,3 @@
     </td>
 </tr>
 
-<script>
-(function() {
-    const $colorSelect = $('#edit-color-{{ item.id }}');
-    const $customField = $('#edit-custom-color-field-{{ item.id }}');
-    const $customInput = $('#edit-color-custom-{{ item.id }}');
-
-    function formatEditColor(option) {
-        if (!option.id) return option.text;
-        var hex = $(option.element).data('hex');
-        if (!hex) return option.text;
-        return $('<span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' + hex + ';border:1px solid rgba(0,0,0,0.1);margin-right:6px;vertical-align:middle;"></span>' + option.text + '</span>');
-    }
-
-    if (!$colorSelect.hasClass('select2-hidden-accessible')) {
-        $colorSelect.select2({
-            width: '100%',
-            templateResult: formatEditColor,
-            templateSelection: formatEditColor,
-            dropdownCssClass: 'shadow-lg border-0'
-        });
-    }
-
-    function toggleEditCustomColor() {
-        const val = $colorSelect.val();
-        console.log("Edit Color selected for item {{ item.id }}:", val);
-        if (val === "other") {
-            $customField.stop(true, true).slideDown(150);
-            $customInput.prop('required', true);
-        } else {
-            $customField.stop(true, true).slideUp(100);
-            $customInput.prop('required', false);
-        }
-    }
-
-    $colorSelect.on('change select2:select select2:unselect select2:clear', function() {
-        toggleEditCustomColor();
-    });
-
-    // Run on init
-    setTimeout(toggleEditCustomColor, 100);
-})();
-</script>

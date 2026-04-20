@@ -2,14 +2,19 @@
 {% load static %}
 
 {% block content %}
-<div class="row">
-    <!-- Sidebar / Navigation Tabs -->
-    <div class="col-lg-3">
+<div class="row position-relative">
+    <!-- Top Progress Bar for HTMX -->
+    <div class="htmx-progress-bar position-fixed top-0 start-0 w-100" style="z-index: 2000; height: 3px;">
+        <div class="progress-bar progress-bar-striped progress-bar-animated bg-success h-100" style="width: 0%; transition: width 0.3s ease;"></div>
+    </div>
+
+    <!-- Sidebar / Navigation Tabs (Desktop) -->
+    <div class="col-lg-3 d-none d-lg-block">
         <div class="card shadow-sm border-0 rounded-4 sticky-top" style="top: 20px; z-index: 1020;">
             <div class="card-body p-3">
                 <h6 class="text-uppercase text-muted small fw-bold mb-3 px-2">Navigation</h6>
                 <div class="nav flex-column nav-pills" id="admin-nav">
-                    <a class="nav-link mb-2 py-3 shadow-none border-start border-4 border-transparent" href="#order-summary-section">
+                    <a class="nav-link mb-2 py-3 shadow-none border-start border-4 border-transparent active" href="#order-summary-section">
                         <i class="fas fa-receipt me-2"></i> Order Summary
                     </a>
                     <a class="nav-link mb-2 py-3 shadow-none border-start border-4 border-transparent" href="#add-item-form">
@@ -26,8 +31,30 @@
         </div>
     </div>
 
+    <!-- Floating Bottom Navigation (Mobile) -->
+    <div class="fixed-bottom d-lg-none bg-white border-top shadow-lg py-2 px-3" style="z-index: 1050;">
+        <div class="nav nav-pills nav-justified" id="mobile-nav">
+            <a class="nav-link py-2 px-0 border-0" href="#order-summary-section">
+                <i class="fas fa-receipt d-block mb-1 fs-5"></i>
+                <span class="smaller">Summary</span>
+            </a>
+            <a class="nav-link py-2 px-0 border-0" href="#add-item-form">
+                <i class="fas fa-plus-circle d-block mb-1 fs-5"></i>
+                <span class="smaller">Add</span>
+            </a>
+            <a class="nav-link py-2 px-0 border-0" href="#items-card">
+                <i class="fas fa-tshirt d-block mb-1 fs-5"></i>
+                <span class="smaller">Items</span>
+            </a>
+            <a class="nav-link py-2 px-0 border-0" href="#shipping-section">
+                <i class="fas fa-truck d-block mb-1 fs-5"></i>
+                <span class="smaller">Shipping</span>
+            </a>
+        </div>
+    </div>
+
     <!-- Main Content Area -->
-    <div class="col-lg-9">
+    <div class="col-lg-9 mb-5 pb-5 pb-lg-0">
         <!-- Message area for success/error messages -->
         <div id="invoice-message"></div>
 
@@ -37,7 +64,10 @@
             hx-trigger="load, refresh-summary from:body"
             hx-swap="innerHTML"
         >
-            <!-- Content loaded via HTMX -->
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary opacity-50" role="status"></div>
+                <div class="mt-2 text-muted fw-bold small text-uppercase">Loading Summary...</div>
+            </div>
         </div>
       
         <!-- Form to add a new item -->
@@ -45,23 +75,26 @@
             hx-post="{% url 'laundry:htmx_add_item' order.id %}" 
             hx-target="#item-list" 
             hx-swap="beforeend" 
+            hx-indicator="#add-item-spinner"
             _="on htmx:afterRequest if event.detail.xhr.status == 200 window.location.reload()"
-            class="card shadow-sm p-4 mb-5 border-0 rounded-4 scroll-margin-top"
+            class="card shadow-sm p-4 mb-5 border-0 rounded-4 scroll-margin-top position-relative"
         >
             {% csrf_token %}
             <div class="d-flex align-items-center mb-4">
                 <h5 class="mb-0 text-success fw-bold"><i class="fas fa-plus-circle me-2"></i> Add New Item</h5>
+                <div id="add-item-spinner" class="htmx-indicator ms-3">
+                    <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                </div>
             </div>
             <div class="table-responsive bg-light p-3 rounded-4">
-                <table class="table mb-0">
-           
+                <table class="table mb-0 border-0">
                     <tbody id="add-form-container">
                         {% include "htmx/add_item_form_row.html" %}
                     </tbody>
                 </table>
             </div>
             <div class="text-end mt-4">
-                <button type="submit" class="btn btn-primary rounded-pill px-5 shadow-sm">
+                <button type="submit" class="btn btn-primary rounded-pill px-5 shadow-sm py-2">
                     <i class="fas fa-save me-2"></i>Add to Order   
                 </button>
             </div>
@@ -71,22 +104,20 @@
         <div class="card shadow-sm border-0 rounded-4 p-4 mb-5 scroll-margin-top" id="items-card" {% if not order.items.exists %}style="display:none;"{% endif %}>
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h5 class="mb-0 fw-bold"><i class="fas fa-list me-2"></i>Existing Items</h5>
-                <span class="badge bg-primary rounded-pill">{{ order.items.count }} Items</span>
+                <span class="badge bg-primary rounded-pill px-3">{{ order.items.count }} Items</span>
             </div>
             <div class="table-responsive">
                 <table class="table table-hover mb-0" id="item-table">
                     <thead class="table-light">
                         <tr>
-                            <th scope="col" class="border-0 small text-muted">Category</th>
-                            <th scope="col" class="border-0 small text-muted">Service</th>
-                            <th scope="col" class="border-0 small text-muted">Item Name</th>
-                            <th scope="col" class="border-0 small text-muted">Color</th>
-                            <th scope="col" class="border-0 small text-muted">Unit Price</th>
-                            <th scope="col" class="border-0 small text-muted">Qty</th>
-                            <th scope="col" class="border-0 small text-muted">Total</th>
-                            <th scope="col" class="border-0 small text-muted">Actions</th>
-
-                        
+                            <th scope="col" class="border-0 small text-muted text-uppercase">Category</th>
+                            <th scope="col" class="border-0 small text-muted text-uppercase">Service</th>
+                            <th scope="col" class="border-0 small text-muted text-uppercase">Item Details</th>
+                            <th scope="col" class="border-0 small text-muted text-uppercase">Color</th>
+                            <th scope="col" class="border-0 small text-muted text-uppercase">Unit Price</th>
+                            <th scope="col" class="border-0 small text-muted text-uppercase text-center">Qty</th>
+                            <th scope="col" class="border-0 small text-muted text-uppercase text-end">Total</th>
+                            <th scope="col" class="border-0 small text-muted text-uppercase text-end">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="item-list">
@@ -99,7 +130,7 @@
         </div>
         
         <!-- Shipping Section -->
-        <div id="shipping-section" class="card shadow-sm border-0 rounded-4 p-4 mb-5 scroll-margin-top border-start border-primary border-5">
+        <div id="shipping-section" class="card shadow-sm border-0 rounded-4 p-3 p-lg-4 mb-5 scroll-margin-top border-start border-primary border-5">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h5 class="text-primary mb-0 fw-bold"><i class="fas fa-truck me-2"></i> Shipping & Delivery</h5>
                 <button class="btn btn-outline-primary btn-sm rounded-pill px-3" id="toggle-shipping-edit" type="button">
@@ -109,23 +140,25 @@
             
             <!-- Display Mode -->
             <div id="shipping-display-section" {% if not order.recipient_name and order.delivery_option == 'home_delivery' %}style="display:none;"{% endif %}>
-                <div class="row g-4">
-                    <div class="col-md-3">
-                        <label class="text-muted small text-uppercase fw-bold">Recipient</label>
-                        <div class="fw-bold fs-6">{{ order.recipient_name|default:order.customer_name }}</div>
+                <div class="row g-3 g-lg-4">
+                    <div class="col-6 col-md-3">
+                        <label class="text-muted smaller text-uppercase fw-bold d-block">Recipient</label>
+                        <div class="fw-bold fs-6 text-dark">{{ order.recipient_name|default:order.customer_name }}</div>
                     </div>
-                    <div class="col-md-3">
-                        <label class="text-muted small text-uppercase fw-bold">Contact</label>
+                    <div class="col-6 col-md-3">
+                        <label class="text-muted smaller text-uppercase fw-bold d-block">Contact</label>
                         <div class="fw-bold fs-6 text-primary">{{ order.recipient_phone|default:order.customer_phone }}</div>
                     </div>
-                    <div class="col-md-3">
-                        <label class="text-muted small text-uppercase fw-bold">Destination</label>
-                        <div class="fw-bold fs-6">{{ order.recipient_address|default:order.address }}</div>
+                    <div class="col-12 col-md-3">
+                        <label class="text-muted smaller text-uppercase fw-bold d-block">Destination</label>
+                        <div class="fw-bold fs-6 text-dark text-truncate" title="{{ order.recipient_address|default:order.address }}">
+                            {{ order.recipient_address|default:order.address }}
+                        </div>
                     </div>
-                    <div class="col-md-3">
-                        <label class="text-muted small text-uppercase fw-bold">Method</label>
+                    <div class="col-12 col-md-3">
+                        <label class="text-muted smaller text-uppercase fw-bold d-block">Method</label>
                         <div>
-                            <span class="badge {% if order.delivery_option == 'home_delivery' %}bg-primary{% else %}bg-info{% endif %} text-uppercase px-3">
+                            <span class="badge {% if order.delivery_option == 'home_delivery' %}bg-primary{% else %}bg-info{% endif %} text-uppercase px-3 py-2">
                                 {{ order.get_delivery_option_display }}
                             </span>
                         </div>
@@ -139,6 +172,7 @@
                     hx-post="{% url 'laundry:htmx_update_shipping' order.id %}" 
                     hx-target="#order-summary-section" 
                     hx-swap="innerHTML"
+                    hx-indicator="#shipping-spinner"
                     hx-on::after-request="if (event.detail.xhr.status === 200) { 
                         document.getElementById('toggle-shipping-edit').click(); 
                     }"
@@ -146,8 +180,13 @@
                     {% csrf_token %}
                     <div class="row g-4">
                         <div class="col-12">
-                            <label class="form-label fw-bold text-dark fs-6">Choose Delivery Method</label>
-                            <div class="d-flex gap-4 p-3 bg-light rounded-4 border">
+                            <label class="form-label fw-bold text-dark fs-6 d-flex align-items-center">
+                                Choose Delivery Method
+                                <div id="shipping-spinner" class="htmx-indicator ms-2">
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                </div>
+                            </label>
+                            <div class="d-flex flex-column flex-md-row gap-2 gap-md-4 p-3 bg-light rounded-4 border">
                                 <div class="form-check custom-radio">
                                     <input class="form-check-input" type="radio" name="delivery_option" id="home_delivery" value="home_delivery" 
                                         {% if order.delivery_option == 'home_delivery' or not order.delivery_option %}checked{% endif %}>
@@ -162,9 +201,9 @@
                         </div>
 
                         <div id="home-delivery-fields" class="col-12" style="{% if order.delivery_option == 'on_premise' %}display: none;{% endif %}">
-                            <div class="p-4 rounded-4 border border-light-subtle bg-white shadow-sm">
-                                <label class="form-label fw-bold small text-muted text-uppercase mb-3">Shipping Address</label>
-                                <div class="d-flex gap-4 mb-4">
+                            <div class="p-3 p-lg-4 rounded-4 border border-light-subtle bg-white shadow-sm">
+                                <label class="form-label fw-bold small text-muted text-uppercase mb-3 d-block">Shipping Address</label>
+                                <div class="d-flex flex-column flex-md-row gap-3 mb-4">
                                     <div class="form-check">
                                         <input class="form-check-input" type="radio" name="address_source" id="source_customer" value="customer" checked>
                                         <label class="form-check-label" for="source_customer">Use Customer Address</label>
@@ -178,21 +217,21 @@
                                 <div id="recipient-form-fields">
                                     <div class="row g-3">
                                         <div class="col-md-4">
-                                            <label class="small text-muted">Recipient Name</label>
-                                            <input type="text" name="recipient_name" class="form-control" value="{{ order.recipient_name|default:order.customer_name }}">
+                                            <label class="smaller text-muted fw-bold">Recipient Name</label>
+                                            <input type="text" name="recipient_name" class="form-control shadow-none" value="{{ order.recipient_name|default:order.customer_name }}">
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="small text-muted">Recipient Phone</label>
-                                            <input type="text" name="recipient_phone" class="form-control" value="{{ order.recipient_phone|default:order.customer_phone }}">
+                                            <label class="smaller text-muted fw-bold">Recipient Phone</label>
+                                            <input type="text" name="recipient_phone" class="form-control shadow-none" value="{{ order.recipient_phone|default:order.customer_phone }}">
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="small text-muted">Recipient Email</label>
-                                            <input type="email" name="recipient_email" class="form-control" value="{{ order.recipient_email|default:order.customer_email }}">
+                                            <label class="smaller text-muted fw-bold">Recipient Email</label>
+                                            <input type="email" name="recipient_email" class="form-control shadow-none" value="{{ order.recipient_email|default:order.customer_email }}">
                                         </div>
                                         
                                         <div id="custom-shipping-fields" class="row g-3 w-100 m-0 mt-2 p-0 animate-fade-in" style="display: none;">
                                             <div class="col-md-6">
-                                                <label class="small text-muted">Recipient State</label>
+                                                <label class="smaller text-muted fw-bold">Recipient State</label>
                                                 <select name="recipient_state" id="admin_recipient_state" class="form-select select2-admin" hx-get="{% url 'laundry:htmx_get_towns' %}" hx-trigger="change" hx-target="#admin_recipient_town" hx-swap="innerHTML">
                                                     <option value="">Select State...</option>
                                                     {% for s in states %}
@@ -201,7 +240,7 @@
                                                 </select>
                                             </div>
                                             <div class="col-md-6">
-                                                <label class="small text-muted">Recipient Town</label>
+                                                <label class="smaller text-muted fw-bold">Recipient Town</label>
                                                 <select name="recipient_town" id="admin_recipient_town" class="form-select select2-admin" hx-get="{% url 'laundry:htmx_calculate_delivery' order.id %}" hx-trigger="change" hx-target="#order-summary-section" hx-swap="innerHTML">
                                                     {% if order.recipient_town %}
                                                         <option value="{{ order.recipient_town.id }}" selected>{{ order.recipient_town.name }}</option>
@@ -213,8 +252,8 @@
                                         </div>
 
                                         <div class="col-12 mt-3">
-                                            <label class="small text-muted">Detailed Delivery Address</label>
-                                            <input type="text" id="id_recipient_address" name="recipient_address" class="form-control" value="{{ order.recipient_address|default:order.address }}">
+                                            <label class="smaller text-muted fw-bold">Detailed Delivery Address</label>
+                                            <input type="text" id="id_recipient_address" name="recipient_address" class="form-control shadow-none" value="{{ order.recipient_address|default:order.address }}">
                                         </div>
                                     </div>
                                 </div>
@@ -232,25 +271,52 @@
         </div>
 
         <!-- Action Section -->
-        <div class="d-grid gap-2 mb-5">
-            <button class="btn btn-success btn-lg rounded-4 shadow-sm py-3 fw-bold" 
+        <div class="d-grid gap-2 mb-2">
+            <button class="btn btn-success btn-lg rounded-4 shadow-sm py-3 fw-bold position-relative d-flex align-items-center justify-content-center" 
                     id="send-invoice-button"
                     hx-post="{% url 'laundry:htmx_send_invoice' order.id %}"
                     hx-target="#invoice-message"
                     hx-swap="innerHTML"
+                    hx-indicator="#invoice-button-spinner"
                     hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                     hx-confirm="Send the final invoice to the customer via email?"
             >
-                <i class="fas fa-paper-plane me-2"></i>Generate & Send Invoice
+                <i class="fas fa-paper-plane me-2"></i> Generate & Send Invoice
+                <div id="invoice-button-spinner" class="htmx-indicator ms-2">
+                    <div class="spinner-border spinner-border-sm text-white" role="status"></div>
+                </div>
             </button>
         </div>
+        <p class="text-center text-muted smaller mt-2">
+            <i class="fas fa-info-circle me-1"></i> Customer will receive an email with the invoice and payment link.
+        </p>
     </div>
 </div>
 
 <style>
+/* ── Layout & Typography ────────────────────────────────────────── */
 html { scroll-behavior: smooth; }
-.scroll-margin-top { scroll-margin-top: 100px; }
+.scroll-margin-top { scroll-margin-top: 120px; }
+.smaller { font-size: 0.75rem; }
 .sticky-top { transition: all 0.3s ease; }
+
+/* ── HTMX Progress Bar ─────────────────────────────────────────── */
+.htmx-progress-bar { display: none; }
+body.htmx-request .htmx-progress-bar { 
+    display: block; 
+    animation: pulseProgressBar 2s infinite;
+}
+body.htmx-request .progress-bar { width: 100% !important; }
+@keyframes pulseProgressBar {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
+.htmx-indicator { display: none; }
+.htmx-request .htmx-indicator { display: inline-block; }
+.htmx-request.htmx-indicator { display: inline-block; }
+
+/* ── Navigation (Desktop) ───────────────────────────────────────── */
 #admin-nav .nav-link {
     color: #6c757d;
     font-weight: 500;
@@ -265,35 +331,33 @@ html { scroll-behavior: smooth; }
     color: var(--bs-primary);
     border-left-color: var(--bs-primary) !important;
 }
+
+/* ── Bottom Navigation (Mobile) ─────────────────────────────────── */
+#mobile-nav .nav-link {
+    color: #6c757d;
+    font-size: 0.65rem;
+    padding: 0.5rem 0;
+}
+#mobile-nav .nav-link.active {
+    color: var(--bs-primary);
+    background: none;
+}
+#mobile-nav .nav-link i { font-size: 1.25rem !important; }
+
+/* ── Custom UI Elements ─────────────────────────────────────────── */
+.animate-fade-in { animation: fadeIn 0.4s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 .custom-radio .form-check-input:checked {
     background-color: var(--bs-primary);
     border-color: var(--bs-primary);
 }
-.hover-shadow:hover {
-    box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+
+/* ── Media Queries ─────────────────────────────────────────────── */
+@media (max-width: 991.98px) {
+    .scroll-margin-top { scroll-margin-top: 140px; }
+    body { padding-bottom: 70px; }
 }
 </style>
-
-
-
-
-        <!-- The summary will be loaded here via HTMX -->
-    </div>
-    <!-- Send Invoice Button -->
-    <!-- <div class="d-grid gap-2">
-        <button class="btn btn-primary btn-lg" 
-                id="send-invoice-button"
-                hx-post="{% url 'laundry:htmx_send_invoice' order.id %}"
-                hx-target="#invoice-message"
-                hx-swap="innerHTML"
-                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                hx-confirm="Are you sure you want to send the invoice to the customer?"
-        >
-            Send Invoice
-        </button>
-    </div> -->
-
-</div>
 
 {% block extra_js %}
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
@@ -302,118 +366,89 @@ html { scroll-behavior: smooth; }
 
 <script>
 // ─────────────────────────────────────────────────────────────────────
-// Select2 helpers
+// Select2 & Color Toggle Logic (Centralized & Delegated)
 // ─────────────────────────────────────────────────────────────────────
-function initAllSelect2(context) {
-    const selector = context
-        ? $(context).find('.select2').addBack('.select2')
-        : $('.select2');
+
+function initSelect2(context) {
+    const selector = context ? $(context).find('.select2-styled, .select2-admin') : $('.select2-styled, .select2-admin');
     selector.each(function() {
-        if ($(this).data('select2')) {
-            $(this).select2('destroy');
+        if (!$(this).hasClass('select2-hidden-accessible')) {
+            $(this).select2({ 
+                width: '100%', 
+                placeholder: 'Select...', 
+                allowClear: true,
+                dropdownCssClass: 'shadow-lg border-0'
+            });
         }
-        $(this).select2({ width: '100%', placeholder: 'Search...', allowClear: true });
     });
 }
 
-// Bridge: Select2 selection → HTMX native change event
-$(document).on('select2:select select2:unselect select2:clear', '.select2', function() {
-    this.dispatchEvent(new Event('change', { bubbles: true }));
-});
+const formatColorOption = (option) => {
+    if (!option.id) return option.text;
+    const hex = $(option.element).data('hex');
+    if (!hex) return option.text;
+    return $('<span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:' + hex + ';border:1px solid rgba(0,0,0,0.15);margin-right:8px;vertical-align:middle;"></span>' + option.text + '</span>');
+};
 
-// After HTMX swaps the town <select> innerHTML (state selection), re-init Select2 
-document.addEventListener('htmx:afterSwap', function(evt) {
-    const target = evt.detail.target;
-    // Is it the town select itself, or does it contain one?
-    const townEl = (target.id === 'admin_recipient_town')
-        ? target
-        : target.querySelector('#admin_recipient_town');
-    if (townEl) {
-        // Tear down stale Select2 UI artefacts
-        $(townEl).next('.select2-container').remove();
-        $(townEl).removeClass('select2-hidden-accessible');
-        // Re-apply Select2
-        $(townEl).select2({ width: '100%', placeholder: 'Select Town...', allowClear: true });
+function initColorSelects(context) {
+    const selector = context ? $(context).find('.color-select-styled, .color-select-edit') : $('.color-select-styled, .color-select-edit');
+    selector.each(function() {
+        if (!$(this).hasClass('select2-hidden-accessible')) {
+            $(this).select2({
+                width: '100%',
+                placeholder: 'Select color…',
+                allowClear: true,
+                templateResult: formatColorOption,
+                templateSelection: formatColorOption,
+                dropdownCssClass: 'shadow-lg border-0'
+            });
+        }
+    });
+}
+
+// Global Delegated Color Toggle Logic
+$(document).on('change select2:select select2:unselect select2:clear', '.color-select-styled, .color-select-edit', function() {
+    const $select = $(this);
+    const val = $select.val();
+    const $container = $select.closest('td').find('#custom-color-field, [id^="edit-custom-color-field-"]');
+    const $input = $container.find('input');
+
+    if (val === 'other') {
+        $container.stop(true, true).slideDown(200);
+        $input.prop('required', true);
+    } else {
+        $container.stop(true, true).slideUp(150);
+        $input.prop('required', false);
     }
 });
 
-// ─────────────────────────────────────────────────────────────────────
-// Shipping form UI — runs ONCE when DOM is ready
-// ─────────────────────────────────────────────────────────────────────
+// Run on page load
 $(document).ready(function() {
+    initSelect2();
+    initColorSelects();
 
-    initAllSelect2();
-
-    const editBtn       = document.getElementById('toggle-shipping-edit');
-    const editSection   = document.getElementById('shipping-edit-section');
-    const displaySection= document.getElementById('shipping-display-section');
-    const saveBtn       = document.getElementById('save-shipping-btn');
-    const homeFields    = document.getElementById('home-delivery-fields');
-
-    // ── Edit / Cancel toggle ──────────────────────────────────────────
-    // Use onclick (not addEventListener) so only ONE handler exists
+    // ── Shipping Section Handlers ───────────────────────────────
+    const editBtn = document.getElementById('toggle-shipping-edit');
+    const saveBtn = document.getElementById('save-shipping-btn');
+    
     if (editBtn) {
         editBtn.onclick = function(e) {
             e.preventDefault();
-            e.stopPropagation();
+            const editSection = document.getElementById('shipping-edit-section');
+            const displaySection = document.getElementById('shipping-display-section');
             const isHidden = editSection.style.display === 'none' || editSection.style.display === '';
-            if (isHidden) {
-                editSection.style.display  = 'block';
-                displaySection.style.display = 'none';
-                editBtn.innerHTML = '<i class="fas fa-times me-1"></i> Cancel';
-                // Re-run Select2 on newly visible elements
-                initAllSelect2(editSection);
-            } else {
-                editSection.style.display  = 'none';
-                displaySection.style.display = 'block';
-                editBtn.innerHTML = '<i class="fas fa-edit me-1"></i> Edit';
-            }
+            
+            editSection.style.display = isHidden ? 'block' : 'none';
+            displaySection.style.display = isHidden ? 'none' : 'block';
+            this.innerHTML = isHidden ? '<i class="fas fa-times me-1"></i> Cancel' : '<i class="fas fa-edit me-1"></i> Edit Details';
+            
+            if (isHidden) initSelect2(editSection);
         };
     }
 
-    // ── Save button → submit form then reload ────────────────────────
     if (saveBtn) {
         saveBtn.onclick = function(e) {
-            e.preventDefault();
             const form = document.getElementById('shipping-update-form');
-            if (!form) return;
-            if (typeof htmx !== 'undefined') {
-                htmx.trigger(form, 'submit');
-            } else {
-                form.submit();
-            }
-            setTimeout(() => window.location.reload(), 1500);
-        };
-    }
-
-    // ── Delivery option radio ─────────────────────────────────────────
-    document.querySelectorAll('input[name="delivery_option"]').forEach(function(opt) {
-        opt.addEventListener('change', function() {
-            if (homeFields) homeFields.style.display = this.value === 'home_delivery' ? 'block' : 'none';
-        });
-    });
-
-    // ── Address source radio (customer vs custom shipping) ───────────
-    document.querySelectorAll('input[name="address_source"]').forEach(function(src) {
-        src.addEventListener('change', function() {
-            const customFields = document.getElementById('custom-shipping-fields');
-            if (this.value === 'customer') {
-                const nameEls  = document.getElementsByName('recipient_name');
-                const phoneEls = document.getElementsByName('recipient_phone');
-                const emailEls = document.getElementsByName('recipient_email');
-                if (nameEls[0])  nameEls[0].value  = "{{ order.customer_name|escapejs }}";
-                if (phoneEls[0]) phoneEls[0].value = "{{ order.customer_phone|escapejs }}";
-                if (emailEls[0]) emailEls[0].value = "{{ order.customer_email|escapejs }}";
-                if (customFields) customFields.style.display = 'none';
-            } else {
-                if (customFields) {
-                    customFields.style.display = 'flex';
-                    // Re-layout Select2 now that the container is visible
-                    initAllSelect2(customFields);
-                }
-            }
-        });
-    });
 
     // ── Restore visible state if previously set to shipping ──────────
     const initSrc = document.querySelector('input[name="address_source"]:checked');

@@ -1,39 +1,44 @@
-{% load humanize %}
-<tr id="item-row-{{ item.id }}" class="align-middle border-bottom">
-    <td class="fw-medium text-dark">{{ item.package.category.name }}</td>
-    <td><span class="badge bg-light text-dark border fw-normal">{{ item.package.service_type.name }}</span></td>
-    <td class="text-secondary">{{ item.name }}</td>
+<tr id="item-row-{{ item.id }}" class="align-middle border-bottom animate-fade-in">
+    <td class="fw-medium text-dark d-none d-md-table-cell">{{ item.package.category.name }}</td>
+    <td class="px-1 px-md-2">
+        <span class="badge bg-light text-primary border-0 fw-bold smaller text-uppercase px-2 py-1">{{ item.package.service_type.name }}</span>
+    </td>
+    <td class="text-secondary small fw-bold">{{ item.name }}</td>
     <td>
         <div class="d-flex align-items-center">
             {% if item.color %}
-                <span class="color-swatch-sm me-2 shadow-sm" style="background:{{ item.color.hex_code }};" title="{{ item.color.name }}"></span>
+                <span class="color-swatch-sm me-1 me-md-2 shadow-sm" style="background:{{ item.color.hex_code }};" title="{{ item.color.name }}"></span>
             {% endif %}
-            <span class="small fw-semibold">{{ item.color_display }}</span>
+            <span class="smaller fw-semibold text-truncate d-inline-block" style="max-width: 60px;">{{ item.color_display }}</span>
         </div>
     </td>
-    <td>
-        <div class="fw-normal text-dark">₦{{ item.price|intcomma }}</div>
-        <div class="text-muted smaller"><i class="far fa-clock me-1"></i>{{ item.delivery_time_days }} Days</div>
+    <td class="d-none d-sm-table-cell">
+        <div class="smaller text-dark">₦{{ item.price|intcomma }}</div>
+        <div class="text-muted smallest"><i class="far fa-clock me-1"></i>{{ item.delivery_time_days }}d</div>
     </td>
-    <td class="text-center"><span class="badge rounded-pill bg-light text-primary border px-3">{{ item.quantity }}</span></td>
-    <td class="text-end fw-bold text-success fs-7">₦{{ item.effective_price|intcomma }}</td>
-    <td class="text-end">
-        <div class="btn-group shadow-sm rounded-pill overflow-hidden">
-            <button class="btn btn-info text-white px-3 border-0 hover-lift"
+    <td class="text-center">
+        <span class="badge rounded-pill bg-white text-primary border px-2 px-md-3 smaller">{{ item.quantity }}</span>
+    </td>
+    <td class="text-end fw-bold text-success smaller">
+        ₦{{ item.effective_price|intcomma }}
+    </td>
+    <td class="text-end ps-1 ps-md-3">
+        <div class="btn-group btn-group-sm shadow-sm rounded-pill overflow-hidden">
+            <button class="btn btn-info text-white border-0 hover-lift px-2 px-md-3"
                 hx-get="{% url 'laundry:htmx_edit_item' item.id %}"
                 hx-target="#item-row-{{ item.id }}"
                 hx-swap="outerHTML"
                 title="Edit Item">
-                <i class="fas fa-edit"></i>
+                <i class="fas fa-edit fa-xs"></i>
             </button>
-            <button class="btn btn-danger text-white px-3 border-0 hover-lift"
+            <button class="btn btn-danger text-white border-0 hover-lift px-2 px-md-3"
                 hx-delete="{% url 'laundry:htmx_delete_item' item.id %}"
                 hx-confirm="Remove this item ({{ item.name }}) from the order?"
                 hx-target="#item-row-{{ item.id }}"
                 hx-swap="outerHTML"
                 hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                 title="Delete Item">
-                <i class="fas fa-trash-alt"></i>
+                <i class="fas fa-trash-alt fa-xs"></i>
             </button>
         </div>
     </td>
