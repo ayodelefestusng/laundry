@@ -12,11 +12,11 @@
         </div>
     </td>
     <td>
-        <div class="fw-bold text-dark">₦{{ item.price|intcomma }}</div>
+        <div class="fw-normal text-dark">₦{{ item.price|intcomma }}</div>
         <div class="text-muted smaller"><i class="far fa-clock me-1"></i>{{ item.delivery_time_days }} Days</div>
     </td>
     <td class="text-center"><span class="badge rounded-pill bg-light text-primary border px-3">{{ item.quantity }}</span></td>
-    <td class="text-end fw-bold text-success fs-5">₦{{ item.effective_price|intcomma }}</td>
+    <td class="text-end fw-bold text-success fs-7">₦{{ item.effective_price|intcomma }}</td>
     <td class="text-end">
         <div class="btn-group shadow-sm rounded-pill overflow-hidden">
             <button class="btn btn-info text-white px-3 border-0 hover-lift"

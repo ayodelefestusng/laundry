@@ -872,10 +872,10 @@ def htmx_edit_item(request, item_id):
     item = get_object_or_404(OrderItem, id=item_id)
     
     if request.method == 'POST':
-        logger.info(f"User {request.user} is editing item {item_id}. Form data: {request.POST}")
+        logger.info(f"Userdddd {request.user} is editing item {item_id}. Form data: {request.POST}")
         form = OrderItemForm(request.POST, instance=item)
         if form.is_valid():
-            logger.info(f"User {request.user} is editing item {item_id}. Form is valid.")
+            logger.info(f"Alibna {request.user} is editing item {item_id}. Form is valid.")
             item = form.save(commit=False)
             # Sync price and delivery time from the selected package
             item.price = item.package.price
@@ -887,6 +887,7 @@ def htmx_edit_item(request, item_id):
             return response
         else:
             # Log detailed form errors
+            logger.info(f"Alekeee  {request.user} is editing item {item_id}. Form data: {request.POST}")
             logger.error(
                 f"Form validation failed for item {item_id}. "
                 f"Errors: {form.errors.as_json()}"

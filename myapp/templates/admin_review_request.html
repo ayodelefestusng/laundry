@@ -39,7 +39,7 @@
         >
             <!-- Content loaded via HTMX -->
         </div>
-        
+      
         <!-- Form to add a new item -->
         <form id="add-item-form" method="post" 
             hx-post="{% url 'laundry:htmx_add_item' order.id %}" 
@@ -54,15 +54,7 @@
             </div>
             <div class="table-responsive bg-light p-3 rounded-4">
                 <table class="table mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th scope="col" class="border-0">Service Selection</th>
-                            <th scope="col" class="border-0">Service Type</th>
-                            <th scope="col" class="border-0">Item Details</th>
-                            <th scope="col" class="border-0">Preferences</th>
-                            <th scope="col" class="border-0">Quantity</th>
-                        </tr>
-                    </thead>
+           
                     <tbody id="add-form-container">
                         {% include "htmx/add_item_form_row.html" %}
                     </tbody>
@@ -70,7 +62,7 @@
             </div>
             <div class="text-end mt-4">
                 <button type="submit" class="btn btn-primary rounded-pill px-5 shadow-sm">
-                    <i class="fas fa-save me-2"></i>Add to Order
+                    <i class="fas fa-save me-2"></i>Add to Order   
                 </button>
             </div>
         </form>
@@ -85,14 +77,16 @@
                 <table class="table table-hover mb-0" id="item-table">
                     <thead class="table-light">
                         <tr>
-                            <th scope="col" class="border-0">Category</th>
-                            <th scope="col" class="border-0">Service</th>
-                            <th scope="col" class="border-0">Item Name</th>
-                            <th scope="col" class="border-0">Color</th>
-                            <th scope="col" class="border-0">Unit Price</th>
-                            <th scope="col" class="border-0 text-center">Qty</th>
-                            <th scope="col" class="border-0 text-end">Total</th>
-                            <th scope="col" class="border-0 text-end">Actions</th>
+                            <th scope="col" class="border-0 small text-muted">Category</th>
+                            <th scope="col" class="border-0 small text-muted">Service</th>
+                            <th scope="col" class="border-0 small text-muted">Item Name</th>
+                            <th scope="col" class="border-0 small text-muted">Color</th>
+                            <th scope="col" class="border-0 small text-muted">Unit Price</th>
+                            <th scope="col" class="border-0 small text-muted">Qty</th>
+                            <th scope="col" class="border-0 small text-muted">Total</th>
+                            <th scope="col" class="border-0 small text-muted">Actions</th>
+
+                        
                         </tr>
                     </thead>
                     <tbody id="item-list">
@@ -286,7 +280,7 @@ html { scroll-behavior: smooth; }
         <!-- The summary will be loaded here via HTMX -->
     </div>
     <!-- Send Invoice Button -->
-    <div class="d-grid gap-2">
+    <!-- <div class="d-grid gap-2">
         <button class="btn btn-primary btn-lg" 
                 id="send-invoice-button"
                 hx-post="{% url 'laundry:htmx_send_invoice' order.id %}"
@@ -297,8 +291,8 @@ html { scroll-behavior: smooth; }
         >
             Send Invoice
         </button>
-    </div>
-    
+    </div> -->
+
 </div>
 
 {% block extra_js %}

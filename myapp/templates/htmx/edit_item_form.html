@@ -70,9 +70,8 @@
                 Save
             </button>
             <button class="btn btn-light border px-3 shadow-none"
-                hx-get="{% url 'laundry:htmx_edit_item' item.id %}"
-                hx-target="closest tr"
-                hx-swap="outerHTML">
+                type="button"
+                onclick="window.location.reload()">
                 Cancel
             </button>
         </div>
@@ -92,23 +91,32 @@
         return $('<span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' + hex + ';border:1px solid rgba(0,0,0,0.1);margin-right:6px;vertical-align:middle;"></span>' + option.text + '</span>');
     }
 
-    $colorSelect.select2({
-        width: '100%',
-        templateResult: formatEditColor,
-        templateSelection: formatEditColor,
-        dropdownCssClass: 'shadow-lg border-0'
-    });
+    if (!$colorSelect.hasClass('select2-hidden-accessible')) {
+        $colorSelect.select2({
+            width: '100%',
+            templateResult: formatEditColor,
+            templateSelection: formatEditColor,
+            dropdownCssClass: 'shadow-lg border-0'
+        });
+    }
 
     function toggleEditCustomColor() {
-        if ($colorSelect.val() === "other") {
-            $customField.show();
-            $customInput.prop('required', true).focus();
+        const val = $colorSelect.val();
+        console.log("Edit Color selected for item {{ item.id }}:", val);
+        if (val === "other") {
+            $customField.stop(true, true).slideDown(150);
+            $customInput.prop('required', true);
         } else {
-            $customField.hide();
+            $customField.stop(true, true).slideUp(100);
             $customInput.prop('required', false);
         }
     }
 
-    $colorSelect.on('change', toggleEditCustomColor);
+    $colorSelect.on('change select2:select select2:unselect select2:clear', function() {
+        toggleEditCustomColor();
+    });
+
+    // Run on init
+    setTimeout(toggleEditCustomColor, 100);
 })();
 </script>

@@ -100,26 +100,35 @@
     const $customColorField = $('#custom-color-field');
     const $customInput = $('#id_color_custom');
 
-    $colorSelect.select2({
-        width: '100%',
-        placeholder: 'Select color…',
-        allowClear: true,
-        templateResult: formatColorOption,
-        templateSelection: formatColorOption,
-        dropdownCssClass: 'shadow-lg border-0'
-    });
+    if (!$colorSelect.hasClass('select2-hidden-accessible')) {
+        $colorSelect.select2({
+            width: '100%',
+            placeholder: 'Select color…',
+            allowClear: true,
+            templateResult: formatColorOption,
+            templateSelection: formatColorOption,
+            dropdownCssClass: 'shadow-lg border-0'
+        });
+    }
 
     function toggleCustomColor() {
-        if ($colorSelect.val() === "other") {
-            $customColorField.show();
+        const val = $colorSelect.val();
+        console.log("Color selected:", val);
+        if (val === "other") {
+            $customColorField.stop(true, true).slideDown(200);
             $customInput.prop('required', true);
         } else {
-            $customColorField.hide();
+            $customColorField.stop(true, true).slideUp(150);
             $customInput.prop('required', false);
         }
     }
 
-    $colorSelect.on('change', toggleCustomColor);
-    toggleCustomColor(); // Run on load
+    // Bind to multiple events for robustness
+    $colorSelect.on('change select2:select select2:unselect select2:clear', function() {
+        toggleCustomColor();
+    });
+
+    // Run once on load
+    setTimeout(toggleCustomColor, 100);
 })();
 </script>

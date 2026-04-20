@@ -307,7 +307,7 @@ class OrderItemForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         color_val = cleaned_data.get('color')
-        color_custom = cleaned_data.get('color_custom', '').strip()
+        color_custom = (cleaned_data.get('color_custom') or '').strip()
 
         # Resolve the Color object
         color_obj = None
@@ -368,7 +368,7 @@ class AddItemForm(forms.Form):
     def clean(self):
         cleaned_data = super().clean()
         color_val = cleaned_data.get('color')
-        color_custom = cleaned_data.get('color_custom', '').strip()
+        color_custom = (cleaned_data.get('color_custom') or '').strip()
 
         # Resolve the Color object if a valid ID was provided (not 'other' and not empty)
         color_obj = None
