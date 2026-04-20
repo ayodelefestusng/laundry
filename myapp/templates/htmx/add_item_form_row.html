@@ -75,6 +75,24 @@
     </td>
 </tr>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const colorSelect = document.getElementById('id_color');
+    const customColorField = document.getElementById('custom-color-field');
+    
+    if (colorSelect && customColorField) {
+        colorSelect.addEventListener('change', function() {
+            if (this.value === 'other') {
+                customColorField.style.display = 'block';
+            } else {
+                customColorField.style.display = 'none';
+                document.getElementById('id_color_custom').value = '';
+            }
+        });
+    }
+});
+</script>
+
 <style>
 .select2-styled, .color-select-styled {
     border-radius: 8px !important;
