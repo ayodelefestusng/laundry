@@ -501,9 +501,9 @@ WORKFLOW_STAGES1 = (
 
 
 class Package(TenantModel):
-    category = models.ForeignKey(ServiceCategory, on_delete=models.CASCADE, related_name='services')
-    service_type = models.ForeignKey(ServiceChoices, on_delete=models.SET_NULL, null=True, blank=True, related_name='packages')
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+    category = models.ForeignKey(ServiceCategory, on_delete=models.CASCADE, related_name='services',help_text="Category of service")
+    service_type = models.ForeignKey(ServiceChoices, on_delete=models.SET_NULL, null=True, blank=True, related_name='packages',help_text="Type of service")
+    price = models.DecimalField(max_digits=10, decimal_places=2,help_text="Price of service")
     delivery_time_days = models.IntegerField(help_text="Estimated delivery time in days.")
     class Meta:
         unique_together = ('category', 'service_type')
@@ -540,8 +540,8 @@ class Order(TenantModel):
     customer_name = models.CharField(max_length=100, blank=True, null=True)
     customer_email = models.EmailField(blank=True, null=True)
     customer_phone = models.CharField(max_length=15, blank=True, null=True)
-    state = models.ForeignKey('State', on_delete=models.SET_NULL, null=True, blank=True, related_name='pickup_orders')
-    town = models.ForeignKey('Town', on_delete=models.SET_NULL, null=True, blank=True, related_name='pickup_orders')
+    state = models.ForeignKey('State', on_delete=models.SET_NULL, null=True, blank=True, related_name='pickup_orders',help_text="State to pick up from")
+    town = models.ForeignKey('Town', on_delete=models.SET_NULL, null=True, blank=True, related_name='pickup_orders',help_text="Town to pick up from")
     address = models.CharField(max_length=255, blank=True, null=True, help_text="House/Street address")
     pickup_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     pickup_longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)

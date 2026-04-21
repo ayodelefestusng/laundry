@@ -361,8 +361,8 @@ body.htmx-request .progress-bar { width: 100% !important; }
 
 {% block extra_js %}
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5.theme.min.css" />
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
@@ -375,8 +375,9 @@ function initSelect2(context) {
     selector.each(function() {
         if (!$(this).hasClass('select2-hidden-accessible')) {
             $(this).select2({ 
+                theme: 'bootstrap-5',
                 width: '100%', 
-                placeholder: 'Select...', 
+                placeholder: $(this).attr('placeholder') || 'Search...', 
                 allowClear: true,
                 dropdownCssClass: 'shadow-lg border-0'
             });
@@ -396,8 +397,9 @@ function initColorSelects(context) {
     selector.each(function() {
         if (!$(this).hasClass('select2-hidden-accessible')) {
             $(this).select2({
+                theme: 'bootstrap-5',
                 width: '100%',
-                placeholder: 'Select color…',
+                placeholder: 'Color…',
                 allowClear: true,
                 templateResult: formatColorOption,
                 templateSelection: formatColorOption,
@@ -428,10 +430,8 @@ $(document).ready(function() {
     initSelect2();
     initColorSelects();
 
-    // ── Shipping Section Handlers ───────────────────────────────
+    // ── 1. Edit Mode Toggle ───────────────────────────────────────
     const editBtn = document.getElementById('toggle-shipping-edit');
-    const saveBtn = document.getElementById('save-shipping-btn');
-    
     if (editBtn) {
         editBtn.onclick = function(e) {
             e.preventDefault();
@@ -447,17 +447,90 @@ $(document).ready(function() {
         };
     }
 
+    // ── 2. Delivery Option Switcher ──────────────────────────────
+    $('input[name="delivery_option"]').on('change', function() {
+        const homeFields = $('#home-delivery-fields');
+        if (this.value === 'home_delivery') {
+            homeFields.stop(true, true).slideDown(300);
+        } else {
+            homeFields.stop(true, true).slideUp(250);
+        }
+    });
+
+    // ── 3. Address Source Switcher (Pre-filler) ──────────────────
+    $('input[name="address_source"]').on('change', function() {
+        const customFields = $('#custom-shipping-fields');
+        const isCustomer = this.value === 'customer';
+        
+        if (isCustomer) {
+            customFields.stop(true, true).slideUp(250);
+            // Pre-fill with customer data
+            $('input[name="recipient_name"]').val("{{ order.customer_name|escapejs }}");
+            $('input[name="recipient_phone"]').val("{{ order.customer_phone|escapejs }}");
+            $('input[name="recipient_email"]').val("{{ order.customer_email|escapejs }}");
+            $('#id_recipient_address').val("{{ order.address|escapejs }}");
+        } else {
+            customFields.stop(true, true).slideDown(300);
+            initSelect2(customFields);
+        }
+    });
+
+    // ── 4. Save Shipping Handler ──────────────────────────────────
+    const saveBtn = document.getElementById('save-shipping-btn');
     if (saveBtn) {
         saveBtn.onclick = function(e) {
+            e.preventDefault();
             const form = document.getElementById('shipping-update-form');
-
-    // ── Restore visible state if previously set to shipping ──────────
-    const initSrc = document.querySelector('input[name="address_source"]:checked');
-    if (initSrc && initSrc.value === 'shipping') {
-        const customFields = document.getElementById('custom-shipping-fields');
-        if (customFields) customFields.style.display = 'flex';
+            if (form) {
+                if (typeof htmx !== 'undefined') {
+                    htmx.trigger(form, 'submit');
+                } else {
+                    form.submit();
+                }
+                // Optional UI feedback/refresh if HTMX handler doesn't trigger reload
+                setTimeout(() => {
+                    if ($('#shipping-edit-section').is(':visible')) window.location.reload();
+                }, 2000);
+            }
+        };
     }
+
+    // Nav Scroll Spy Logic
+    const sections = document.querySelectorAll('.scroll-margin-top');
+    const navLinks = document.querySelectorAll('#mobile-nav .nav-link, #admin-nav .nav-link');
+
+    window.addEventListener('scroll', () => {
+        let current = "";
+        sections.forEach(section => {
+            const sectionTop = section.offsetTop;
+            if (pageYOffset >= sectionTop - 150) {
+                current = section.getAttribute("id");
+            }
+        });
+        navLinks.forEach(link => {
+            link.classList.remove("active");
+            if (link.getAttribute("href").includes(current)) link.classList.add("active");
+        });
+    });
 });
+
+// Re-init on HTMX load
+$(document).on('htmx:afterSwap', function(e) {
+    const target = e.target;
+    initSelect2(target);
+    initColorSelects(target);
+    
+    // Auto-trigger toggle check for any new color selects
+    $(target).find('.color-select-styled, .color-select-edit').each(function() {
+        $(this).trigger('change');
+    });
+});
+
+// Bridge Select2 to HTMX
+$(document).on('select2:select', '.select2-admin', function() {
+    this.dispatchEvent(new Event('change', { bubbles: true }));
+});
+
 </script>
 <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initAutocomplete" async defer></script>
 {% endblock extra_js %}
