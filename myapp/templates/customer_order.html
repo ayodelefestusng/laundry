@@ -394,17 +394,27 @@
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    // Initialize Select2 natively
-    $('.select2').select2({
+    // 1. Initialize State separately
+    $('#id_state').select2({
+        theme: 'bootstrap-5',
         width: '100%',
-        placeholder: "Search and select...",
+        placeholder: "State", // Specific for State
         allowClear: true
     });
-    
-    // Ensure HTMX gets the event when Select2 changes
+
+    // 2. Initialize Town separately
+    $('#id_town').select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        placeholder: "Town", // Specific for Town
+        allowClear: true
+    });
+
+    // 3. Keep the generic HTMX trigger listener (this doesn't need to change)
     $('.select2').on('change', function (e) {
         if (typeof htmx !== 'undefined') {
             htmx.trigger(this, 'change');
@@ -412,7 +422,8 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
 
-// 2. Keep your other UI logic inside DOMContentLoaded
+
+
 document.addEventListener("DOMContentLoaded", function() {
     let maxDate = new Date();
     let validDays = 0;

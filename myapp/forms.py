@@ -33,10 +33,11 @@ from django.contrib.auth import get_user_model
 import logging
 from django.utils.encoding import force_bytes
 logger = logging.getLogger(__name__)
-
+from django.contrib.auth.forms import AuthenticationForm
 UserModel = get_user_model()
 from django import forms
 from datetime import datetime, timedelta
+from .models import Cluster, Town, State
 class CustomUserCreationForm(UserCreationForm):
     """
     A form that creates a user, with no username, but with email, phone number, and address.
@@ -45,7 +46,7 @@ class CustomUserCreationForm(UserCreationForm):
         model = CustomUser
         fields = ('email', 'name',)
 
-from django.contrib.auth.forms import AuthenticationForm
+
 
 class CustomAuthenticationForm(AuthenticationForm):
     def confirm_login_allowed(self, user):
@@ -121,7 +122,7 @@ class CustomUserChangeForm(UserChangeForm):
         model = CustomUser
         fields = ('email', 'phone', 'name',)
 
-from .models import Cluster, Town, State
+
 class OrderForm(forms.ModelForm):
     
     class Meta:
@@ -151,6 +152,7 @@ class OrderForm(forms.ModelForm):
             'customer_phone': forms.TextInput(attrs={'class': 'form-control'}),
             'state': forms.Select(attrs={
                 'class': 'form-select select2', 
+                'id': 'id_state', 
                 'hx-get': reverse_lazy('laundry:htmx_get_towns'), 
                 'hx-target': '#id_town', 
                 'hx-trigger': 'change'
@@ -190,7 +192,7 @@ class OrderForm(forms.ModelForm):
                     'class': 'form-control',
                     'rows': 2,
                     'cols': 40,
-                    'placeholder': 'Special care instructions...'
+                    'placeholder': 'Any Special care instructions...(Optional)'
                 }
             ),
         }
@@ -213,6 +215,22 @@ class OrderForm(forms.ModelForm):
 
         super().__init__(*args, **kwargs)
 
+
+
+        # Logic to convert Labels to Placeholders and hide labels
+        for field_name, field in self.fields.items():
+            # 1. Skip hidden fields (coordinates, etc.)
+            if isinstance(field.widget, forms.HiddenInput):
+                continue
+            
+            # 2. If the field has a label, move it to placeholder
+            if field.label:
+                # Use setdefault so we don't overwrite manual placeholders 
+                # you might have already set in the widgets dict
+                field.widget.attrs.setdefault('placeholder', field.label)
+                
+                # 3. Hide the label so Crispy doesn't render it
+                field.label = False
         
         # Restrict states/towns to those in clusters for this tenant
         if tenant:
@@ -282,6 +300,9 @@ class OrderItemForm(forms.ModelForm):
                 'class': 'form-control form-control-sm',
                 'placeholder': 'Describe color...',
             }),
+        'package': forms.Select(attrs={
+        'class': 'form-select select2-admin', 
+        }),
         }
 
     def __init__(self, *args, **kwargs):
@@ -472,7 +493,7 @@ class OrderForm_Antigraviy(forms.ModelForm):
                     'class': 'form-control',
                     'rows': 2,
                     'cols': 40,
-                    'placeholder': 'Special care instructions...'
+                    'placeholder': 'Any Special care instructions...(Optional)'
                 }
             ),
         }
