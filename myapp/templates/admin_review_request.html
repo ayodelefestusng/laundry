@@ -398,7 +398,10 @@ function initSelect2(context) {
     const $elements = context ? $(context).find(selector).add($(context).filter(selector)) : $(selector);
     
     $elements.each(function() {
-        if (!$(this).hasClass('select2-hidden-accessible')) {
+        const $el = $(this);
+        // If we have a context, we may want to force re-init or just ensure it's done.
+        // If it's already a Select2, we skip unless we want to refresh it.
+        if (!$el.hasClass('select2-hidden-accessible')) {
             const $el = $(this);
             $el.select2({ 
                 theme: 'bootstrap-5',
@@ -415,6 +418,15 @@ function initSelect2(context) {
                     htmx.trigger(this, 'change');
                 }
             });
+
+            // AUTO-TRIGGER: If the field has an initial value, trigger change 
+            // after a micro-delay to populate dependencies (like Town list)
+            if ($el.val() && $el.val() !== '') {
+                setTimeout(() => {
+                    console.log(`[Select2] Auto-triggering initial change for: ${$el.attr('id') || $el.attr('name')}`);
+                    $el.trigger('change');
+                }, 100);
+            }
         }
     });
 }
@@ -471,8 +483,9 @@ $(document).on('change select2:select select2:unselect select2:clear', '.color-s
 
 // Run on page load
 $(document).ready(function() {
-    initSelect2();
-    initColorSelects();
+    // Only init visible fields on load. Hidden ones will be init'd when shown via toggles.
+    initSelect2($('body').find('.select2-styled, .select2-admin, .select2').filter(':visible'));
+    initColorSelects($('body').find('.color-select-styled, .color-select-edit').filter(':visible'));
 
     // ── 1. Edit Mode Toggle ───────────────────────────────────────
     const editBtn = document.getElementById('toggle-shipping-edit');

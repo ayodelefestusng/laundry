@@ -2120,6 +2120,10 @@ def htmx_update_shippingv3(request, order_id):
             lng = request.POST.get('recipient_longitude')
             if lat: order.recipient_latitude = lat
             if lng: order.recipient_longitude = lng
+
+            # Save state and town
+            order.recipient_state_id = request.POST.get('recipient_state')
+            order.recipient_town_id = request.POST.get('recipient_town')
         else:
             # Force default to customer source
             logger.info(f"Using customer details for Order {order_id}.")
@@ -2254,6 +2258,10 @@ def htmx_update_shipping(request, order_id):
         order.recipient_address = request.POST.get('recipient_address')
         order.recipient_latitude = request.POST.get('recipient_latitude') or None
         order.recipient_longitude = request.POST.get('recipient_longitude') or None
+        
+        # Save state and town
+        order.recipient_state_id = request.POST.get('recipient_state')
+        order.recipient_town_id = request.POST.get('recipient_town')
         
         # Calculate shipping price based on recipient lat/long
         if order.recipient_latitude and order.recipient_longitude:
