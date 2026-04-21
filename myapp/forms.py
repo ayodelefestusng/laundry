@@ -301,9 +301,10 @@ class OrderItemForm(forms.ModelForm):
                 'placeholder': 'Describe color...',
             }),
         'package': forms.Select(attrs={
-        'class': 'form-select select2-admin', 
+        'class': 'form-select .select2-admin,', 
         }),
         }
+        # 'class': 'form-select select2', 
 
     def __init__(self, *args, **kwargs):
         # We need tenant context for color queryset

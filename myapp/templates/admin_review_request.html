@@ -86,12 +86,8 @@
                     <div class="spinner-border spinner-border-sm text-success" role="status"></div>
                 </div>
             </div>
-            <div class="table-responsive bg-light p-3 rounded-4">
-                <table class="table mb-0 border-0">
-                    <tbody id="add-form-container">
-                        {% include "htmx/add_item_form_row.html" %}
-                    </tbody>
-                </table>
+            <div id="add-form-container" class="bg-light p-3 p-lg-4 rounded-4">
+                {% include "htmx/add_item_form_row.html" %}
             </div>
             <div class="text-end mt-4">
                 <button type="submit" class="btn btn-primary rounded-pill px-5 shadow-sm py-2">
@@ -232,7 +228,13 @@
                                         <div id="custom-shipping-fields" class="row g-3 w-100 m-0 mt-2 p-0 animate-fade-in" style="display: none;">
                                             <div class="col-md-6">
                                                 <label class="smaller text-muted fw-bold">Recipient State</label>
-                                                <select name="recipient_state" id="admin_recipient_state" class="form-select select2-admin" hx-get="{% url 'laundry:htmx_get_towns' %}" hx-trigger="change" hx-target="#admin_recipient_town" hx-swap="innerHTML">
+                                                <select name="recipient_state" id="admin_recipient_state" class="form-select select2-admin" 
+                                                    hx-get="{% url 'laundry:htmx_get_towns' %}" 
+                                                    hx-trigger="change" 
+                                                    hx-target="#admin_recipient_town" 
+                                                    hx-swap="innerHTML"
+                                                    placeholder="Select State..."
+                                                >
                                                     <option value="">Select State...</option>
                                                     {% for s in states %}
                                                         <option value="{{ s.id }}" {% if order.recipient_state_id == s.id %}selected{% endif %}>{{ s.name }}</option>
@@ -241,7 +243,13 @@
                                             </div>
                                             <div class="col-md-6">
                                                 <label class="smaller text-muted fw-bold">Recipient Town</label>
-                                                <select name="recipient_town" id="admin_recipient_town" class="form-select select2-admin" hx-get="{% url 'laundry:htmx_calculate_delivery' order.id %}" hx-trigger="change" hx-target="#order-summary-section" hx-swap="innerHTML">
+                                                <select name="recipient_town" id="admin_recipient_town" class="form-select select2-admin" 
+                                                    hx-get="{% url 'laundry:htmx_calculate_delivery' order.id %}" 
+                                                    hx-trigger="change" 
+                                                    hx-target="#order-summary-section" 
+                                                    hx-swap="innerHTML"
+                                                    placeholder="Select Town..."
+                                                >
                                                     {% if order.recipient_town %}
                                                         <option value="{{ order.recipient_town.id }}" selected>{{ order.recipient_town.name }}</option>
                                                     {% else %}
@@ -371,15 +379,24 @@ body.htmx-request .progress-bar { width: 100% !important; }
 // ─────────────────────────────────────────────────────────────────────
 
 function initSelect2(context) {
-    const selector = context ? $(context).find('.select2-styled, .select2-admin') : $('.select2-styled, .select2-admin');
+    const selector = context ? $(context).find('.select2-styled, .select2-admin, .select2') : $('.select2-styled, .select2-admin, .select2');
     selector.each(function() {
         if (!$(this).hasClass('select2-hidden-accessible')) {
-            $(this).select2({ 
+            const $el = $(this);
+            $el.select2({ 
                 theme: 'bootstrap-5',
                 width: '100%', 
-                placeholder: $(this).attr('placeholder') || 'Search...', 
+                placeholder: $el.attr('placeholder') || 'Search...', 
                 allowClear: true,
                 dropdownCssClass: 'shadow-lg border-0'
+            });
+
+            // Direct HTMX Bridge for this instance
+            $el.on('change select2:select select2:unselect', function(e) {
+                console.log(`[Select2] Triggering HTMX change for: ${this.id || this.name}`);
+                if (typeof htmx !== 'undefined') {
+                    htmx.trigger(this, 'change');
+                }
             });
         }
     });
@@ -396,7 +413,8 @@ function initColorSelects(context) {
     const selector = context ? $(context).find('.color-select-styled, .color-select-edit') : $('.color-select-styled, .color-select-edit');
     selector.each(function() {
         if (!$(this).hasClass('select2-hidden-accessible')) {
-            $(this).select2({
+            const $el = $(this);
+            $el.select2({
                 theme: 'bootstrap-5',
                 width: '100%',
                 placeholder: 'Color…',
@@ -404,6 +422,14 @@ function initColorSelects(context) {
                 templateResult: formatColorOption,
                 templateSelection: formatColorOption,
                 dropdownCssClass: 'shadow-lg border-0'
+            });
+
+            // Direct HTMX Bridge for this instance
+            $el.on('change select2:select select2:unselect', function(e) {
+                console.log(`[ColorSelect] Triggering HTMX change for color selection`);
+                if (typeof htmx !== 'undefined') {
+                    htmx.trigger(this, 'change');
+                }
             });
         }
     });
@@ -413,7 +439,8 @@ function initColorSelects(context) {
 $(document).on('change select2:select select2:unselect select2:clear', '.color-select-styled, .color-select-edit', function() {
     const $select = $(this);
     const val = $select.val();
-    const $container = $select.closest('td').find('#custom-color-field, [id^="edit-custom-color-field-"]');
+    // Search upwards to find the specific field container, then find the custom input
+    const $container = $select.closest('.col-12, .col-md-3, td').find('#custom-color-field, [id^="edit-custom-color-field-"]');
     const $input = $container.find('input');
 
     if (val === 'other') {
@@ -526,8 +553,8 @@ $(document).on('htmx:afterSwap', function(e) {
     });
 });
 
-// Bridge Select2 to HTMX
-$(document).on('select2:select', '.select2-admin', function() {
+// Bridge compatibility listener (delegated as fallback)
+$(document).on('select2:select select2:unselect', '.select2-admin', function() {
     this.dispatchEvent(new Event('change', { bubbles: true }));
 });
 

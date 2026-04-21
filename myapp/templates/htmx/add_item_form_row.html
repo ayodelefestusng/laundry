@@ -1,5 +1,6 @@
-<tr class="align-middle bg-white">
-    <td style="width: 20%;">
+<div class="row g-3">
+    <!-- Row 1: Category, Service, Price Details -->
+    <div class="col-12 col-md-4 add-item-field">
         <label class="small text-muted mb-1 d-block fw-semibold">Category</label>
         <select
             name="category"
@@ -17,36 +18,46 @@
                 <option value="{{ category.id }}">{{ category.name }}</option>
             {% endfor %}
         </select>
-    </td>
-    <td style="width: 20%;">
+    </div>
+
+    <div class="col-12 col-md-4 add-item-field">
         <label class="small text-muted mb-1 d-block fw-semibold">Service Type</label>
         <select
             name="package"
             id="id_package"
             hx-get="{% url 'laundry:htmx_get_package_details' %}"
             hx-target="#price-delivery-details"
-            hx-trigger="change"
+            hx-trigger="change, select2:select"
             hx-swap="innerHTML"
             class="form-select select2-admin"
             placeholder="Service…"
         >
             <option value="" selected disabled>Service…</option>
         </select>
-    </td>
-    <td style="width: 20%;">
-        <label class="small text-muted mb-1 d-block fw-semibold">Garment Name</label>
-        <input type="text" name="name" class="form-control shadow-sm border-light-subtle" placeholder="e.g. White Native" required>
-    </td>
+    </div>
 
-    {# ── Color cell ───────────────────────────────────────────────────── #}
-    <td class="align-middle" style="min-width:200px;">
+    <div class="col-12 col-md-4 add-item-field">
+        <div id="price-delivery-details" class="h-100 d-flex align-items-end">
+            <div class="p-2 border rounded-3 bg-light w-100 text-center shadow-none" style="min-height: 40px;">
+                <i class="fas fa-info-circle me-1 opacity-50"></i> <span class="smaller">Select service for price</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row 2: Garment Name, Color, Qty -->
+    <div class="col-12 col-md-4 add-item-field">
+        <label class="small text-muted mb-1 d-block fw-semibold">Garment Name</label>
+        <input type="text" name="name" class="form-control shadow-sm border-light-subtle py-2" placeholder="e.g. White Native" required>
+    </div>
+
+    <div class="col-12 col-md-5 add-item-field">
         <label class="small text-muted mb-1 d-block fw-semibold">Color</label>
         <select name="color" id="id_color" class="form-select color-select-styled mb-2">
             <option value="">Color…</option>
             {% for c in colors %}
                 <option value="{{ c.id }}" data-hex="{{ c.hex_code }}">{{ c.name }}</option>
             {% endfor %}
-            <option value="other" class="fw-bold text-primary">Other / Custom…</option>
+            <option value="other" class="fw-bold text-primary">Other…</option>
         </select>
         <div id="custom-color-field" style="display:none;" class="mt-1 animate-fade-in">
             <input
@@ -57,34 +68,28 @@
                 placeholder="Describe color (e.g. Teal Blue)"
             >
         </div>
-    </td>
+    </div>
 
-    {# ── Quantity cell ────────────────────────────────────────────────── #}
-    <td class="align-middle" style="width: 10%;">
+    <div class="col-12 col-md-3 add-item-field">
         <label class="small text-muted mb-1 d-block fw-semibold">Qty</label>
-        <select name="quantity" id="id_quantity" class="form-select shadow-sm border-light-subtle">
+        <select name="quantity" id="id_quantity" class="form-select shadow-sm border-light-subtle py-2">
             {% for i in quantity_range %}
                 <option value="{{ i }}" {% if i == 1 %}selected{% endif %}>{{ i }}</option>
             {% endfor %}
         </select>
-    </td>
-
-    {# ── Price / Delivery placeholder ─────────────────────────────────── #}
-    <td id="price-delivery-details" class="align-middle text-muted small" style="min-width: 150px;">
-        <div class="p-2 border rounded-3 bg-light text-center shadow-none">
-            <i class="fas fa-info-circle me-1 opacity-50"></i> <span class="smaller">Select service to see price</span>
-        </div>
-    </td>
-</tr>
+    </div>
+</div>
 
 <style>
-.select2-admin, .color-select-styled {
+.select2-admin, .color-select-styled, .add-item-field .form-control, .add-item-field .form-select {
     border-radius: 8px !important;
     border: 1px solid #dee2e6 !important;
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.05) !important;
+}
+.add-item-field .form-control:focus, .add-item-field .form-select:focus {
+    border-color: var(--bs-primary) !important;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.1) !important;
 }
 .animate-fade-in { animation: fadeIn 0.3s ease-out; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 .smaller { font-size: 0.7rem; }
 </style>
-
