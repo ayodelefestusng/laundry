@@ -43,6 +43,21 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
+
+
+@media (max-width: 767.98px) {
+    .mobile-bleed {
+        /* Bootstrap container padding is 0.75rem (12px) per side */
+        margin-left: -0.75rem !important;
+        margin-right: -0.75rem !important;
+        /* Increase width to fill the space created by the negative margins */
+        width: calc(100% + 1.5rem) !important;
+        /* Optional: add some padding back so text doesn't touch the very edge */
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+    }
+}
+
     </style>
     {% block extra_css %}{% endblock %}
 </head>

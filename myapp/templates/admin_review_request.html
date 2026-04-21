@@ -360,6 +360,21 @@ body.htmx-request .progress-bar { width: 100% !important; }
     border-color: var(--bs-primary);
 }
 
+/* ── "Crispy" Blue Border Styling ──────────────────────────────── */
+.select2-container--bootstrap-5 .select2-selection {
+    border-color: #0d6efd !important;
+    border-width: 1px !important;
+    border-radius: 8px !important;
+}
+.select2-container--bootstrap-5.select2-container--focus .select2-selection {
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15) !important;
+}
+.form-control:focus, .form-select:focus {
+    border-color: #0d6efd !important;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15) !important;
+}
+.smaller { font-size: 0.75rem; }
+
 /* ── Media Queries ─────────────────────────────────────────────── */
 @media (max-width: 991.98px) {
     .scroll-margin-top { scroll-margin-top: 140px; }
@@ -379,8 +394,10 @@ body.htmx-request .progress-bar { width: 100% !important; }
 // ─────────────────────────────────────────────────────────────────────
 
 function initSelect2(context) {
-    const selector = context ? $(context).find('.select2-styled, .select2-admin, .select2') : $('.select2-styled, .select2-admin, .select2');
-    selector.each(function() {
+    const selector = '.select2-styled, .select2-admin, .select2';
+    const $elements = context ? $(context).find(selector).add($(context).filter(selector)) : $(selector);
+    
+    $elements.each(function() {
         if (!$(this).hasClass('select2-hidden-accessible')) {
             const $el = $(this);
             $el.select2({ 
@@ -497,8 +514,13 @@ $(document).ready(function() {
             $('input[name="recipient_email"]').val("{{ order.customer_email|escapejs }}");
             $('#id_recipient_address').val("{{ order.address|escapejs }}");
         } else {
-            customFields.stop(true, true).slideDown(300);
-            initSelect2(customFields);
+            customFields.stop(true, true).slideDown(300, function() {
+                // Initialize Select2 after it's rendered and visible
+                initSelect2(this);
+                if (typeof htmx !== 'undefined') {
+                    htmx.process(this);
+                }
+            });
         }
     });
 

@@ -11,7 +11,6 @@
             hx-swap="innerHTML"
             class="form-select select2-admin"
             placeholder="Category…"
-            hx-on:htmx:after-swap="setTimeout(function(){ $('#id_package').select2({theme: 'bootstrap-5', width: '100%', placeholder: 'Service…', allowClear: true}); }, 50)"
         >
             <option value="" selected disabled>Category…</option>
             {% for category in categories %}

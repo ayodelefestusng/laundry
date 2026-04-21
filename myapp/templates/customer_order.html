@@ -64,6 +64,25 @@
         box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.1);
     }
 
+    /* ── "Crispy" Blue Border Styling ──────────────────────────────── */
+    .select2-container--bootstrap-5 .select2-selection {
+        border-color: #0d6efd !important;
+        border-width: 1px !important;
+        border-radius: 12px !important;
+        min-height: 48px !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+    .select2-container--bootstrap-5.select2-container--focus .select2-selection {
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15) !important;
+    }
+    .form-control, .form-select {
+        border-color: #dee2e6 !important;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #0d6efd !important;
+    }
+
     .btn-submit {
         background: var(--primary-gradient);
         color: white;
@@ -228,7 +247,8 @@
     }
 </style>
 
-<div class="hero-section mt-5">
+{#  <div class="hero-section mt-5">  #}
+<div class="hero-section mt-5 mobile-bleed">
     <div class="container">
         <h1 class="hero-title">Elevate Your Lifestyle</h1>
         <p class="lead text-muted mx-auto" style="max-width: 600px;">
@@ -237,7 +257,8 @@
     </div>
 </div>
 
-<div class="container pb-5">
+{#  <div class="container pb-5">  #}
+<div class="container pb-5 mobile-bleed">
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <!-- Tabs Navigation -->
