@@ -394,85 +394,6 @@ body.htmx-request .progress-bar { width: 100% !important; }
 // Select2 & Color Toggle Logic (Centralized & Delegated)
 // ─────────────────────────────────────────────────────────────────────
 
-function initSelect2(context) {
-    const selector = '.select2-styled, .select2-admin, .select2';
-    const $elements = context ? $(context).find(selector).add($(context).filter(selector)) : $(selector);
-    
-    $elements.each(function() {
-        const $el = $(this);
-        // If we have a context, we may want to force re-init or just ensure it's done.
-        // If it's already a Select2, we skip unless we want to refresh it.
-        if (!$el.hasClass('select2-hidden-accessible')) {
-            const $el = $(this);
-            $el.select2({ 
-                theme: 'bootstrap-5',
-                width: '100%', 
-                placeholder: $el.attr('placeholder') || 'Search...', 
-                allowClear: true,
-                dropdownCssClass: 'shadow-lg border-0'
-            });
-
-            // Direct HTMX Bridge for this instance
-            $el.on('select2:select select2:unselect', function(e) {
-                console.log(`[Select2] Triggering HTMX change for: ${this.id || this.name}`);
-                if (typeof htmx !== 'undefined') {
-                    htmx.trigger(this, 'change');
-                }
-            });
-        }
-    });
-}
-
-const formatColorOption = (option) => {
-    if (!option.id) return option.text;
-    const hex = $(option.element).data('hex');
-    if (!hex) return option.text;
-    return $('<span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:' + hex + ';border:1px solid rgba(0,0,0,0.15);margin-right:8px;vertical-align:middle;"></span>' + option.text + '</span>');
-};
-
-function initColorSelects(context) {
-    const selector = context ? $(context).find('.color-select-styled, .color-select-edit') : $('.color-select-styled, .color-select-edit');
-    selector.each(function() {
-        if (!$(this).hasClass('select2-hidden-accessible')) {
-            const $el = $(this);
-            $el.select2({
-                theme: 'bootstrap-5',
-                width: '100%',
-                placeholder: 'Color…',
-                allowClear: true,
-                templateResult: formatColorOption,
-                templateSelection: formatColorOption,
-                dropdownCssClass: 'shadow-lg border-0'
-            });
-
-            // Direct HTMX Bridge for this instance
-            $el.on('select2:select select2:unselect', function(e) {
-                console.log(`[ColorSelect] Triggering HTMX change for color selection`);
-                if (typeof htmx !== 'undefined') {
-                    htmx.trigger(this, 'change');
-                }
-            });
-        }
-    });
-}
-
-// Global Delegated Color Toggle Logic
-$(document).on('change select2:select select2:unselect select2:clear', '.color-select-styled, .color-select-edit', function() {
-    const $select = $(this);
-    const val = $select.val();
-    // Search upwards to find the specific field container, then find the custom input
-    const $container = $select.closest('.col-12, .col-md-3, td').find('#custom-color-field, [id^="edit-custom-color-field-"]');
-    const $input = $container.find('input');
-
-    if (val === 'other') {
-        $container.stop(true, true).slideDown(200);
-        $input.prop('required', true);
-    } else {
-        $container.stop(true, true).slideUp(150);
-        $input.prop('required', false);
-    }
-});
-
 // Run on page load
 $(document).ready(function() {
     // Only init visible fields on load. Hidden ones will be init'd when shown via toggles.
@@ -587,18 +508,6 @@ $(document).ready(function() {
             link.classList.remove("active");
             if (link.getAttribute("href").includes(current)) link.classList.add("active");
         });
-    });
-});
-
-// Re-init on HTMX load
-$(document).on('htmx:afterSwap', function(e) {
-    const target = e.target;
-    initSelect2(target);
-    initColorSelects(target);
-    
-    // Auto-trigger toggle check for any new color selects
-    $(target).find('.color-select-styled, .color-select-edit').each(function() {
-        $(this).trigger('change');
     });
 });
 

@@ -356,11 +356,33 @@ def customer_order(request):
                 try:
                     order.save()
                     logger.info(f"Order {order.id} saved successfully.")
+                    
+                    # --- Process JS Cart Items ---
+                    cart_items_json = request.POST.get('cart_items')
+                    if cart_items_json:
+                        import json
+                        try:
+                            items_data = json.loads(cart_items_json)
+                            for item in items_data:
+                                package_id = item.get('package_id')
+                                if not package_id: continue
+                                package = Package.objects.filter(id=package_id).first()
+                                if package:
+                                    OrderItem.objects.create(
+                                        order=order,
+                                        package=package,
+                                        name=item.get('name', ''),
+                                        quantity=int(item.get('quantity', 1)),
+                                        price=package.price, # Authoritative pricing from DB
+                                        delivery_time_days=package.delivery_time_days,
+                                        color_id=item.get('color_id') or None,
+                                        color_custom=item.get('color_custom', ''),
+                                        tenant=tenant
+                                    )
+                        except json.JSONDecodeError:
+                            logger.error("Failed to parse cart_items JSON.")
                 except Exception as e:
                     logger.error(f"Critical error saving order: {str(e)}", exc_info=True)
-                    # Handle order save failure (e.g., return error response)
-                if 'book_and_pick' in request.POST:
-                    return redirect('laundry:admin_review_request', order_id=order.id)    
                 
                 # messages.success(request, f'Request placed successfully! A dispatch agent will visit your location on {order.pickup_date} to pick up your items. Thank you!')
                 
@@ -2560,4 +2582,25 @@ def htmx_calculate_deliverys(request):
     return render(request, 'htmx/delivery_price_snippet.html', {
         'town_name': town.name,
         'price': price
+    })
+from django.http import JsonResponse
+
+@require_http_methods(["GET"])
+def api_get_catalog(request):
+    """
+    Returns categories, packages, and colors for the JS Cart to build the UI natively.
+    """
+    tenant = getattr(request, 'tenant', None)
+    
+    categories = list(ServiceCategory.objects.all().values('id', 'name'))
+    packages = list(Package.objects.all().values('id', 'category_id', 'name', 'price', 'delivery_time_days'))
+    
+    colors = []
+    if tenant:
+        colors = list(Color.objects.filter(tenant=tenant).values('id', 'name', 'hex_code'))
+        
+    return JsonResponse({
+        'categories': categories,
+        'packages': packages,
+        'colors': colors
     })

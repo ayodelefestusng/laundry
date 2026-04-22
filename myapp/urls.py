@@ -76,6 +76,7 @@ urlpatterns = [
     path('htmx/update_shipping/<uuid:order_id>/', views.htmx_update_shipping, name='htmx_update_shipping'),
     path('htmx/send_invoice/<uuid:order_id>/', views.htmx_send_invoice, name='htmx_send_invoice'),
     path('api/assign_qr_to_item/<int:item_id>/', views.api_assign_qr_to_item, name='api_assign_qr_to_item'),
+    path('api/catalog/', views.api_get_catalog, name='api_get_catalog'),
     path('reschedule/delivery/', views.reschedule_delivery, name='reschedule_delivery'),
 
 #  # HTMX endpoints

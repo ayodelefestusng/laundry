@@ -5,405 +5,204 @@
 {% block content %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
-    :root {
-        --primary-gradient: linear-gradient(135deg, var(--primary-color, #0d6efd), var(--secondary-color, #6c757d));
-        --glass-bg: rgba(255, 255, 255, 0.95);
-        --glass-border: rgba(255, 255, 255, 0.2);
-    }
-
-    .hero-section {
-        padding: 80px 0 60px;
-        text-align: center;
-        animation: fadeIn 1s ease-in-out;
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    .hero-title {
-        font-weight: 800;
-        font-size: 3.5rem;
-        background: var(--primary-gradient);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 20px;
-    }
-
-    .order-card {
-        background: var(--glass-bg);
-        backdrop-filter: blur(10px);
-        border: 1px solid var(--glass-border);
-        border-radius: 24px;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.08);
-        padding: 40px;
-        margin-bottom: 50px;
-        transition: transform 0.3s ease;
-    }
-
-    .order-card:hover {
-        transform: translateY(-5px);
-    }
-
-    .form-label {
-        font-weight: 600;
-        color: #495057;
-        margin-bottom: 8px;
-    }
-
-    .form-control {
-        border-radius: 12px;
-        padding: 12px 16px;
-        border: 2px solid #eee;
-        transition: all 0.3s ease;
-    }
-
-    .form-control:focus {
-        border-color: var(--primary-color, #0d6efd);
-        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.1);
-    }
-
-    /* ── "Crispy" Blue Border Styling ──────────────────────────────── */
-    .select2-container--bootstrap-5 .select2-selection {
-        border-color: #0d6efd !important;
-        border-width: 1px !important;
-        border-radius: 12px !important;
-        min-height: 48px !important;
-        display: flex !important;
-        align-items: center !important;
-    }
-    .select2-container--bootstrap-5.select2-container--focus .select2-selection {
-        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15) !important;
-    }
-    .form-control, .form-select {
-        border-color: #dee2e6 !important;
-    }
-    .form-control:focus, .form-select:focus {
-        border-color: #0d6efd !important;
-    }
-
-    .btn-submit {
-        background: var(--primary-gradient);
-        color: white;
-        border: none;
-        padding: 15px 40px;
-        border-radius: 50px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        box-shadow: 0 10px 20px rgba(13, 110, 253, 0.3);
-        transition: all 0.3s ease;
-    }
-
-    .btn-submit:hover {
-        transform: scale(1.05);
-        box-shadow: 0 15px 25px rgba(13, 110, 253, 0.4);
-        color: white;
-    }
-
-    .btn-outline-primary {
-        padding: 15px 40px;
-        border-width: 2px;
-        border-radius: 50px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        transition: all 0.3s ease;
-    }
-
-    .btn-outline-primary:hover {
-        transform: scale(1.05);
-    }
-
-    /* Floating WhatsApp */
-    .whatsapp-float {
-        position: fixed;
-        bottom: 30px;
-        right: 30px;
-        width: 60px;
-        height: 60px;
-        background-color: #25d366;
-        color: #fff;
-        border-radius: 50px;
-        text-align: center;
-        font-size: 30px;
-        box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
-        z-index: 1000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-decoration: none;
-        transition: all 0.3s ease;
-    }
-
-    .whatsapp-float:hover {
-        background-color: #128c7e;
-        transform: scale(1.1);
-        color: white;
-    }
-
-    /* Chatbot Toggle */
-    .chat-toggle {
-        position: fixed;
-        bottom: 30px;
-        left: 30px;
-        background: var(--primary-gradient);
-        color: white;
-        padding: 12px 24px;
-        border-radius: 50px;
-        font-weight: 600;
-        cursor: pointer;
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-        z-index: 1000;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        transition: all 0.3s ease;
-    }
-
-    /* Chat Pane Styles */
-    .chat-pane {
-        position: fixed;
-        bottom: 100px;
-        left: 30px;
-        width: 350px;
-        height: 450px;
-        background: white;
-        border-radius: 20px;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-        display: none;
-        flex-direction: column;
-        z-index: 1001;
-        overflow: hidden;
-        border: 1px solid #eee;
-    }
-
-    .chat-header {
-        background: var(--primary-gradient);
-        color: white;
-        padding: 15px 20px;
-        font-weight: 700;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .chat-body {
-        flex: 1;
-        padding: 20px;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        background: #f8f9fa;
-    }
-
-    .chat-message {
-        padding: 10px 15px;
-        border-radius: 15px;
-        max-width: 85%;
-        font-size: 0.9rem;
-    }
-
-    .message-bot {
-        background: white;
-        align-self: flex-start;
-        border-bottom-left-radius: 2px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }
-
-    .message-user {
-        background: var(--primary-color, #0d6efd);
-        color: white;
-        align-self: flex-end;
-        border-bottom-right-radius: 2px;
-    }
-
-    .chat-footer {
-        padding: 15px;
-        border-top: 1px solid #eee;
-        display: flex;
-        gap: 10px;
-    }
-
-    .chat-input {
-        flex: 1;
-        border: 1px solid #ddd;
-        border-radius: 20px;        padding: 8px 15px;
-        outline: none;
-    }
-
-    .btn-send {
-        background: var(--primary-color, #0d6efd);
-        color: white;
-        border: none;
-        width: 35px;
-        height: 35px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
+    .hero-section { padding: 60px 0 40px; text-align: center; animation: fadeIn 1s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .hero-title { font-weight: 800; font-size: 3rem; background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 20px; }
+    
+    .nav-pills .nav-link { font-weight: 700; border-radius: 50px; padding: 15px 30px; transition: all 0.3s ease; }
+    .nav-pills .nav-link.active { box-shadow: 0 10px 20px rgba(13, 110, 253, 0.3); transform: scale(1.05); }
+    
+    /* Hover Descriptions */
+    .tab-hover-desc { font-size: 0.9rem; color: #6c757d; margin-top: 10px; height: 40px; }
 </style>
 
-{#  <div class="hero-section mt-5">  #}
 <div class="hero-section mt-5 mobile-bleed">
     <div class="container">
         <h1 class="hero-title">Elevate Your Lifestyle</h1>
         <p class="lead text-muted mx-auto" style="max-width: 600px;">
-            Experience premium laundry care with the touch of a button. We handle the dirty work so you can focus on what matters. Seamlessly request a pickup or manage your orders right here!
+            Experience premium laundry care with the touch of a button. We handle the dirty work so you can focus on what matters.
         </p>
     </div>
 </div>
 
-{#  <div class="container pb-5">  #}
 <div class="container pb-5 mobile-bleed">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <!-- Tabs Navigation -->
-            <ul class="nav nav-pills nav-justified mb-4 p-1 bg-light rounded-pill shadow-sm" id="orderTabs" role="tablist">
+    <div class="row position-relative">
+        
+        <!-- Sidebar / Navigation Tabs (Desktop) -->
+        <div class="col-lg-3 d-none d-lg-block">
+            <div class="card glass-bg shadow-sm border-0 rounded-4 sticky-top" style="top: 100px; z-index: 1020;">
+                <div class="card-body p-3">
+                    <h6 class="text-uppercase text-muted small fw-bold mb-3 px-2">Navigation</h6>
+                    <div class="nav flex-column nav-pills" id="admin-nav">
+                        <a class="nav-link mb-2 py-3 shadow-none border-start border-4 border-transparent active" href="#shipping-section">
+                            <i class="fas fa-truck me-2"></i> Shipping Details
+                        </a>
+                        <a class="nav-link mb-2 py-3 shadow-none border-start border-4 border-transparent toggle-cart-nav" href="#add-item-form" style="display:none;">
+                            <i class="fas fa-plus-circle me-2"></i> Add New Item
+                        </a>
+                        <a class="nav-link mb-2 py-3 shadow-none border-start border-4 border-transparent toggle-cart-nav" href="#items-card" style="display:none;">
+                            <i class="fas fa-tshirt me-2"></i> Items & Summary
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Floating Bottom Navigation (Mobile) -->
+        <div class="fixed-bottom d-lg-none bg-white border-top shadow-lg py-2 px-3" style="z-index: 1050;">
+            <div class="nav nav-pills nav-justified" id="mobile-nav">
+                <a class="nav-link py-2 px-0 border-0" href="#shipping-section">
+                    <i class="fas fa-truck d-block mb-1 fs-5"></i>
+                    <span class="smaller">Shipping</span>
+                </a>
+                <a class="nav-link py-2 px-0 border-0 toggle-cart-nav" href="#add-item-form" style="display:none;">
+                    <i class="fas fa-plus-circle d-block mb-1 fs-5"></i>
+                    <span class="smaller">Add Item</span>
+                </a>
+                <a class="nav-link py-2 px-0 border-0 toggle-cart-nav" href="#items-card" style="display:none;">
+                    <i class="fas fa-tshirt d-block mb-1 fs-5"></i>
+                    <span class="smaller">Summary</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="col-lg-9 mb-5 pb-5 pb-lg-0">
+            <!-- Mode Tabs -->
+            <ul class="nav nav-pills nav-justified mb-2 p-1 bg-light rounded-pill shadow-sm" id="orderModeTabs" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active rounded-pill fw-bold py-3" id="book-tab" data-bs-toggle="pill" data-bs-target="#book-pane" type="button" role="tab">
-                        <i class="fas fa-calendar-plus me-2"></i>Schedule A Pickup
+                    <button class="nav-link active" id="tab-pickup" data-mode="pickup" type="button" role="tab" title="A dispatch will visit you to pick your order on the specified date and raise the order.">
+                        <i class="fas fa-calendar-check me-2"></i>Schedule A Pick Up
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link rounded-pill fw-bold py-3" id="track-tab" data-bs-toggle="pill" data-bs-target="#track-pane" type="button" role="tab">
-                        <i class="fas fa-search-location me-2"></i>Track My Order
+                    <button class="nav-link" id="tab-book" data-mode="book" type="button" role="tab" title="You specify your order and we visit you on the specified date to pick your laundry.">
+                        <i class="fas fa-list-check me-2"></i>Book An Order Directly
                     </button>
                 </li>
             </ul>
+            <div class="text-center tab-hover-desc mb-4" id="tab-desc">
+                A dispatch will visit you to pick your order on the specified date and raise the order.
+            </div>
 
-            <div class="tab-content" id="orderTabsContent">
-                <!-- Tab 1: Book Order -->
-                <div class="tab-pane fade show active" id="book-pane" role="tabpanel">
-                    <div class="order-card" id="order-form-container">
-                        <h3 class="fw-bold mb-4 text-center">Schedule A Pickup or an Order</h3>
-                        <form method="post" action="{% url 'laundry:customer_order' %}" id="order-form">
+            <form method="post" action="{% url 'laundry:customer_order' %}" id="main-order-form">
+                {% csrf_token %}
+                <input type="hidden" name="cart_items" id="cart_items_input" value="[]">
+                <input type="hidden" name="book_and_pick" id="book_and_pick_flag" value="" disabled>
 
-                    {% csrf_token %}
+                <!-- Shipping Section -->
+                <div id="shipping-section" class="card glass-bg shadow-sm p-4 mb-5 border-0 rounded-4 scroll-margin-top border-start border-primary border-5">
+                    <h4 class="mb-4 fw-bold text-primary"><i class="fas fa-truck me-2"></i>Shipping & Contact</h4>
                     <div class="row g-4">
-                        <div class="col-md-6">
-                            {{ form.customer_name|as_crispy_field }}
-                        </div>
-                       
-                        <div class="col-md-6">
-                            {{ form.customer_phone|as_crispy_field }}
-                        </div>
-                         <div class="col-md-12">
-                            {{ form.customer_email|as_crispy_field }}
+                        <div class="col-md-6">{{ form.customer_name|as_crispy_field }}</div>
+                        <div class="col-md-6">{{ form.customer_phone|as_crispy_field }}</div>
+                        <div class="col-md-12">{{ form.customer_email|as_crispy_field }}</div>
+                        
+                        <div class="col-12 mt-4">
+                            <label class="form-label fw-bold">Address Options</label>
+                            <div class="d-flex gap-4 p-3 bg-light rounded-3 border">
+                                <div class="form-check custom-radio">
+                                    <input class="form-check-input" type="radio" name="address_source" id="addr_session" value="session" checked>
+                                    <label class="form-check-label fw-semibold" for="addr_session">Use Customer Address (Default)</label>
+                                </div>
+                                <div class="form-check custom-radio">
+                                    <input class="form-check-input" type="radio" name="address_source" id="addr_new" value="new">
+                                    <label class="form-check-label fw-semibold" for="addr_new">Use Another Address</label>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="col-md-12 position-relative" id="pickup_address_section">
-                            {{ form.address|as_crispy_field }}
-                            <div id="delivery-price-display" class="mt-2 text-primary fw-bold text-center"></div>
-                        </div>
-
-
-                        <div class="col-md-6">
-                            {{ form.state|as_crispy_field }}
-                        </div>
-                        <div class="col-md-6">
-                            {{ form.town|as_crispy_field }}
+                        <div id="address-fields-container" class="row g-4 mt-1" style="display: none;">
+                            <div class="col-md-12 position-relative">{{ form.address|as_crispy_field }}</div>
+                            <div class="col-md-6">{{ form.state|as_crispy_field }}</div>
+                            <div class="col-md-6">{{ form.town|as_crispy_field }}</div>
                         </div>
                         
-                      
-                        
-                        {# Delivery Option and Recipient Section moved to admin_review_request.html #}
-
-                        <div class="col-md-12 mt-4">
-                            {{ form.pickup_date|as_crispy_field }}
-                        </div>
-                        <div class="col-md-12">
-                            {{ form.special_instructions|as_crispy_field }}
-                        </div>
-                    </div>
-                    
-                    <div class="text-center mt-5 d-flex flex-column gap-3">
-                        <button type="submit" name="book_only" class="btn btn-submit w-100 d-flex justify-content-center align-items-center shadow">
-                            <span class="me-2">Schedule A Pick Up</span> <i class="fas fa-calendar-check ms-2 fs-5"></i>
-                        </button>
-                        <div class="d-flex align-items-center my-2">
-                            <hr class="flex-grow-1"><span class="mx-3 text-muted">OR</span><hr class="flex-grow-1">
-                        </div>
-                        <button type="submit" name="book_and_pick" class="btn btn-outline-primary w-100 btn-lg rounded-pill fw-bold text-uppercase d-flex justify-content-center align-items-center">
-                            <span class="me-2">Book An Order Directly</span> <i class="fas fa-arrow-right ms-2 fs-5"></i>
-                        </button>
-                    </div>
+                        <div class="col-md-12 mt-4">{{ form.pickup_date|as_crispy_field }}</div>
+                        <div class="col-md-12">{{ form.special_instructions|as_crispy_field }}</div>
                     </div>
                 </div>
 
-                <!-- Tab 2: Track Order -->
-                <div class="tab-pane fade" id="track-pane" role="tabpanel">
-                    <div class="order-card p-4">
-                        <h3 class="fw-bold mb-4 text-center">Track Your Order</h3>
-                        <div class="row justify-content-center">
-                            <div class="col-md-10">
-                                <p class="text-muted text-center mb-4">Enter your unique order code below to see the real-time status of your laundry.</p>
-                                <div class="input-group mb-4 shadow-sm border rounded-pill overflow-hidden">
-                                    <span class="input-group-text bg-white border-0 px-4">
-                                        <i class="fas fa-barcode text-primary"></i>
-                                    </span>
-                                    <input type="text" name="order_code" id="track-order-code" class="form-control border-0 py-3" placeholder="Enter Order Code (e.g. DMC-XXXX)" style="text-transform: uppercase;">
-                                    <button class="btn btn-primary px-4 fw-bold" 
-                                            hx-get="{% url 'laundry:htmx_track_order' %}" 
-                                            hx-include="#track-order-code" 
-                                            hx-target="#tracking-result-container"
-                                            hx-indicator="#tracking-spinner">
-                                        Track <i class="fas fa-search ms-2"></i>
-                                    </button>
+                <!-- Add New Item Section (JS Cart) -->
+                <div id="add-item-form" class="card glass-bg shadow-sm p-4 mb-5 border-0 rounded-4 scroll-margin-top position-relative toggle-cart-section" style="display:none;">
+                    <h5 class="mb-4 text-success fw-bold"><i class="fas fa-plus-circle me-2"></i> Add New Item</h5>
+                    <div class="bg-light p-3 p-lg-4 rounded-4">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold">Category</label>
+                                <select id="js-category" class="form-select select2-cart"><option value="">Select Category...</option></select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold">Service/Item</label>
+                                <select id="js-package" class="form-select select2-cart" disabled><option value="">Select Category First...</option></select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold">Garment Name/Identifier</label>
+                                <input type="text" id="js-name" class="form-control" placeholder="e.g. Blue check shirt">
+                            </div>
+                            <div class="col-md-3 color-selection-container">
+                                <label class="form-label small fw-bold">Color</label>
+                                <select id="js-color" class="form-select color-select-styled">
+                                    <option value="">Color...</option>
+                                </select>
+                                <div class="custom-color-input-container mt-2" style="display: none;">
+                                    <input type="text" id="js-color-custom" class="form-control form-control-sm" placeholder="Specify color...">
                                 </div>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small fw-bold">Quantity</label>
+                                <input type="number" id="js-quantity" class="form-control" value="1" min="1">
+                            </div>
+                            <div class="col-md-2">
+                                <button type="button" id="btn-add-item" class="btn btn-success w-100 fw-bold">Add <i class="fas fa-arrow-down ms-1"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                                <div id="tracking-spinner" class="htmx-indicator text-center my-4">
-                                    <div class="spinner-border text-primary" role="status">
-                                        <span class="visually-hidden">Loading...</span>
-                                    </div>
-                                    <p class="text-muted small mt-2">Searching for your order...</p>
-                                </div>
-
-                                <div id="tracking-result-container">
-                                    <div class="text-center py-5 text-muted bg-light rounded-4 opacity-75">
-                                        <i class="fas fa-search fa-3x mb-3"></i>
-                                        <p>Your tracking results will appear here.</p>
+                <!-- Items & Summary Card -->
+                <div id="items-card" class="card glass-bg shadow-sm border-0 rounded-4 mb-5 scroll-margin-top toggle-cart-section" style="display:none;">
+                    <div class="accordion" id="orderSummaryAccordion">
+                        <div class="accordion-item border-0 rounded-4 overflow-hidden">
+                            <h2 class="accordion-header" id="headingSummary">
+                                <button class="accordion-button bg-light fw-bold text-primary" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSummary" aria-expanded="true" aria-controls="collapseSummary">
+                                    <i class="fas fa-receipt me-2"></i> Order Summary & Items (<span id="cart-count">0</span> items)
+                                    <span class="ms-auto me-3 badge bg-primary rounded-pill px-3 py-2 fs-6">₦<span id="cart-total">0.00</span></span>
+                                </button>
+                            </h2>
+                            <div id="collapseSummary" class="accordion-collapse collapse show" aria-labelledby="headingSummary" data-bs-parent="#orderSummaryAccordion">
+                                <div class="accordion-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover mb-0" id="item-table">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th scope="col" class="border-0 small text-muted text-uppercase ps-4">Service</th>
+                                                    <th scope="col" class="border-0 small text-muted text-uppercase">Item Details</th>
+                                                    <th scope="col" class="border-0 small text-muted text-uppercase">Color</th>
+                                                    <th scope="col" class="border-0 small text-muted text-uppercase text-center">Qty x Price</th>
+                                                    <th scope="col" class="border-0 small text-muted text-uppercase text-end">Total</th>
+                                                    <th scope="col" class="border-0 small text-muted text-uppercase text-end pe-4">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="cart-tbody">
+                                                <tr><td colspan="6" class="text-center py-4 text-muted">No items added yet.</td></tr>
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
+
+                <div class="text-center mt-5 mb-5 d-flex flex-column gap-3">
+                    <button type="submit" id="btn-submit-order" class="btn btn-submit w-100 btn-lg d-flex justify-content-center align-items-center shadow">
+                        <span class="me-2" id="submit-text">Schedule A Pick Up</span> <i class="fas fa-calendar-check ms-2 fs-5"></i>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
-</div>
-
-<!-- Floating Elements -->
-{#  <a href="https://wa.me/{{ tenant.whatsapp_number|default:'+2349068770054' }}" class="whatsapp-float" target="_blank">
-    <i class="fab fa-whatsapp"></i>
-</a>  #}
-
-
-<a href="https://wa.me/{{ tenant_whatsapp_number|default:'+2349068770054' }}" class="whatsapp-float" target="_blank">
-    <i class="fab fa-whatsapp"></i>
-</a>
-<div class="chat-pane" id="chat-pane">
-    <div class="chat-header">
-        <span><i class="fas fa-robot me-2"></i> AI Assistant</span>
-        <i class="fas fa-times cursor-pointer" id="close-chat" style="cursor: pointer;"></i>
-    </div>
-    <div class="chat-body" id="chat-body">
-        <div class="chat-message message-bot">
-            Hello! I'm your AI Laundry Assistant. How can I help you today?
-        </div>
-    </div>
-    <div class="chat-footer">
-        <input type="text" class="chat-input" id="chat-input" placeholder="Type a message...">
-        <button class="btn-send" id="send-btn"><i class="fas fa-paper-plane"></i></button>
-    </div>
-</div>
-
-<div class="chat-toggle" id="chat-toggle">
-    <i class="fas fa-robot"></i> AI Assistant
 </div>
 
 {% endblock %}
@@ -411,41 +210,293 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5.theme.min.css" />
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-    // 1. Initialize State separately
-    $('#id_state').select2({
-        theme: 'bootstrap-5',
-        width: '100%',
-        placeholder: "State", // Specific for State
-        allowClear: true
-    });
+// --- 1. Catalog Manager (1-Hour Cache) ---
+const CatalogManager = {
+    CACHE_KEY: 'laundry_catalog_v1',
+    CACHE_EXPIRY_MS: 3600000, // 1 hour
 
-    // 2. Initialize Town separately
-    $('#id_town').select2({
-        theme: 'bootstrap-5',
-        width: '100%',
-        placeholder: "Town", // Specific for Town
-        allowClear: true
-    });
-
-    // 3. Keep the generic HTMX trigger listener (this doesn't need to change)
-    $('.select2').on('change', function (e) {
-        if (typeof htmx !== 'undefined') {
-            htmx.trigger(this, 'change');
+    async getCatalog() {
+        const cached = sessionStorage.getItem(this.CACHE_KEY);
+        if (cached) {
+            const data = JSON.parse(cached);
+            if (Date.now() - data.timestamp < this.CACHE_EXPIRY_MS) {
+                console.log("Loaded catalog from fresh cache.");
+                return data.catalog;
+            }
         }
+        console.log("Cache expired or missing, fetching fresh catalog...");
+        const response = await fetch('/api/catalog/');
+        if (!response.ok) throw new Error("Failed to fetch catalog");
+        const catalog = await response.json();
+        sessionStorage.setItem(this.CACHE_KEY, JSON.stringify({ timestamp: Date.now(), catalog }));
+        return catalog;
+    }
+};
+
+// --- 2. JS Cart State ---
+let catalogData = { categories: [], packages: [], colors: [] };
+let cartItems = [];
+
+async function initCart() {
+    try {
+        catalogData = await CatalogManager.getCatalog();
+        populateCategoryDropdown();
+        populateColorDropdown();
+    } catch (e) {
+        console.error(e);
+        alert("Failed to load catalog. Please refresh the page.");
+    }
+}
+
+function populateCategoryDropdown() {
+    const $cat = $('#js-category');
+    $cat.empty().append('<option value="">Select Category...</option>');
+    catalogData.categories.forEach(c => $cat.append(new Option(c.name, c.id)));
+}
+
+function populateColorDropdown() {
+    const $col = $('#js-color');
+    $col.find('option:not([value=""], [value="other"])').remove();
+    catalogData.colors.forEach(c => {
+        const opt = new Option(c.name, c.id);
+        $(opt).attr('data-hex', c.hex_code);
+        $col.append(opt);
+    });
+    $col.append('<option value="other">Other...</option>');
+    // Reinit Select2 to apply formatColor if loaded after DOM
+    initColorSelects('#add-item-form');
+}
+
+$('#js-category').on('change', function() {
+    const catId = $(this).val();
+    const $pkg = $('#js-package');
+    $pkg.empty().append('<option value="">Select Service...</option>');
+    if (!catId) {
+        $pkg.prop('disabled', true);
+        return;
+    }
+    $pkg.prop('disabled', false);
+    catalogData.packages.filter(p => String(p.category_id) === String(catId)).forEach(p => {
+        $pkg.append(new Option(`${p.name} - ₦${parseFloat(p.price).toFixed(2)}`, p.id));
     });
 });
 
+$('#btn-add-item').on('click', function() {
+    const packageId = $('#js-package').val();
+    const pkg = catalogData.packages.find(p => String(p.id) === String(packageId));
+    if (!pkg) return alert("Please select a valid service.");
 
+    const colorId = $('#js-color').val();
+    const colorOpt = catalogData.colors.find(c => String(c.id) === String(colorId));
+    const colorCustom = colorId === 'other' ? $('#js-color-custom').val() : '';
+    
+    if (colorId === 'other' && !colorCustom) return alert("Please specify the custom color.");
 
-document.addEventListener("DOMContentLoaded", function() {
+    const item = {
+        id: Date.now(),
+        package_id: pkg.id,
+        package_name: pkg.name,
+        category_id: pkg.category_id,
+        category_name: catalogData.categories.find(c => String(c.id) === String(pkg.category_id))?.name || '',
+        price: parseFloat(pkg.price),
+        delivery_time_days: pkg.delivery_time_days,
+        name: $('#js-name').val() || 'Unnamed Item',
+        color_id: colorId === 'other' ? null : colorId,
+        color_name: colorOpt ? colorOpt.name : (colorCustom || 'N/A'),
+        color_custom: colorCustom,
+        color_hex: colorOpt ? colorOpt.hex_code : null,
+        quantity: parseInt($('#js-quantity').val() || 1)
+    };
+
+    cartItems.push(item);
+    renderCart();
+    
+    // Reset form
+    $('#js-name').val('');
+    $('#js-quantity').val(1);
+    $('#js-color').val('').trigger('change');
+});
+
+window.removeCartItem = function(id) {
+    cartItems = cartItems.filter(i => i.id !== id);
+    renderCart();
+};
+
+function renderCart() {
+    const $tbody = $('#cart-tbody');
+    $tbody.empty();
+    let total = 0;
+    
+    if (cartItems.length === 0) {
+        $tbody.append('<tr><td colspan="6" class="text-center py-4 text-muted">No items added yet.</td></tr>');
+    } else {
+        cartItems.forEach(item => {
+            const lineTotal = item.price * item.quantity;
+            total += lineTotal;
+            const colorDot = item.color_hex ? `<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${item.color_hex};border:1px solid #ccc;margin-right:5px;"></span>` : '';
+            
+            $tbody.append(`
+                <tr>
+                    <td class="ps-4">
+                        <div class="fw-bold text-dark">${item.package_name}</div>
+                        <div class="small text-muted">${item.category_name}</div>
+                        <div class="small text-info mt-1"><i class="fas fa-clock me-1"></i> Delivery: ${item.delivery_time_days} Days</div>
+                    </td>
+                    <td><div class="fw-semibold">${item.name}</div></td>
+                    <td>${colorDot}${item.color_name}</td>
+                    <td class="text-center"><span class="badge bg-light text-dark border px-2 py-1">₦${item.price.toFixed(2)} &times; ${item.quantity}</span></td>
+                    <td class="text-end fw-bold text-primary">₦${lineTotal.toFixed(2)}</td>
+                    <td class="text-end pe-4">
+                        <button type="button" class="btn btn-outline-danger btn-sm rounded-circle shadow-sm" onclick="removeCartItem(${item.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `);
+        });
+    }
+    
+    $('#cart-count').text(cartItems.length);
+    $('#cart-total').text(total.toFixed(2));
+    $('#cart_items_input').val(JSON.stringify(cartItems));
+}
+
+// --- 3. UI Interactions ---
+$(document).ready(function() {
+    initSelect2();
+    initColorSelects();
+    initCart();
+
+    // Init Select2 for generic fields
+    $('.select2-cart').select2({ theme: 'bootstrap-5', width: '100%' });
+
+    // Mode Toggle
+    $('#orderModeTabs button[data-bs-toggle="tab"], #orderModeTabs button').on('click', function (e) {
+        e.preventDefault();
+        $('#orderModeTabs button').removeClass('active');
+        $(this).addClass('active');
+
+        const mode = $(this).data('mode');
+        const isBook = mode === 'book';
+
+        if (isBook) {
+            $('.toggle-cart-section, .toggle-cart-nav').stop(true, true).slideDown(300);
+            $('#tab-desc').text("You specify your order and we visit you on the specified date to pick your laundry.");
+            $('#submit-text').text("Submit Order & Request Pick Up");
+            $('#book_and_pick_flag').prop('disabled', false).val('true');
+        } else {
+            $('.toggle-cart-section, .toggle-cart-nav').stop(true, true).slideUp(300);
+            $('#tab-desc').text("A dispatch will visit you to pick your order on the specified date and raise the order.");
+            $('#submit-text').text("Schedule A Pick Up");
+            $('#book_and_pick_flag').prop('disabled', true);
+        }
+    });
+
+    // Address Source Toggle & Session Storage
+    const addressKeys = ['id_address', 'id_state', 'id_town'];
+    
+    // Load from session
+    const loadSessionAddress = () => {
+        addressKeys.forEach(key => {
+            const val = sessionStorage.getItem(`laundry_addr_${key}`);
+            if (val) {
+                if (key === 'id_state' || key === 'id_town') {
+                    $(`#${key}`).val(val).trigger('change.select2');
+                } else {
+                    $(`#${key}`).val(val);
+                }
+            }
+        });
+    };
+
+    $('input[name="address_source"]').on('change', function() {
+        if (this.value === 'session') {
+            $('#address-fields-container').stop(true,true).slideUp(300);
+            loadSessionAddress();
+        } else {
+            $('#address-fields-container').stop(true,true).slideDown(300);
+            // Re-init select2 on fields when they become visible
+            initSelect2($('#address-fields-container'));
+        }
+    });
+
+    // Save to session on change
+    addressKeys.forEach(key => {
+        $(`#${key}`).on('change', function() {
+            if ($('input[name="address_source"]:checked').val() === 'new') {
+                sessionStorage.setItem(`laundry_addr_${key}`, $(this).val());
+            }
+        });
+    });
+
+    // Pure JS Dynamic Towns (No HTMX, to prevent Select2 wrapper destruction)
+    $('#id_state').on('change', async function(e) {
+        // Prevent triggering multiple times if it's initialized
+        if (e.originalEvent === undefined && !$(this).is(':focus') && !$('#addr_new').is(':checked')) {
+            // Might be triggered by setup
+        }
+        
+        const stateId = $(this).val();
+        const $town = $('#id_town');
+        $town.empty().append('<option value="">Loading Towns...</option>').trigger('change.select2');
+        
+        if (!stateId) {
+            $town.empty().append('<option value="">Select a state first...</option>').trigger('change.select2');
+            return;
+        }
+
+        try {
+            // Re-using the existing HTMX endpoint but fetching via JS
+            const response = await fetch(`/htmx/get_towns/?state=${stateId}`);
+            if (!response.ok) throw new Error("Failed");
+            const html = await response.text();
+            $town.html(html).trigger('change.select2');
+            
+            // Restore town from session if applicable
+            if ($('input[name="address_source"]:checked').val() === 'new') {
+                const savedTown = sessionStorage.getItem(`laundry_addr_id_town`);
+                if (savedTown && $town.find(`option[value="${savedTown}"]`).length) {
+                    $town.val(savedTown).trigger('change.select2');
+                }
+            }
+        } catch (err) {
+            console.error("Town fetch error:", err);
+            $town.empty().append('<option value="">Error loading towns</option>').trigger('change.select2');
+        }
+    });
+
+    // Trigger initial load if session address is selected
+    if ($('#addr_session').is(':checked')) {
+        loadSessionAddress();
+    } else {
+        $('#address-fields-container').show();
+        initSelect2($('#address-fields-container'));
+    }
+
+    // Nav Scroll Spy Logic
+    const sections = document.querySelectorAll('.scroll-margin-top');
+    const navLinks = document.querySelectorAll('#mobile-nav .nav-link, #admin-nav .nav-link');
+
+    window.addEventListener('scroll', () => {
+        let current = "";
+        sections.forEach(section => {
+            if ($(section).is(':visible') && pageYOffset >= section.offsetTop - 150) {
+                current = section.getAttribute("id");
+            }
+        });
+        navLinks.forEach(link => {
+            link.classList.remove("active");
+            if (link.getAttribute("href").includes(current)) link.classList.add("active");
+        });
+    });
+    
+    // Datepicker
     let maxDate = new Date();
     let validDays = 0;
     while (validDays < 5) {
@@ -453,7 +504,7 @@ document.addEventListener("DOMContentLoaded", function() {
         if (maxDate.getDay() !== 0) validDays++;
     }
 
-    flatpickr("#pickup-calendar", {
+    flatpickr("#id_pickup_date", {
         enableTime: true,
         dateFormat: "Y-m-d H:i",
         minDate: "today",
@@ -461,32 +512,6 @@ document.addEventListener("DOMContentLoaded", function() {
         disable: [date => date.getDay() === 0], // disable Sundays
         minTime: "09:00",
         maxTime: "16:00",
-        onReady: function(selectedDates, dateStr, instance) {
-            let now = new Date();
-            let today = flatpickr.formatDate(now, "Y-m-d");
-            if (instance.formatDate(instance.now, "Y-m-d") === today) {
-                // If today, set minTime to current time (but not earlier than 09:00)
-                let current = now.getHours() + ":" + now.getMinutes();
-                instance.set("minTime", current > "09:00" ? current : "09:00");
-            }
-        },
-        onChange: function(selectedDates, dateStr, instance) {
-            let now = new Date();
-            if (selectedDates.length > 0) {
-                let selected = selectedDates[0];
-                let todayStr = flatpickr.formatDate(now, "Y-m-d");
-                let selectedStr = flatpickr.formatDate(selected, "Y-m-d");
-                if (todayStr === selectedStr) {
-                    // For today, block past times
-                    let current = now.getHours() + ":" + now.getMinutes();
-                    instance.set("minTime", current > "09:00" ? current : "09:00");
-                } else {
-                    // Reset for future days
-                    instance.set("minTime", "09:00");
-                    instance.set("maxTime", "16:00");
-                }
-            }
-        }
     });
 });
 </script>

@@ -43,6 +43,29 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
+        
+        /* Consolidate Layout Styles */
+        .glass-bg {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+        }
+        .select2-container--bootstrap-5 .select2-selection {
+            border-color: var(--primary-color) !important;
+            border-width: 1px !important;
+            border-radius: 12px !important;
+            min-height: 48px !important;
+            display: flex !important;
+            align-items: center !important;
+        }
+        .select2-container--bootstrap-5.select2-container--focus .select2-selection {
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15) !important;
+        }
+        .form-control, .form-select { border-color: #dee2e6 !important; border-radius: 12px; padding: 12px 16px; }
+        .form-control:focus, .form-select:focus { border-color: var(--primary-color) !important; }
+
 
 
 @media (max-width: 767.98px) {
@@ -133,25 +156,69 @@
 </script>
 
 <script>
-    // Universal Select2 re-initialization
-    document.body.addEventListener('htmx:afterSwap', function(event) {
-        const target = event.detail.target;
-        
-        // Find all Select2 elements within the newly swapped content
-        const select2Elements = target.querySelectorAll('.select2');
-        
-        select2Elements.forEach(function(element) {
-            // 1. Destroy existing Select2 instance if it exists
-            if ($(element).hasClass('select2-hidden-accessible')) {
-                $(element).select2('destroy');
+    // Universal functions for reusability
+    function initSelect2(targetElement = document) {
+        // Initialize general select2
+        $(targetElement).find('.select2').each(function() {
+            if ($(this).hasClass('select2-hidden-accessible')) {
+                $(this).select2('destroy');
             }
-            
-            // 2. Re-initialize
-            $(element).select2({
+            $(this).select2({
                 width: '100%',
                 placeholder: "Search and select...",
                 allowClear: true
             });
+        });
+    }
+
+    function initColorSelects(targetElement = document) {
+        $(targetElement).find('.color-select-styled, .color-select-edit').each(function() {
+            if ($(this).hasClass('select2-hidden-accessible')) {
+                $(this).select2('destroy');
+            }
+            
+            $(this).select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                templateResult: formatColor,
+                templateSelection: formatColor
+            });
+
+            // Handle "Other" color input toggle natively
+            $(this).off('change.colorToggle').on('change.colorToggle', function() {
+                const selectedText = $(this).find('option:selected').text().trim().toLowerCase();
+                const container = $(this).closest('.color-selection-container');
+                const customInput = container.find('.custom-color-input-container');
+                
+                if (selectedText === 'other') {
+                    customInput.slideDown(200);
+                    customInput.find('input').attr('required', true);
+                } else {
+                    customInput.slideUp(200);
+                    customInput.find('input').removeAttr('required').val('');
+                }
+            });
+        });
+    }
+
+    function formatColor(color) {
+        if (!color.id) return color.text;
+        var hex = $(color.element).data('hex');
+        if (hex) {
+            return $(`<span><span style="display:inline-block; width:15px; height:15px; background-color:${hex}; border-radius:50%; margin-right:8px; border:1px solid #ccc; vertical-align:middle;"></span>${color.text}</span>`);
+        }
+        return color.text;
+    }
+
+    // Universal Select2 HTMX re-initialization
+    document.body.addEventListener('htmx:afterSwap', function(event) {
+        const target = event.detail.target;
+        initSelect2(target);
+        initColorSelects(target);
+        
+        // Trigger check for custom color toggle
+        $(target).find('.color-select-styled, .color-select-edit').each(function() {
+            $(this).trigger('change');
         });
     });
 </script>
