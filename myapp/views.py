@@ -201,7 +201,7 @@ def change_password(request):
                 logout(request)
                 return redirect("laundry:login")
             else:
-                return render(request, "myapp/change_password.html", {"form": form, "error": "Incorrect password"})
+                return render(request, "registration/change_password.html", {"form": form, "error": "Incorrect password"})
     else:
         form = PasswordChangeForm()
     return render(request, "registration/change_password.html", {"form": form})

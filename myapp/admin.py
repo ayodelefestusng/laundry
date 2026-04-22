@@ -1,11 +1,11 @@
 # Register your models here.
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from matplotlib.pylab import qr
+
 
 from .models import (Comment, CustomUser, Order, OrderItem, Package,
                      ServiceCategory,Tenant, TenantAttribute, Workflow, WorkflowStage, WorkflowInstance, WorkflowHistory,
-                     ServiceChoices,PremiumClient,QR,DeliveryPricing, Cluster, State, Town)
+                     ServiceChoices,PremiumClient,QR,DeliveryPricing, Color,Cluster, State, Town)
 
 
 class CustomUserAdmin(UserAdmin):
@@ -103,6 +103,8 @@ admin.site.index_title = "Welcome to the Laundry Service Admin Portal"
 admin.site.register(CustomUser)
 admin.site.register(WorkflowHistory)
 admin.site.register(ServiceChoices)
+admin.site.register(Color)
+
 class TenantAttributeInline(admin.StackedInline):
     model = TenantAttribute
     can_delete = False

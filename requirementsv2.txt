@@ -14,3 +14,14 @@ django-otp
 django-htmx
 PyJWT<2
 googlemaps
+dj_database_url
+gunicorn
+Pillow
+psycopg2-binary==2.9.11
+djangorestframework
+django-cors-headers
+django-timezone-field
+django-phonenumber-field
+django-tinymce
+django-redis
+django-cors-headers

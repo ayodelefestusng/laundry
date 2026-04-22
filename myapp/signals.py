@@ -6,7 +6,9 @@ from .models import OrderItem, Order
 logger = logging.getLogger(__name__)
 
 @receiver(post_save, sender=OrderItem)
-def update_order_status_on_item_completion(sender, instance, **kwargs):
+def update_order_status_on_item_completion(sender, instance, created, raw, **kwargs):
+    if raw:
+        return
     """
     Automatically updates the parent Order status to 'ready_for_dispatch'
     if all associated items are marked as 'completed'.

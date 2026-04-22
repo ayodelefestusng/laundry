@@ -34,7 +34,7 @@ import sys
 import os
 from logging.handlers import RotatingFileHandler
 
-from matplotlib.pylab import qr
+
 
 
 
@@ -287,7 +287,9 @@ from django.dispatch import receiver
 
 # Add post_save signal for Partner Assignment
 @receiver(post_save, sender=CustomUser)
-def assign_partner_group(sender, instance, created, **kwargs):
+def assign_partner_group(sender, instance, created, raw, **kwargs):
+    if raw:
+        return
     if created and instance.tenant and instance.is_staff and not instance.is_superuser:
         from django.contrib.auth.models import Group
         group, _ = Group.objects.get_or_create(name='Partner')

@@ -68,3 +68,7 @@ htmlcov/
 .spyderproject
 .spyproject
 .ropeproject
+
+
+# Ignore JSON files (e.g., environment configs, dumps)
+*.json
