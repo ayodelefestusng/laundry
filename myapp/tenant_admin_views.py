@@ -251,4 +251,131 @@ def tenant_admin_hub(request):
         logger.info(f"TenantAdminMixin tenant_admin_hub: {request.user}")
         return redirect('laundry:homepage')
     logger.info(f"TenantAdminMixin tenant_admin_hub 2: {request.user}")
-    return render(request, 'tenant_admin_hub.html')
+    
+    # Get tenants for QR generation (superuser/aggregator only)
+    tenants = []
+    is_superuser_or_aggregator = request.user.is_superuser or request.user.groups.filter(name='Aggregator').exists()
+    if is_superuser_or_aggregator:
+        from myapp.models import Tenant
+        if request.user.is_superuser:
+            tenants = Tenant.objects.filter(is_active=True)
+        else:
+            # Aggregator sees only their created tenants
+            tenants = Tenant.objects.filter(created_by=request.user, is_active=True)
+    
+    context = {
+        'tenants': tenants,
+        'is_superuser_or_aggregator': is_superuser_or_aggregator,
+    }
+    return render(request, 'tenant_admin_hub.html', context)
+
+
+def generate_qr_codes(request):
+    
+    """Generate QR codes and return PDF for download"""
+    from django.http import HttpResponse
+    from django.shortcuts import redirect
+    from myapp.models import Tenant, QR
+    from myapp.utils import get_signed_token
+    import uuid
+    import qrcode
+    from io import BytesIO
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.utils import ImageReader
+    logger.info(f"Generating QR codes for tenant: {request.user}")
+    # Determine tenant
+    tenant_id = request.GET.get('tenant_id')
+    quantity = int(request.GET.get('quantity', 100))
+    
+    is_superuser_or_aggregator = request.user.is_superuser or request.user.groups.filter(name='Aggregator').exists()
+    
+    if tenant_id:
+        logger.info(f"Generating QR codes for tenant: {request.user}")
+        try:
+            tenant = Tenant.objects.get(id=tenant_id, is_active=True)
+        except Tenant.DoesNotExist:
+            logger.warning(f"QR Generation: Tenant {tenant_id} not found or inactive")
+            return redirect('laundry:tenant_admin_hub')
+    else:
+        # Non-superuser/aggregator uses their own tenant
+        if hasattr(request, 'tenant'):
+            tenant = request.tenant
+        else:
+            logger.warning(f"QR Generation: No tenant found for user {request.user}")
+            return redirect('laundry:tenant_admin_hub')
+    
+    # Verify permission for superuser/aggregator
+    if is_superuser_or_aggregator and tenant_id:
+        if not request.user.is_superuser:
+            if tenant.created_by != request.user:
+                logger.warning(f"QR Generation: User {request.user} tried to generate QR for tenant {tenant_id} they don't own")
+                return redirect('laundry:tenant_admin_hub')
+    
+    # Generate QR codes
+    from django.utils import timezone
+    qr_list = []
+    for _ in range(quantity):
+        raw_uuid = str(uuid.uuid4())
+        signed_code = get_signed_token(raw_uuid)
+        qr_list.append(QR(
+            code=signed_code, 
+            tenant=tenant, 
+            status='unused',
+            created_by=request.user,
+            date_created=timezone.now()
+        ))
+    
+    QR.objects.bulk_create(qr_list)
+    logger.info(f"QR Generation: Created {len(qr_list)} QR codes for tenant {tenant.name}")
+    
+    # Generate PDF
+    qr_queryset = QR.objects.filter(tenant=tenant).order_by('-id')[:quantity]
+    
+    # Create PDF response
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="qr_codes_{tenant.name}_{quantity}.pdf"'
+    
+    # Generate PDF
+    c = canvas.Canvas(response, pagesize=A4)
+    width, height = A4
+    
+    cols = 5
+    rows = 10
+    margin = 35
+    cell_width = (width - 2 * margin) / cols
+    cell_height = (height - 2 * margin) / rows
+    
+    for i, qr in enumerate(qr_queryset):
+        if i > 0 and i % (cols * rows) == 0:
+            c.showPage()
+            
+        page_idx = i % (cols * rows)
+        col = page_idx % cols
+        row = page_idx // cols
+        
+        x = margin + col * cell_width
+        y = height - margin - (row + 1) * cell_height
+        
+        # Generate QR image
+        qr_img = qrcode.QRCode(box_size=10, border=4)
+        qr_img.add_data(qr.code)
+        qr_img.make(fit=True)
+        img_buffer = qr_img.make_image(fill_color="black", back_color="white")
+        img_bytes = BytesIO()
+        img_buffer.save(img_bytes, format="PNG")
+        img_bytes.seek(0)
+        img = ImageReader(BytesIO(img_bytes.getvalue()))
+        
+        qr_size = 80
+        pad_x = (cell_width - qr_size) / 2
+        pad_y = (cell_height - qr_size) / 2 + 10
+        
+        c.drawImage(img, x + pad_x, y + pad_y, width=qr_size, height=qr_size)
+        
+        c.setFont("Helvetica", 6)
+        display_code = (qr.code[:30] + '..') if len(qr.code) > 30 else qr.code
+        c.drawCentredString(x + cell_width/2, y + pad_y - 12, display_code)
+    
+    c.save()
+    return response

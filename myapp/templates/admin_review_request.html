@@ -106,6 +106,7 @@
                 <table class="table table-hover mb-0" id="item-table">
                     <thead class="table-light">
                         <tr>
+                           
                             <th scope="col" class="border-0 small text-muted text-uppercase">Category</th>
                             <th scope="col" class="border-0 small text-muted text-uppercase">Service</th>
                             <th scope="col" class="border-0 small text-muted text-uppercase">Item Details</th>
@@ -201,11 +202,11 @@
                                 <label class="form-label fw-bold small text-muted text-uppercase mb-3 d-block">Shipping Address</label>
                                 <div class="d-flex flex-column flex-md-row gap-3 mb-4">
                                     <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="address_source" id="source_customer" value="customer" checked>
+                                        <input class="form-check-input" type="radio" name="address_source" id="source_customer" value="customer" {% if not order.recipient_state %}checked{% endif %}>
                                         <label class="form-check-label" for="source_customer">Use Customer Address</label>
                                     </div>
                                     <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="address_source" id="source_shipping" value="shipping">
+                                        <input class="form-check-input" type="radio" name="address_source" id="source_shipping" value="shipping" {% if order.recipient_state %}checked{% endif %}>
                                         <label class="form-check-label" for="source_shipping">Use Custom Address</label>
                                     </div>
                                 </div>
@@ -225,7 +226,7 @@
                                             <input type="email" name="recipient_email" class="form-control shadow-none" value="{{ order.recipient_email|default:order.customer_email }}">
                                         </div>
                                         
-                                        <div id="custom-shipping-fields" class="row g-3 w-100 m-0 mt-2 p-0 animate-fade-in" style="display: none;">
+                                        <div id="custom-shipping-fields" class="row g-3 w-100 m-0 mt-2 p-0 animate-fade-in" style="{% if not order.recipient_state %}display: none;{% endif %}">
                                             <div class="col-md-6">
                                                 <label class="smaller text-muted fw-bold">Recipient State</label>
                                                 <select name="recipient_state" id="admin_recipient_state" class="form-select select2-admin" 
@@ -412,21 +413,12 @@ function initSelect2(context) {
             });
 
             // Direct HTMX Bridge for this instance
-            $el.on('change select2:select select2:unselect', function(e) {
+            $el.on('select2:select select2:unselect', function(e) {
                 console.log(`[Select2] Triggering HTMX change for: ${this.id || this.name}`);
                 if (typeof htmx !== 'undefined') {
                     htmx.trigger(this, 'change');
                 }
             });
-
-            // AUTO-TRIGGER: If the field has an initial value, trigger change 
-            // after a micro-delay to populate dependencies (like Town list)
-            if ($el.val() && $el.val() !== '') {
-                setTimeout(() => {
-                    console.log(`[Select2] Auto-triggering initial change for: ${$el.attr('id') || $el.attr('name')}`);
-                    $el.trigger('change');
-                }, 100);
-            }
         }
     });
 }
@@ -454,7 +446,7 @@ function initColorSelects(context) {
             });
 
             // Direct HTMX Bridge for this instance
-            $el.on('change select2:select select2:unselect', function(e) {
+            $el.on('select2:select select2:unselect', function(e) {
                 console.log(`[ColorSelect] Triggering HTMX change for color selection`);
                 if (typeof htmx !== 'undefined') {
                     htmx.trigger(this, 'change');
@@ -500,7 +492,20 @@ $(document).ready(function() {
             displaySection.style.display = isHidden ? 'none' : 'block';
             this.innerHTML = isHidden ? '<i class="fas fa-times me-1"></i> Cancel' : '<i class="fas fa-edit me-1"></i> Edit Details';
             
-            if (isHidden) initSelect2(editSection);
+            if (isHidden) {
+                initSelect2(editSection);
+                // If custom address is already selected, ensure state field is properly initialized
+                const addressSource = $('input[name="address_source"]:checked').val();
+                if (addressSource === 'shipping') {
+                    const stateSelect = $('#admin_recipient_state');
+                    if (stateSelect.length && stateSelect.val()) {
+                        console.log('[Edit Mode] Triggering HTMX for pre-selected state');
+                        setTimeout(() => {
+                            htmx.trigger(stateSelect[0], 'change');
+                        }, 200);
+                    }
+                }
+            }
         };
     }
 
@@ -529,9 +534,18 @@ $(document).ready(function() {
         } else {
             customFields.stop(true, true).slideDown(300, function() {
                 // Initialize Select2 after it's rendered and visible
-                initSelect2(this);
+                initSelect2(customFields);
+                
+                // Process HTMX for the custom fields
                 if (typeof htmx !== 'undefined') {
-                    htmx.process(this);
+                    htmx.process(customFields[0]);
+                    
+                    // If there's a pre-selected state, trigger HTMX to load towns
+                    const stateSelect = customFields.find('#admin_recipient_state');
+                    if (stateSelect.length && stateSelect.val()) {
+                        console.log('[Address Source] Triggering HTMX for pre-selected state');
+                        htmx.trigger(stateSelect[0], 'change');
+                    }
                 }
             });
         }
@@ -592,6 +606,8 @@ $(document).on('htmx:afterSwap', function(e) {
 $(document).on('select2:select select2:unselect', '.select2-admin', function() {
     this.dispatchEvent(new Event('change', { bubbles: true }));
 });
+
+
 
 </script>
 <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initAutocomplete" async defer></script>

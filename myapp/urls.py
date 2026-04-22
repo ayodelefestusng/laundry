@@ -115,4 +115,7 @@ path('paystack/success/', views.paystack_success, name='paystack_success'),
     path('tenant-settings/<str:model_name>/create/', tenant_admin_views.TenantGenericCreateView.as_view(), name='tenant_admin_create'),
     path('tenant-settings/<str:model_name>/<int:pk>/update/', tenant_admin_views.TenantGenericUpdateView.as_view(), name='tenant_admin_update'),
     path('tenant-settings/<str:model_name>/<int:pk>/delete/', tenant_admin_views.TenantGenericDeleteView.as_view(), name='tenant_admin_delete'),
+    
+    # QR Code Generation
+    path('generate-qr-codes/', tenant_admin_views.generate_qr_codes, name='generate_qr_codes'),
 ]
