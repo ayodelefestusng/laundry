@@ -1,25 +1,35 @@
-version: "3.9"
-
 services:
   web:
     build: .
     ports:
       - "8000:8000"
-    env_file:
-      - .env
     environment:
       - DJANGO_SETTINGS_MODULE=myproject.settings
     restart: always
-    command: >
-      gunicorn myproject.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120
+    command: gunicorn myproject.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120
+    depends_on:
+      - db
+      - redis
 
   worker:
     build: .
     command: celery -A myproject worker -l info -P solo
-    env_file:
-      - .env
     environment:
       - DJANGO_SETTINGS_MODULE=myproject.settings
+    restart: always
     depends_on:
+      - db
+      - redis
       - web
+
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: myproject
+
+  redis:
+    image: redis:alpine
     restart: always
