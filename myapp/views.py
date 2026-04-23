@@ -404,7 +404,7 @@ def customer_order(request):
                         to_emails=[order.customer_email],
                         from_email=settings.DEFAULT_FROM_EMAIL,
                     )
-                    logger.info(f"Confirmation email sent successfully to {order.customer_email}")
+                    logger.info(f"Confirmation email queued successfully for {order.customer_email}")
                 except Exception as e:
                     logger.error(f"Email sending failed: {e}")
 

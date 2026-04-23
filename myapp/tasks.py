@@ -1,3 +1,5 @@
+from math import log
+
 from celery import shared_task
 from django.core.mail import EmailMultiAlternatives
 import logging
@@ -10,6 +12,7 @@ def send_email_async(subject, text_content, html_content, to_emails, from_email=
     Asynchronously sends an email using Celery.
     """
     try:
+        logger.info(f"Attempting to send email to {to_emails} with subject '{subject}'")
         from django.conf import settings
         from_email = from_email or settings.DEFAULT_FROM_EMAIL
         
@@ -28,3 +31,10 @@ def send_email_async(subject, text_content, html_content, to_emails, from_email=
     except Exception as e:
         logger.error(f"Failed to send email to {to_emails}: {e}", exc_info=True)
         return False
+
+
+from celery import shared_task
+
+@shared_task
+def add(x, y):
+    return x + y
