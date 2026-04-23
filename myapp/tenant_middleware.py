@@ -18,6 +18,7 @@ class TenantMiddleware(MiddlewareMixin):
             "127.0.0.1",
             "127.0.0.0",
                "localhost",
+            "whatsapp-1-vectra-laundry-app.xqqhik.easypanel.host",
             "laundry.dignityconcept.tech",
             "dignityconcept.tech",
             "http://localhost:8000/"
