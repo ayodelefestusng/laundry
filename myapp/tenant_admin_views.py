@@ -111,11 +111,18 @@ class TenantGenericFormMixin:
                 
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
+                if 'created_by' in self.fields:
+                    del self.fields['created_by']
+                    
                 if model_name == 'user' and self.instance.pk:
                     logger.info(f"TenantAdminMixin get_form_class 2: {self.request.user}")
                     # On edit:
                     # Allow editing of email, is_active, phone number and name.
                     allowed_fields = ['email', 'is_active', 'phone', 'name']
+                    self.fields = {k: v for k, v in self.fields.items() if k in allowed_fields}
+                    
+                if model_name == 'tenantattribute':
+                    allowed_fields = ['brand_name', 'logo', 'primary_color', 'secondary_color', 'font_family', 'whatsapp_number', 'address']
                     self.fields = {k: v for k, v in self.fields.items() if k in allowed_fields}
         logger.info(f"TenantAdminMixin get_form_class 3: {GenericModelForm}")
         return GenericModelForm
