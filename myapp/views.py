@@ -59,7 +59,7 @@ from math import radians, cos, sin, asin, sqrt
 GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY')
 
 # User-facing views
-@csrf_exempt
+# @csrf_exempt
 def homepage(request):
     """
     Renders the homepage.
@@ -82,7 +82,7 @@ def check_username(request):
             return HttpResponse("This username already exists")
         return HttpResponse("")  # Empty response if email is available or not provided
 
-@csrf_exempt
+# @csrf_exempt
 def register(request):
     # logger.info(f"User {request.POST} accessed the register page.")
     logger.info(f"User {request.POST} accessed the register VIEW")
@@ -131,7 +131,7 @@ def register(request):
         form = RegistrationForm()
     return render(request, "registration/register.html", {"form": form})
 
-@csrf_exempt
+# @csrf_exempt
 def setup_password(request, user_id, token):
     user = CustomUser.objects.get(pk=user_id)
     if default_token_generator.check_token(user, token):
@@ -147,7 +147,7 @@ def setup_password(request, user_id, token):
     else:
         return render(request, "registration/error.html", {"message": "Invalid token"})
 
-@csrf_exempt
+# @csrf_exempt
 def password_reset_request(request):
     logger.info(f"User {request.POST} accessed the password reset VIEW")    
     if request.method == "POST":
@@ -189,7 +189,7 @@ def password_reset_request(request):
         form = PasswordResetForm()
     return render(request, "registration/password_reset.html", {"form": form})
 
-@csrf_exempt
+# @csrf_exempt
 def change_password(request):
     if request.method == "POST":
         form = PasswordChangeForm(request.POST)
@@ -211,7 +211,7 @@ def terms_and_privacy(request):
 
 
 
-@csrf_exempt
+# @csrf_exempt
 @login_required
 def custom_logout(request):
     """
@@ -238,7 +238,7 @@ def haversine(lon1, lat1, lon2, lat2):
 
 
 
-@csrf_exempt
+# @csrf_exempt
 def customer_order(request):
     logger.info(f"User {request.user} is placing an order.")
     tenant = getattr(request, 'tenant', None)
@@ -532,7 +532,7 @@ def admin_dashboard(request):
 
 
 
-@csrf_exempt
+# @csrf_exempt
 @login_required
 def customer_dashboard(request):
     logger.info(f"User {request.user} is viewing their dashboard.")
@@ -544,7 +544,7 @@ def customer_dashboard(request):
     context = {'orders': customer_orders}
     logger.info(f"Customer orders: {customer_orders}")
     return render(request, 'customer_dashboard.html', context)
-@csrf_exempt
+# @csrf_exempt
 @login_required
 def order_detail(request, order_id):
     logger.info(f"User {request.user} is viewing order {order_id}.")
@@ -556,7 +556,7 @@ def order_detail(request, order_id):
     logger.info(f"Order details: {order}")
     context = {'order': order}
     return render(request, 'order_detail.html', context)
-@csrf_exempt
+# @csrf_exempt
 @login_required
 def customer_review(request, order_id):
     """
@@ -567,7 +567,7 @@ def customer_review(request, order_id):
     context = {'order': order}
     logger.info(f"Order details: {order}")
     return render(request, 'customer_review.html', context)
-@csrf_exempt
+# @csrf_exempt
 @login_required
 def accept_order(request, order_id):
     """
@@ -579,7 +579,7 @@ def accept_order(request, order_id):
     order.save()
     messages.success(request, "Your order has been accepted. Thank you!")
     return redirect('laundry:customer_dashboard')
-@csrf_exempt
+# @csrf_exempt
 @login_required
 def comment_order(request, order_id):
     """
@@ -884,7 +884,7 @@ def htmx_add_item(request, order_id):
         logger.error(f"Form validation failed in htmx_add_item. Errors: {form.errors}")
         return HttpResponseBadRequest(render_to_string('htmx/add_item_errors.html', {'errors': form.errors}))
     
-@csrf_exempt
+# @csrf_exempt
 @require_http_methods(["GET", "POST"])
 def htmx_edit_item(request, item_id):
     """
@@ -930,7 +930,6 @@ def htmx_edit_item(request, item_id):
 
 
 
-@csrf_exempt
 @require_http_methods(["DELETE"])
 def htmx_delete_item(request, item_id):
     """
@@ -1113,7 +1112,6 @@ def send_ready_for_dispatch_email(order, request):
         logger.error(f"Failed to send ready_for_dispatch email for Order {order.order_code}: {e}", exc_info=True)
 
 
-@csrf_exempt
 def reschedule_delivery(request):
     """
     Handles customer delivery reschedule requests from the email link.
@@ -1164,7 +1162,6 @@ def reschedule_delivery(request):
     })
 
 
-@csrf_exempt
 def get_paypal_access_token():
     logger.info("Getting PayPal access token.")
     """Retrieves a PayPal access token."""
@@ -1181,7 +1178,6 @@ def get_paypal_access_token():
         logger.error(f"Error getting PayPal access token: {e}")
         return None
 
-@csrf_exempt
 def create_paypal_payment(request, order_id):
     logger.info(f"User {request.user} is creating PayPal payment for order {order_id}.")
     """Initiates a PayPal checkout and redirects the user."""
@@ -1241,7 +1237,6 @@ def create_paypal_payment(request, order_id):
         return None, None
 
 # Utility function to fetch data from the external API
-@csrf_exempt
 def verify_paystack_payment(ref):
     """
     Verifies a Paystack transaction using the reference and Secret Key.
@@ -1270,7 +1265,6 @@ def verify_paystack_payment(ref):
         return False, {"message": "Verification failed due to network error."}
 
 
-@csrf_exempt
 def initiate_paystack_transaction(request, email, amount, order_id):
     """
     Initializes a transaction with the Paystack API.
@@ -1341,7 +1335,6 @@ def initiate_paystack_transaction(request, email, amount, order_id):
         return None, None
 
 
-@csrf_exempt
 def htmx_send_invoice(request, order_id):
     logger.info(f"User {request.user} is sending invoice for order {order_id}.")
     order = get_object_or_404(Order, id=order_id)
@@ -1467,7 +1460,6 @@ def htmx_send_invoice(request, order_id):
 # Import your models and the verification utility
 # from .models import Order, Payment 
 # from .utils import verify_paystack_payment 
-@csrf_exempt
 @login_required
 def paystack_callback_view(request, order_id):
     logger.info(f"User {request.user} is handling Paystack callback for order {order_id}.")
