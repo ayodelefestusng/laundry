@@ -16,9 +16,10 @@ class TenantMiddleware(MiddlewareMixin):
         # if host in allowed_dmc_hosts or host.endswith(".dignityconcept.tech"):
         allowed_dmc_hosts = [
             "127.0.0.1",
-            # "127.0.0.0",
+            "127.0.0.0",
             "laundry.dignityconcept.tech",
-            # "dignityconcept.tech"
+            "dignityconcept.tech",
+            "http://localhost:8000/"
         ]
 
         if host in allowed_dmc_hosts or host.endswith(".dignityconcepts.tech"):
