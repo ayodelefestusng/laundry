@@ -56,7 +56,7 @@ from .models import log_with_context
 
 from math import radians, cos, sin, asin, sqrt
 
-GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY', 'AIzaSyDuPZzHxMY3HYN-3tnFGrMN6M_wae-XaSU')
+GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY')
 
 # User-facing views
 @csrf_exempt
