@@ -94,7 +94,7 @@
                 <!-- BOOK PANE -->
                 <div class="tab-pane fade show active" id="book" role="tabpanel">
                     
-                    <form method="post" action="{% url 'laundry:customer_order' %}" id="main-order-form">
+                    <form method="post" action="{% url 'laundry:customer_order' %}" id="main-order-form" >
                         {% csrf_token %}
                         <input type="hidden" name="cart_items" id="cart_items_input" value="[]">
                         <input type="hidden" name="book_and_pick" id="book_and_pick_flag" value="" disabled>
@@ -124,7 +124,7 @@
                             <ul class="nav nav-pills nav-justified mb-2 p-1 bg-light rounded-pill shadow-sm" id="orderModeTabs" role="tablist">
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link active" id="tab-pickup" data-mode="pickup" type="button" role="tab" title="A dispatch will visit you to pick your order on the specified date and raise the order.">
-                                        <i class="fas fa-calendar-check me-2"></i>Schedule A Pick Up
+                                        <i class="fas fa-calendar-check me-2"></i>Schedule A Pick Upsss
                                     </button>
                                 </li>
                                 <li class="nav-item" role="presentation">
