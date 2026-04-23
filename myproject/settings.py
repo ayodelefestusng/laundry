@@ -79,6 +79,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     "myapp.tenant_middleware.TenantMiddleware",
+    "myapp.middleware.CSRFDynamicOriginMiddleware",
 
     # Allauth middleware
     'allauth.account.middleware.AccountMiddleware',
@@ -172,9 +173,59 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 
-# CSRF_TRUSTED_ORIGINS = [
-#     "https://9415-105-113-69-195.ngrok-free.app",
-# ]
+def get_csrf_trusted_origins():
+    """
+    Dynamically fetch CSRF_TRUSTED_ORIGINS from active tenants.
+    Called at runtime to include all active tenant subdomains.
+    """
+    origins = [
+        "https://whatsapp-1-vectra-laundry-app.xqqhik.easypanel.host",  # Fallback/production
+    ]
+    
+    try:
+        # Import here to avoid circular imports at settings load time
+        from myapp.models import Tenant
+        from django.conf import settings
+        
+        # Get all active tenants
+        active_tenants = Tenant.objects.filter(is_active=True)
+        
+        for tenant in active_tenants:
+            if tenant.subdomain:
+                # Add common deployment patterns
+                origins.append(f"https://{tenant.subdomain}.xqqhik.easypanel.host")
+                origins.append(f"http://{tenant.subdomain}.localhost:8000")
+                origins.append(f"http://{tenant.subdomain}.127.0.0.1:8000")
+                origins.append(f"http://{tenant.subdomain}.127.0.0.1:8002")
+        
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_origins = []
+        for origin in origins:
+            if origin not in seen:
+                seen.add(origin)
+                unique_origins.append(origin)
+        
+        return unique_origins
+    except Exception as e:
+        # If database isn't ready yet, return fallback origins
+        import logging
+        logging.getLogger(__name__).warning(f"Could not load tenant origins: {e}")
+        return origins
+
+
+# Default CSRF_TRUSTED_ORIGINS (fallback until database is ready)
+CSRF_TRUSTED_ORIGINS = [
+    "https://whatsapp-1-vectra-laundry-app.xqqhik.easypanel.host",
+    "http://dignityconcept.tech",
+    "https://dignityconcept.tech",
+    "http://www.dignityconcept.tech",
+    "https://www.dignityconcept.tech",
+    "http://vectra.ng",
+    "https://vectra.ng",
+    "http://www.vectra.ng",
+    "https://www.vectra.ng",
+]
 
 
 
