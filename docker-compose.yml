@@ -1,8 +1,7 @@
 services:
   web:
     build: .
-    ports:
-      - "8000:8000"
+    # Removed ports here to prevent host-level conflicts
     environment:
       - DJANGO_SETTINGS_MODULE=myproject.settings
     restart: always
