@@ -22,6 +22,7 @@ class TenantMiddleware(MiddlewareMixin):
             "ayo.vectra.ng",
             "laundry.dignityconcept.tech",
             "dignityconcept.tech",
+            "aloys.dignityconcept.tech",
             "http://localhost:8000/"
         ]
 
