@@ -3,19 +3,32 @@ services:
     build: .
     ports:
       - "8000:8000"
-    env_file:
-      - .env
     environment:
       - DJANGO_SETTINGS_MODULE=myproject.settings
     restart: always
+    depends_on:
+      - db
+      - redis
 
-  # Celery worker to handle background tasks like email sending
   worker:
     build: .
     command: celery -A myproject worker -l info
-    env_file:
-      - .env
     environment:
       - DJANGO_SETTINGS_MODULE=myproject.settings
+    restart: always
     depends_on:
-      - web
+      - db
+      - redis
+
+  # Ensure these are defined if they aren't elsewhere
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: myproject
+
+  redis:
+    image: redis:alpine
+    restart: always
