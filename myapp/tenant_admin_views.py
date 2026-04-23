@@ -1,3 +1,5 @@
+from math import log
+
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -171,6 +173,7 @@ class TenantGenericFormMixin:
                 
                 subject = "Setup your Tenant Dashboard account"
                 html_message = render_to_string("emails/register_email.html", {"user": user, "create_link": link, "ceate_link": link})
+                logger.info(f"Tenant admin email prepared form_valid for  {user.email}---: {self.request.user}")
                 msg = EmailMultiAlternatives(subject, strip_tags(html_message), None, [user.email])
                 msg.attach_alternative(html_message, "text/html")
                 msg.send()

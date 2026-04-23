@@ -388,13 +388,14 @@ def customer_order(request):
                 
                 # Send confirmation HTML email
                 try:
+                    logger.info(f"Preparing confirmation email for order {order.id} to {order.customer_email}")
                     html_content = render_to_string('emails/customer_request_email.html', {
                         'order': order,
                         'tenant': tenant,
                         
                     })
                     text_content = strip_tags(html_content)
-                    
+                    logger.info(f"Generated email content for order {order.id}")
                     msg = EmailMultiAlternatives(
                         subject='Laundry Service Request Confirmation',
                         body=text_content,
@@ -403,6 +404,7 @@ def customer_order(request):
                     )
                     msg.attach_alternative(html_content, "text/html")
                     msg.send()
+                    logger.info(f"Confirmation email sent successfully to {order.customer_email}")
                 except Exception as e:
                     logger.error(f"Email sending failed: {e}")
 
@@ -425,6 +427,8 @@ def customer_order(request):
         'google_maps_api_key': GOOGLE_MAPS_API_KEY,
         'tenant': tenant
     })
+
+
 
 @require_http_methods(["GET"])
 def admin_review_request(request, order_id):
