@@ -20,6 +20,7 @@ class TenantMiddleware(MiddlewareMixin):
                "localhost",
             "whatsapp-1-vectra-laundry-app.xqqhik.easypanel.host",
             "ayo.vectra.ng",
+             "vectra.ng",
             "laundry.dignityconcept.tech",
             "dignityconcept.tech",
             "laundryhub.dignityconcept.tech",
