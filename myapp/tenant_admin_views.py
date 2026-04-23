@@ -167,7 +167,7 @@ class TenantGenericFormMixin:
                 msg = EmailMultiAlternatives(subject, strip_tags(html_message), None, [user.email])
                 msg.attach_alternative(html_message, "text/html")
                 msg.send()
-                logger.info(f"Tenant admin email sent form_valid: {self.request.user}")
+                logger.info(f"Tenant admin email sent form_valid for  {user.email}---: {self.request.user}")
         elif model_name == 'tenantattribute':
             # Create or Edit
             tenant_attr = self.object
