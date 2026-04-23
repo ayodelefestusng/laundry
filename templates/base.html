@@ -186,11 +186,11 @@
 
             // Handle "Other" color input toggle natively
             $(this).off('change.colorToggle').on('change.colorToggle', function() {
-                const selectedText = $(this).find('option:selected').text().trim().toLowerCase();
+                const selectedValue = $(this).val();
                 const container = $(this).closest('.color-selection-container');
                 const customInput = container.find('.custom-color-input-container');
                 
-                if (selectedText === 'other') {
+                if (selectedValue === 'other') {
                     customInput.slideDown(200);
                     customInput.find('input').attr('required', true);
                 } else {

@@ -2593,7 +2593,12 @@ def api_get_catalog(request):
     tenant = getattr(request, 'tenant', None)
     
     categories = list(ServiceCategory.objects.all().values('id', 'name'))
-    packages = list(Package.objects.all().values('id', 'category_id', 'name', 'price', 'delivery_time_days'))
+    
+    packages_qs = Package.objects.all().values('id', 'category_id', 'service_type__name', 'price', 'delivery_time_days')
+    packages = []
+    for p in packages_qs:
+        p['name'] = p.pop('service_type__name')
+        packages.append(p)
     
     colors = []
     if tenant:
