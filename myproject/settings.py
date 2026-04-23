@@ -329,7 +329,7 @@ GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "YOUR_PLACEHOLDER_KEY")
 #  Redis & Celery Configuration
 # ==============================================================================
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://default:8824947e9537dcfd047d@147.182.194.8:6380")
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
 CACHES = {
     "default": {
