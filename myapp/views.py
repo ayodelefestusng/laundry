@@ -11,6 +11,7 @@ import requests
 from datetime import timedelta
 from uuid import UUID
 from django.db.models import Q
+import threading
 
 from django.conf import settings
 from django.contrib import auth, messages
@@ -114,14 +115,14 @@ def register(request):
             text_content = strip_tags(html_content)
 
             # Send email
-            msg = EmailMultiAlternatives(
+            from .tasks import send_email_async
+            send_email_async.delay(
                 subject="Set Your Password",
-                body=text_content,
+                text_content=text_content,
+                html_content=html_content,
+                to_emails=[user.email],
                 from_email=settings.DEFAULT_FROM_EMAIL,
-                to=[user.email],
             )
-            msg.attach_alternative(html_content, "text/html")
-            msg.send()
             messages.success(request, "Registration successful! Please check your email to set your password.")
 
             # return render(request, "myapp/registration_success.html", {"email": user.email})
@@ -174,15 +175,14 @@ def password_reset_request(request):
                 text_content = strip_tags(html_content)
 
                 # Send email
-                msg = EmailMultiAlternatives(
+                from .tasks import send_email_async
+                send_email_async.delay(
                     subject="Reset Your Password",
-                    body=text_content,
+                    text_content=text_content,
+                    html_content=html_content,
+                    to_emails=[email],
                     from_email=settings.DEFAULT_FROM_EMAIL,
-                    # from_email='Dignity Concept <upwardwave.dignity@gmail.com>',
-                    to=[email],
                 )
-                msg.attach_alternative(html_content, "text/html")
-                msg.send()
             return render(request, "registration/password_reset_sent.html", {"email": email})
     else:
         logger.info(f"User {request.POST} accessed the password reset page.")
@@ -396,14 +396,14 @@ def customer_order(request):
                     })
                     text_content = strip_tags(html_content)
                     logger.info(f"Generated email content for order {order.id}")
-                    msg = EmailMultiAlternatives(
+                    from .tasks import send_email_async
+                    send_email_async.delay(
                         subject='Laundry Service Request Confirmation',
-                        body=text_content,
+                        text_content=text_content,
+                        html_content=html_content,
+                        to_emails=[order.customer_email],
                         from_email=settings.DEFAULT_FROM_EMAIL,
-                        to=[order.customer_email],
                     )
-                    msg.attach_alternative(html_content, "text/html")
-                    msg.send()
                     logger.info(f"Confirmation email sent successfully to {order.customer_email}")
                 except Exception as e:
                     logger.error(f"Email sending failed: {e}")
@@ -1103,14 +1103,14 @@ def send_ready_for_dispatch_email(order, request):
         html_content = render_to_string('emails/ready_for_dispatch.html', context)
         text_content = strip_tags(html_content)
 
-        msg = EmailMultiAlternatives(
+        from .tasks import send_email_async
+        send_email_async.delay(
             subject=f"{'🎉 Delivered Ahead of Schedule! ' if is_early else ''}Your Order is Ready for {'Pickup' if order.delivery_option == 'on_premise' else 'Delivery'} — {order.order_code}",
-            body=text_content,
+            text_content=text_content,
+            html_content=html_content,
+            to_emails=[order.customer_email],
             from_email=settings.DEFAULT_FROM_EMAIL,
-            to=[order.customer_email],
         )
-        msg.attach_alternative(html_content, "text/html")
-        msg.send()
         logger.info(f"Ready-for-dispatch email sent for Order {order.order_code}. Early={is_early}")
     except Exception as e:
         logger.error(f"Failed to send ready_for_dispatch email for Order {order.order_code}: {e}", exc_info=True)

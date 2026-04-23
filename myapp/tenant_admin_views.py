@@ -174,9 +174,13 @@ class TenantGenericFormMixin:
                 subject = "Setup your Tenant Dashboard account"
                 html_message = render_to_string("emails/register_email.html", {"user": user, "create_link": link, "ceate_link": link})
                 logger.info(f"Tenant admin email prepared form_valid for  {user.email}---: {self.request.user}")
-                msg = EmailMultiAlternatives(subject, strip_tags(html_message), None, [user.email])
-                msg.attach_alternative(html_message, "text/html")
-                msg.send()
+                from myapp.tasks import send_email_async
+                send_email_async.delay(
+                    subject=subject,
+                    text_content=strip_tags(html_message),
+                    html_content=html_message,
+                    to_emails=[user.email]
+                )
                 logger.info(f"Tenant admin email sent form_valid for  {user.email}---: {self.request.user}")
         elif model_name == 'tenantattribute':
             # Create or Edit
@@ -187,8 +191,13 @@ class TenantGenericFormMixin:
                 logger.info(f"Tenant attributes updated form_valid: {self.request.user}")
                 subject = "Tenant Attributes Updated"
                 message = f"Tenant {tenant_attr.brand_name} attributes updated.\nWhatsApp: {tenant_attr.whatsapp_number}\nAddress: {tenant_attr.address}"
-                msg = EmailMultiAlternatives(subject, message, None, emails)
-                msg.send()
+                from myapp.tasks import send_email_async
+                send_email_async.delay(
+                    subject=subject,
+                    text_content=message,
+                    html_content=None,
+                    to_emails=emails
+                )
                 
         elif model_name == 'user' and is_create:
             logger.info(f"User created form_valid: {self.request.user}")
@@ -200,9 +209,13 @@ class TenantGenericFormMixin:
                 
                 subject = "Setup your account"
                 html_message = render_to_string("emails/register_email.html", {"user": user, "create_link": link, "ceate_link": link})
-                msg = EmailMultiAlternatives(subject, strip_tags(html_message), None, [user.email])
-                msg.attach_alternative(html_message, "text/html")
-                msg.send()
+                from myapp.tasks import send_email_async
+                send_email_async.delay(
+                    subject=subject,
+                    text_content=strip_tags(html_message),
+                    html_content=html_message,
+                    to_emails=[user.email]
+                )
                 logger.info(f"User password not set form_valid: {self.request.user}")
                 logger.info(f"Email sent to: {user.email}")
         logger.info(f"TenantAdminMixin form valid: {response}")

@@ -324,3 +324,27 @@ PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY")  # ⚠️ REPLACE THIS WI
 
 # Google Maps API Key
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "YOUR_PLACEHOLDER_KEY")
+
+# ==============================================================================
+#  Redis & Celery Configuration
+# ==============================================================================
+
+REDIS_URL = os.getenv("REDIS_URL", "redis://default:8824947e9537dcfd047d@147.182.194.8:6380")
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": f"{REDIS_URL}/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
+
+CELERY_BROKER_URL = f"{REDIS_URL}/0"
+CELERY_RESULT_BACKEND = f"{REDIS_URL}/0"
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+

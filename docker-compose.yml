@@ -9,11 +9,13 @@ services:
       - DJANGO_SETTINGS_MODULE=myproject.settings
     restart: always
 
-  # Celery worker/beat can be added here if needed based on the dependencies
-  # worker:
-  #   build: .
-  #   command: celery -A myproject worker -l info
-  #   env_file:
-  #     - .env
-  #   depends_on:
-  #     - web
+  # Celery worker to handle background tasks like email sending
+  worker:
+    build: .
+    command: celery -A myproject worker -l info
+    env_file:
+      - .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=myproject.settings
+    depends_on:
+      - web
