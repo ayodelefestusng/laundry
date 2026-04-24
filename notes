@@ -3,3 +3,7 @@ https://gemini.google.com/app/47d46e9a79aa3797
 
 
 https://gemini.google.com/share/195f853510d6
+
+
+
+celery -A myproject worker -l info --pool=solo

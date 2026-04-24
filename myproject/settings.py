@@ -225,6 +225,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://vectra.ng",
     "http://www.vectra.ng",
     "https://www.vectra.ng",
+    "https://whatsapp-1-laundry-2-compose.xqqhik.easypanel.host",
 ]
 
 
