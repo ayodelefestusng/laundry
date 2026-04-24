@@ -38,3 +38,18 @@ from celery import shared_task
 @shared_task
 def add(x, y):
     return x + y
+
+
+
+from django.core.mail import send_mail
+from celery import shared_task
+
+@shared_task
+def send_test_email1():
+    return send_mail(
+        "Test Email",
+        "This is a test.",
+        "Dignity Concept <upwardwave.dignity@gmail.com>",
+        ["ayodelefestusng@gmail.com"],
+        fail_silently=False,
+    )
