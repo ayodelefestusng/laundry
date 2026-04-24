@@ -74,14 +74,21 @@ class CSRFDynamicOriginMiddleware:
             from django.conf import settings
             from myapp.models import Tenant
 
+            # Start with existing settings to preserve manual overrides
+            origins = list(getattr(settings, "CSRF_TRUSTED_ORIGINS", []))
+
             # Base origins (production + local)
-            origins = [
+            base_origins = [
                 "https://whatsapp-1-vectra-laundry-app.xqqhik.easypanel.host",
+                "https://whatsapp-1-laundry-2-compose.xqqhik.easypanel.host",
             ]
+            origins.extend(base_origins)
 
             # Add local development origins
             for subdomain in ["localhost", "127.0.0.1"]:
                 origins.append(f"http://{subdomain}:8000")
+                origins.append(f"http://{subdomain}:8001")
+                origins.append(f"http://{subdomain}:8002")
 
             # Fetch active tenants
             active_tenants = Tenant.objects.filter(is_active=True)
@@ -94,8 +101,13 @@ class CSRFDynamicOriginMiddleware:
                     origins.append(f"http://{tenant.subdomain}.localhost:8000")
                     origins.append(f"http://{tenant.subdomain}.127.0.0.1:8000")
 
-            # Remove duplicates
-            unique_origins = list(dict.fromkeys(origins))
+            # Remove duplicates while preserving order
+            unique_origins = []
+            seen = set()
+            for origin in origins:
+                if origin not in seen:
+                    unique_origins.append(origin)
+                    seen.add(origin)
 
             # Update settings dynamically
             settings.CSRF_TRUSTED_ORIGINS = unique_origins

@@ -30,7 +30,8 @@ def send_email_async(subject, text_content, html_content, to_emails, from_email=
                         port=settings.EMAIL_PORT,
                         username=tenant.vectra_email,
                         password=tenant.password,
-                        use_tls=settings.EMAIL_USE_TLS
+                        use_tls=settings.EMAIL_USE_TLS,
+                        use_ssl=settings.EMAIL_USE_SSL
                     )
                 
                 # Check if tenant has a brand name
