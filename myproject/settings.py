@@ -336,20 +336,24 @@ GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "YOUR_PLACEHOLDER_KEY")
 #  Redis & Celery Configuration
 # ==============================================================================
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379")
+
+import re
+# Strip any trailing slash and database number from REDIS_URL so we can cleanly append /0 or /1
+base_redis_url = re.sub(r'/[0-9]*$', '', REDIS_URL)
 
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"{REDIS_URL}/1",
+        "LOCATION": f"{base_redis_url}/1",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }
     }
 }
 
-CELERY_BROKER_URL = f"{REDIS_URL}/0"
-CELERY_RESULT_BACKEND = f"{REDIS_URL}/0"
+CELERY_BROKER_URL = f"{base_redis_url}/0"
+CELERY_RESULT_BACKEND = f"{base_redis_url}/0"
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
