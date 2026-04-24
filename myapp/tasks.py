@@ -79,10 +79,12 @@ from celery import shared_task
 
 @shared_task
 def send_test_email():
-    return send_mail(
-        "Test Email",
-        "This is a test.",
-        "Dignity Concept <upwardwave.dignity@gmail.com>",
-        ["ayodelefestusng@gmail.com"],
-        fail_silently=False,
-    )
+    """
+    Test task to validate send_email_async via Celery.
+    """
+    subject = "Celery Validation Test"
+    text_content = "This is a test email sent via Celery using send_email_async."
+    html_content = "<p>This is a <b>test email</b> sent via Celery using send_email_async.</p>"
+    to_emails = ["ayodelefestusng@gmail.com"]
+    
+    return send_email_async(subject, text_content, html_content, to_emails)
