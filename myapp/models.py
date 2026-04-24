@@ -334,6 +334,8 @@ class Tenant(models.Model):
     )
     subdomain = models.CharField(max_length=50, unique=True, default="127.0.0.1", help_text="Subdomain for the tenant (e.g., dignity)")
     email = models.EmailField(null=True, blank=True, help_text="Primary email for the tenant contact")
+    vectra_email = models.EmailField(null=True, blank=True, help_text="SMTP email username")
+    password = models.CharField(max_length=255, null=True, blank=True, help_text="SMTP email password")
     phone = models.CharField(max_length=20, null=True, blank=True, help_text="Primary phone for the tenant contact")
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)

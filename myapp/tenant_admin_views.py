@@ -179,7 +179,8 @@ class TenantGenericFormMixin:
                     subject=subject,
                     text_content=strip_tags(html_message),
                     html_content=html_message,
-                    to_emails=[user.email]
+                    to_emails=[user.email],
+                    tenant_id=tenant.id if tenant else None
                 )
                 logger.info(f"Tenant admin email sent form_valid for  {user.email}---: {self.request.user}")
         elif model_name == 'tenantattribute':
@@ -196,7 +197,8 @@ class TenantGenericFormMixin:
                     subject=subject,
                     text_content=message,
                     html_content=None,
-                    to_emails=emails
+                    to_emails=emails,
+                    tenant_id=tenant_attr.tenant.id if tenant_attr.tenant else None
                 )
                 
         elif model_name == 'user' and is_create:
@@ -214,7 +216,8 @@ class TenantGenericFormMixin:
                     subject=subject,
                     text_content=strip_tags(html_message),
                     html_content=html_message,
-                    to_emails=[user.email]
+                    to_emails=[user.email],
+                    tenant_id=user.tenant.id if user.tenant else None
                 )
                 logger.info(f"User password not set form_valid: {self.request.user}")
                 logger.info(f"Email sent to: {user.email}")

@@ -122,6 +122,7 @@ def register(request):
                 html_content=html_content,
                 to_emails=[user.email],
                 from_email=settings.DEFAULT_FROM_EMAIL,
+                tenant_id=user.tenant.id if user.tenant else None,
             )
             messages.success(request, "Registration successful! Please check your email to set your password.")
 
@@ -182,6 +183,7 @@ def password_reset_request(request):
                     html_content=html_content,
                     to_emails=[email],
                     from_email=settings.DEFAULT_FROM_EMAIL,
+                    tenant_id=user.tenant.id if user.tenant else None,
                 )
             return render(request, "registration/password_reset_sent.html", {"email": email})
     else:
@@ -403,6 +405,7 @@ def customer_order(request):
                         html_content=html_content,
                         to_emails=[order.customer_email],
                         from_email=settings.DEFAULT_FROM_EMAIL,
+                        tenant_id=order.tenant.id if order.tenant else None,
                     )
                     logger.info(f"Confirmation email queued successfully for {order.customer_email}")
                 except Exception as e:
