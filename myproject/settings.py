@@ -236,6 +236,8 @@ CSRF_TRUSTED_ORIGINS.extend([
     "https://www.vectra.ng",
     "https://whatsapp-1-laundry-2-compose.xqqhik.easypanel.host",
     "https://whatsapp-1-laundry-2-compose.xqqhik.easypanel.host",
+    "https://laundry-combo-celery-laundry-combo-suite.cn2yy4.easypanel.host",
+
 ])
 
 
