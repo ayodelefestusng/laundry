@@ -35,6 +35,10 @@ ALLOWED_HOSTS = [
     "whatsapp-1-laundry-2-compose.xqqhik.easypanel.host",
 ]
 
+# CSRF trusted origins for cross-site requests
+CSRF_TRUSTED_ORIGINS = [
+    "https://whatsapp-1-laundry-2-compose.xqqhik.easypanel.host",
+]
 
 # ==============================================================================
 #  Application Definition
@@ -233,10 +237,6 @@ CSRF_TRUSTED_ORIGINS.extend([
     "https://whatsapp-1-laundry-2-compose.xqqhik.easypanel.host",
     "https://whatsapp-1-laundry-2-compose.xqqhik.easypanel.host",
 ])
-# CSRF trusted origins for cross-site requests
-# CSRF_TRUSTED_ORIGINS = [
-#     "https://whatsapp-1-laundry-2-compose.xqqhik.easypanel.host",
-# ]
 
 
 
