@@ -215,10 +215,11 @@ def get_csrf_trusted_origins():
         logging.getLogger(__name__).warning(f"Could not load tenant origins: {e}")
         return origins
 
-
+raw_origins = os.getenv("CSRF_TRUSTED_ORIGINS", "")
+CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
 # Default CSRF_TRUSTED_ORIGINS (fallback until database is ready)
-CSRF_TRUSTED_ORIGINS = [
-    "https://whatsapp-1-vectra-laundry-app.xqqhik.easypanel.host",
+CSRF_TRUSTED_ORIGINS.extend([
+     "https://whatsapp-1-vectra-laundry-app.xqqhik.easypanel.host",
     "http://dignityconcept.tech",
     "https://dignityconcept.tech",
     "http://www.dignityconcept.tech",
@@ -229,7 +230,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://www.vectra.ng",
     "https://whatsapp-1-laundry-2-compose.xqqhik.easypanel.host",
     "https://whatsapp-1-laundry-2-compose.xqqhik.easypanel.host",
-]
+])
 
 
 
