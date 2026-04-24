@@ -6,6 +6,7 @@ from pathlib import Path
 import os
 import django
 from dotenv import load_dotenv
+from yaml import compose
 
 # Load environment variables from a .env file
 load_dotenv()
@@ -226,6 +227,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://vectra.ng",
     "http://www.vectra.ng",
     "https://www.vectra.ng",
+    "https://whatsapp-1-laundry-2-compose.xqqhik.easypanel.host",
     "https://whatsapp-1-laundry-2-compose.xqqhik.easypanel.host",
 ]
 
