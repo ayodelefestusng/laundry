@@ -24,6 +24,7 @@ class TenantMiddleware(MiddlewareMixin):
             "laundry.dignityconcept.tech",
             "dignityconcept.tech",
             "laundryhub.dignityconcept.tech",
+            "whatsapp-1-laundry-2-compose.xqqhik.easypanel.host",
             "http://localhost:8000/"
         ]
 

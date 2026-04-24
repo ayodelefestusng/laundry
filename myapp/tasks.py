@@ -45,7 +45,7 @@ from django.core.mail import send_mail
 from celery import shared_task
 
 @shared_task
-def send_test_email1():
+def send_test_email():
     return send_mail(
         "Test Email",
         "This is a test.",
