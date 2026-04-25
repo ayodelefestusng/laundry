@@ -109,12 +109,25 @@ class TenantGenericFormMixin:
             class Meta:
                 model = model_cls
                 # Standard exclusion for multi-tenant isolation
-                exclude = ['tenant', 'password', 'mfa_secret', 'groups', 'user_permissions']
-                
+                exclude = ['tenant', 'mfa_secret', 'groups', 'user_permissions']
+                # Include password for Tenant model (SMTP credentials)
+                if model_name == 'tenant':
+                    exclude = ['tenant', 'mfa_secret', 'groups', 'user_permissions', 'password']
+                    
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
                 if 'created_by' in self.fields:
                     del self.fields['created_by']
+                
+                # For Tenant model, include password field for SMTP credentials
+                if model_name == 'tenant':
+                    self.fields['password'] = forms.CharField(
+                        label="SMTP Password",
+                        required=False,
+                        widget=forms.PasswordInput(attrs={'placeholder': 'Email SMTP password for sending emails'}),
+                        help_text="SMTP password for tenant email configuration"
+                    )
+                    self.fields['password'].help_text = "Enter the SMTP password for the tenant's email (vectra_email)"
                     
                 if model_name == 'user' and self.instance.pk:
                     logger.info(f"TenantAdminMixin get_form_class 2: {self.request.user}")
@@ -154,6 +167,12 @@ class TenantGenericFormMixin:
             logger.info(f"TenantAdminMixin form_valid 2: {self.request.user}")
             # Stamp created_by with the current user
             form.instance.created_by = self.request.user
+            
+            # Save SMTP password from form to tenant
+            password = form.cleaned_data.get('password')
+            if password:
+                form.instance.password = password
+                logger.info(f"Tenant SMTP password set form_valid: {self.request.user}")
             # Create a user with tenant email, set is_staff=True
             tenant = self.object
             email = tenant.email if tenant.email else f"admin@{tenant.subdomain}.com"
@@ -183,6 +202,12 @@ class TenantGenericFormMixin:
                     tenant_id=tenant.id if tenant else None
                 )
                 logger.info(f"Tenant admin email sent form_valid for  {user.email}---: {self.request.user}")
+        elif model_name == 'tenant' and not is_create:
+            # Update case - save SMTP password if provided
+            password = form.cleaned_data.get('password')
+            if password:
+                form.instance.password = password
+                logger.info(f"Tenant SMTP password updated form_valid: {self.request.user}")
         elif model_name == 'tenantattribute':
             # Create or Edit
             tenant_attr = self.object
