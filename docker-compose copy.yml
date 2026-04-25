@@ -1,26 +1,26 @@
 services:
   web:
     build: .
-    ports:
-      - "8000:8000"
+    # Removed ports here to prevent host-level conflicts
     environment:
       - DJANGO_SETTINGS_MODULE=myproject.settings
     restart: always
+    command: gunicorn myproject.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120
     depends_on:
       - db
       - redis
 
   worker:
     build: .
-    command: celery -A myproject worker -l info
+    command: celery -A myproject worker -l info -P solo
     environment:
       - DJANGO_SETTINGS_MODULE=myproject.settings
     restart: always
     depends_on:
       - db
       - redis
+      - web
 
-  # Ensure these are defined if they aren't elsewhere
   db:
     image: postgres:15
     restart: always

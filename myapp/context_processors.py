@@ -20,6 +20,7 @@ def tenant_assets(request):
             
         return {
             'tenant_primary_color': attr.primary_color if attr else '#007bff',
+            'tenant_brand': attr.brand_name if attr else 'Laundry Business Solution',
             'tenant_secondary_color': attr.secondary_color if attr else '#6c757d',
             'tenant_font_family': attr.font_family if attr else 'system-ui, -apple-system, sans-serif',
             'tenant_logo_url': logo_url,

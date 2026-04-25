@@ -1,34 +1,42 @@
+version: '3.9'
+
 services:
   web:
     build: .
-    # Removed ports here to prevent host-level conflicts
     environment:
       - DJANGO_SETTINGS_MODULE=myproject.settings
+      - DATABASE_URL=${DATABASE_URL}
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASS=${RABBITMQ_PASS}
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
     restart: always
     command: gunicorn myproject.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120
     depends_on:
-      - db
-      - redis
+      - worker
+      - rabbitmq
 
   worker:
     build: .
     command: celery -A myproject worker -l info -P solo
     environment:
       - DJANGO_SETTINGS_MODULE=myproject.settings
+      - DATABASE_URL=${DATABASE_URL}
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASS=${RABBITMQ_PASS}
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
     restart: always
     depends_on:
-      - db
-      - redis
       - web
+      - rabbitmq
 
-  db:
-    image: postgres:15
+  rabbitmq:
+    image: rabbitmq:3-management
     restart: always
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: myproject
-
-  redis:
-    image: redis:alpine
-    restart: always
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    ports:
+      - "5672:5672"
+      - "15672:15672"

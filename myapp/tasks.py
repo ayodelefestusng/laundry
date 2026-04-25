@@ -12,7 +12,7 @@ def send_email_async(subject, text_content, html_content, to_emails, from_email=
     Asynchronously sends an email using Celery, optionally with tenant-specific SMTP credentials.
     """
     try:
-        logger.info(f"Attempting to send email to {to_emails} with subject '{subject}'")
+        logger.info(f"Attempting to send email to {to_emails} with subject '{subject}', tenant_id: {tenant_id}, from_email: {from_email}")
         from django.conf import settings
         from django.core.mail import EmailMultiAlternatives, get_connection
         from myapp.models import Tenant
@@ -23,6 +23,8 @@ def send_email_async(subject, text_content, html_content, to_emails, from_email=
         if tenant_id:
             try:
                 tenant = Tenant.objects.get(pk=tenant_id)
+                tenant_email_info = f"Tenant {tenant_id} - Tenant Code: {tenant.code}, Veactra Email: {tenant.vectra_email}, Main Email: {tenant.email}, Password: {'Yes' if tenant.password else 'No'}"
+                logger.info(f"Retrieved tenant email info: {tenant_email_info}")
                 # Check if tenant has custom email credentials
                 if tenant.vectra_email and tenant.password:
                     custom_connection = get_connection(
@@ -30,10 +32,12 @@ def send_email_async(subject, text_content, html_content, to_emails, from_email=
                         port=settings.EMAIL_PORT,
                         username=tenant.vectra_email,
                         password=tenant.password,
+                        #  username=settings.EMAIL_HOST_USER,
+                        # password=settings.EMAIL_HOST_PASSWORD,
                         use_tls=settings.EMAIL_USE_TLS,
                         use_ssl=settings.EMAIL_USE_SSL
                     )
-                
+                logger.info(f"Custom email connection for tenant {tenant_id}: {'Yes' if custom_connection else 'No'},Username: {settings.EMAIL_HOST_USER}")
                 # Check if tenant has a brand name
                 if hasattr(tenant, 'attribute') and tenant.attribute.brand_name:
                     if tenant.vectra_email and tenant.password:
@@ -47,7 +51,9 @@ def send_email_async(subject, text_content, html_content, to_emails, from_email=
                 pass
 
         from_email = from_email or default_from_email
-        
+        # from_email =  settings.DEFAULT_FROM_EMAIL
+        logger.info(f"Detail of  email to {to_emails}: Subject: {subject}, From: {from_email}, To: {to_emails}, Custom Connection Used: {'Yes' if custom_connection else 'No'}, Tenant ID: {tenant_id}")
+
         msg = EmailMultiAlternatives(
             subject=subject,
             body=text_content,
@@ -88,3 +94,17 @@ def send_test_email():
     to_emails = ["ayodelefestusng@gmail.com"]
     
     return send_email_async(subject, text_content, html_content, to_emails)
+
+
+
+from django.core.mail import send_mail
+from celery import shared_task
+
+@shared_task
+def send_test_email1():
+    return send_mail(
+        subject="Test Email",
+        message="This is a test email with fallback.",
+        from_email=None,  # backend sets automatically
+        recipient_list=["ayodelefestusng@gmail.com"],
+    )

@@ -318,29 +318,80 @@ SITE_URL = 'http://localhost:8000'
 #  Email Configuration
 # ==============================================================================
 
+
+
 # EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-# EMAIL_HOST = os.getenv("EMAIL_HOST", "mail.vectra.ng")
-# # EMAIL_HOST="mail.vectra.ng" # Hardcoded for now, can be switched to env var if needed
-# EMAIL_PORT = int(os.getenv("EMAIL_PORT", 465))
-# # EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "True") == "True"
-# # EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "False") == "True"
-# EMAIL_USE_TLS = True
-# EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "support@vectra.ng")
-# EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
-# DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "Vectra Laundry <support@vectra.ng>")
+# EMAIL_HOST = "smtp.gmail.com"
+# EMAIL_PORT = 465
+# EMAIL_USE_SSL = True
+# EMAIL_USE_TLS = False   # must be False
+# EMAIL_HOST_USER = "upwardwave.dignity@gmail.com"   # full Gmail address
+# EMAIL_HOST_PASSWORD = "hcsn bkzv lgar hqed"        # Gmail app password
+# DEFAULT_FROM_EMAIL = "Dignity Concept <upwardwave.dignity@gmail.com>"
 
 
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp.gmail.com"
-EMAIL_PORT = 465
-# FORCE these settings explicitly
-EMAIL_USE_SSL = True
-EMAIL_USE_TLS = False  # Explicitly set to False to override any env defaults
-# EMAIL_HOST_USER = "upwardwave.dignity@gmail.com"
+import os
 
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "upwardwave.dignity@gmail.com")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
-DEFAULT_FROM_EMAIL = "Dignity Concept <upwardwave.dignity@gmail.com>"
+
+EMAIL_PROVIDER = os.getenv("EMAIL_PROVIDER", "gmail")
+print("Using email provider:", EMAIL_PROVIDER)
+
+# if EMAIL_PROVIDER == "gmail":
+#     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+#     EMAIL_HOST = "smtp.gmail.com"
+#     # EMAIL_PORT = 465
+#     EMAIL_PORT = 587
+#     # EMAIL_USE_SSL = True
+#     # EMAIL_USE_TLS = False
+#     EMAIL_USE_SSL = False
+#     EMAIL_USE_TLS = True
+#     EMAIL_HOST_USER = os.getenv("GMAIL_USER")
+#     EMAIL_HOST_PASSWORD = os.getenv("GMAIL_PASS")
+#     DEFAULT_FROM_EMAIL = f"Dignity Concept <{EMAIL_HOST_USER}>"
+
+# elif EMAIL_PROVIDER == "vectra":
+#     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+#     EMAIL_HOST = "mail.vectra.ng"
+#     # EMAIL_PORT = 465
+#     EMAIL_PORT = 587   # ✅ use 587, not 465
+#     # EMAIL_USE_SSL = True
+#     # EMAIL_USE_TLS = False
+    
+#     EMAIL_USE_SSL = False
+#     EMAIL_USE_TLS = True
+#     EMAIL_HOST_USER = os.getenv("VECTRA_USER")
+#     EMAIL_HOST_PASSWORD = os.getenv("VECTRA_PASS")
+#     DEFAULT_FROM_EMAIL = f"Vectra Laundry <{EMAIL_HOST_USER}>"
+
+
+import os
+
+EMAIL_PROVIDER = os.getenv("EMAIL_PROVIDER", "gmail")
+
+
+# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+# settings.py
+EMAIL_BACKEND = "myproject.email_backend.FallbackEmailBackend"
+
+if EMAIL_PROVIDER == "gmail":
+    EMAIL_HOST = "smtp.gmail.com"
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    EMAIL_USE_SSL = False
+    EMAIL_HOST_USER = os.getenv("GMAIL_USER")
+    EMAIL_HOST_PASSWORD = os.getenv("GMAIL_PASS")
+    DEFAULT_FROM_EMAIL = f"Dignity Concept <{EMAIL_HOST_USER}>"
+
+elif EMAIL_PROVIDER == "vectra":
+    EMAIL_HOST = "mail.vectra.ng"
+    EMAIL_PORT = 587   # ✅ confirmed open
+    EMAIL_USE_TLS = True
+    EMAIL_USE_SSL = False
+    EMAIL_HOST_USER = os.getenv("VECTRA_USER")
+    EMAIL_HOST_PASSWORD = os.getenv("VECTRA_PASS")
+    DEFAULT_FROM_EMAIL = f"Vectra Laundry <{EMAIL_HOST_USER}>"
+
+
 
 
 
@@ -356,44 +407,45 @@ GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "YOUR_PLACEHOLDER_KEY")
 #  Redis & Celery Configuration
 # ==============================================================================
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379")
-
+import os
 import re
-# Strip any trailing slash and database number from REDIS_URL so we can cleanly append /0 or /1
-base_redis_url = re.sub(r'/[0-9]*$', '', REDIS_URL)
 
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"{base_redis_url}/1",
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+WORKER_URL = os.getenv("WORKER_URL", "redis://redis:6379")
+# WORKER_URL = "amqp://akanni:@Ajibandele23$03$@whatsapp-1-rabbitmq.xqqhik.easypanel.host:5672/"
+
+if WORKER_URL.startswith("redis://"):
+    # Strip trailing /db number for clean base
+    base_redis_url = re.sub(r'/[0-9]*$', '', WORKER_URL)
+
+    CELERY_BROKER_URL = f"{base_redis_url}/0"
+    CELERY_RESULT_BACKEND = f"{base_redis_url}/0"
+
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": f"{base_redis_url}/1",
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            }
         }
     }
-}
-CELERY_BROKER_URL = "amqp://aulajaja:aulajaja@whatsapp-1-rabbitmq.xqqhik.easypanel.host:5672/"
-CELERY_RESULT_BACKEND = "rpc://"
-# CELERY_BROKER_URL = f"{base_redis_url}/0"
-# CELERY_RESULT_BACKEND = f"{base_redis_url}/0"
+
+elif WORKER_URL.startswith("amqp://"):
+    # RabbitMQ broker
+    CELERY_BROKER_URL = WORKER_URL
+    CELERY_RESULT_BACKEND = "rpc://"
+
+    # RabbitMQ cannot serve as a Django cache backend.
+    # Use a safe fallback like LocMemCache or keep Redis separately for caching.
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "unique-snowflake",
+        }
+    }
+
+# Common Celery settings
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
-
-
-
-# CELERY_BROKER_URL = "rediss://default:8824947e9537dcfd047d@147.182.194.8:6380/0?ssl_cert_reqs=CERT_NONE"
-# CELERY_RESULT_BACKEND = "rediss://default:8824947e9537dcfd047d@147.182.194.8:6380/0?ssl_cert_reqs=CERT_NONE"
-
-# CELERY_ACCEPT_CONTENT = ['json']
-# CELERY_TASK_SERIALIZER = 'json'
-# CELERY_RESULT_SERIALIZER = 'json'
-# CELERY_TIMEZONE = TIME_ZONE
-
-# # Required SSL options
-# CELERY_BROKER_USE_SSL = {
-#     "ssl_cert_reqs": "CERT_NONE"   # or CERT_REQUIRED if you have CA certs
-# }
-# CELERY_RESULT_BACKEND_USE_SSL = {
-#     "ssl_cert_reqs": "CERT_NONE"
-# }
