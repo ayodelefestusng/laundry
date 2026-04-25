@@ -318,18 +318,29 @@ SITE_URL = 'http://localhost:8000'
 #  Email Configuration
 # ==============================================================================
 
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 # EMAIL_HOST = os.getenv("EMAIL_HOST", "mail.vectra.ng")
-EMAIL_HOST="mail.vectra.ng" # Hardcoded for now, can be switched to env var if needed
-EMAIL_PORT = int(os.getenv("EMAIL_PORT", 465))
-EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "True") == "True"
-EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "False") == "True"
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "support@vectra.ng")
+# # EMAIL_HOST="mail.vectra.ng" # Hardcoded for now, can be switched to env var if needed
+# EMAIL_PORT = int(os.getenv("EMAIL_PORT", 465))
+# # EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "True") == "True"
+# # EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "False") == "True"
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "support@vectra.ng")
+# EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+# DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "Vectra Laundry <support@vectra.ng>")
+
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 465
+# FORCE these settings explicitly
+EMAIL_USE_SSL = True
+EMAIL_USE_TLS = False  # Explicitly set to False to override any env defaults
+# EMAIL_HOST_USER = "upwardwave.dignity@gmail.com"
+
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "upwardwave.dignity@gmail.com")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "Vectra Laundry <support@vectra.ng>")
-
-
-
+DEFAULT_FROM_EMAIL = "Dignity Concept <upwardwave.dignity@gmail.com>"
 
 
 
@@ -360,9 +371,10 @@ CACHES = {
         }
     }
 }
-
-CELERY_BROKER_URL = f"{base_redis_url}/0"
-CELERY_RESULT_BACKEND = f"{base_redis_url}/0"
+CELERY_BROKER_URL = "amqp://aulajaja:aulajaja@whatsapp-1-rabbitmq.xqqhik.easypanel.host:5672/"
+CELERY_RESULT_BACKEND = "rpc://"
+# CELERY_BROKER_URL = f"{base_redis_url}/0"
+# CELERY_RESULT_BACKEND = f"{base_redis_url}/0"
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
