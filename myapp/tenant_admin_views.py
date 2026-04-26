@@ -172,6 +172,7 @@ class TenantGenericFormMixin:
             password = form.cleaned_data.get('password')
             if password:
                 form.instance.password = password
+                form.instance.save()  # Explicitly save to persist the password
                 logger.info(f"Tenant SMTP password set form_valid: {self.request.user}")
             # Create a user with tenant email, set is_staff=True
             tenant = self.object
@@ -207,6 +208,7 @@ class TenantGenericFormMixin:
             password = form.cleaned_data.get('password')
             if password:
                 form.instance.password = password
+                form.instance.save()  # Explicitly save to persist the password
                 logger.info(f"Tenant SMTP password updated form_valid: {self.request.user}")
         elif model_name == 'tenantattribute':
             # Create or Edit
