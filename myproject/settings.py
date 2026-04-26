@@ -361,9 +361,9 @@ import os
 EMAIL_PROVIDER = os.getenv("EMAIL_PROVIDER", "gmail")
 
 
-# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 # settings.py
-EMAIL_BACKEND = "myproject.email_backend.FallbackEmailBackend"
+# EMAIL_BACKEND = "myproject.email_backend.FallbackEmailBackend"
 
 if EMAIL_PROVIDER == "gmail":
     EMAIL_HOST = "smtp.gmail.com"
