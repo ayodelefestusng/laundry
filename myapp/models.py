@@ -199,6 +199,9 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     @property
     def is_aggregator(self):
         return self.groups.filter(name="Aggregator").exists()
+    @property
+    def is_customer(self):
+        return self.groups.filter(name="Customer").exists()
 
 
 

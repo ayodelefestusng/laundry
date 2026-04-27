@@ -7,3 +7,5 @@ https://gemini.google.com/share/195f853510d6
 
 
 celery -A myproject worker -l info --pool=solo
+
+uv run python manage.py runserver 8001    

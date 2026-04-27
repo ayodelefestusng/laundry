@@ -134,7 +134,7 @@
 
                 </ul>
                 <div class="d-flex align-items-center gap-2 mt-3 mt-lg-0">
-                    {% if user.is_authenticated %}
+                    {% if user.is_authenticated and not user.is_customer %}
                         <a href="{% url 'laundry:logout' %}" class="btn btn-outline-danger shadow-sm rounded-pill px-4">Logout</a>
                     {% else %}
                         {# Only visible logically if the view explicitly allows it, or if accessed directly #}

@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   web:
     build: .
@@ -11,7 +13,10 @@ services:
     restart: always
     command: gunicorn myproject.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120
     depends_on:
-      - rabbitmq   # ✅ only depend on rabbitmq
+      - rabbitmq
+    volumes:
+      - ./media:/app/media   # ✅ persist tenant logos/uploads
+      - ./static:/app/static # optional: persist static files
 
   worker:
     build: .
@@ -25,7 +30,9 @@ services:
       - RABBITMQ_PORT=5672
     restart: always
     depends_on:
-      - rabbitmq   # ✅ only depend on rabbitmq
+      - rabbitmq
+    volumes:
+      - ./media:/app/media   # ✅ worker also needs access to media if tasks touch files
 
   rabbitmq:
     image: rabbitmq:3-management
