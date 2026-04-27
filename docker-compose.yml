@@ -27,7 +27,7 @@ services:
       - RABBITMQ_USER=${RABBITMQ_USER}
       - RABBITMQ_PASS=${RABBITMQ_PASS}
       - RABBITMQ_HOST=rabbitmq
-      - RABBITMQ_PORT=5672
+      # - RABBITMQ_PORT=5672
     restart: always
     depends_on:
       - rabbitmq
