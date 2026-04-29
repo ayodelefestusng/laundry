@@ -299,9 +299,7 @@
                         <form id="track-order-form" class="row g-3"
                               hx-get="{% url 'laundry:htmx_track_order' %}"
                               hx-target="#track-result"
-                              hx-indicator="#track-spinner"
-                              hx-vals='{"order_code": ""}'>
-                            {% csrf_token %}
+                              hx-indicator="#track-spinner">
                             <div class="col-md-8">
                                 <label for="tracking_id" class="form-label fw-bold">Order Tracking ID</label>
                                 <input type="text" class="form-control form-control-lg" id="tracking_id" name="order_code" placeholder="Enter your 8-character ID" required>
