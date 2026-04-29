@@ -297,13 +297,14 @@
                     <div class="card glass-bg shadow-sm p-4 mb-5 border-0 rounded-4 border-start border-success border-5">
                         <h4 class="mb-4 fw-bold text-success"><i class="fas fa-search-location me-2"></i>Track Your Order</h4>
                         <form id="track-order-form" class="row g-3"
-                              hx-post="{% url 'laundry:htmx_track_order' %}"
+                              hx-get="{% url 'laundry:htmx_track_order' %}"
                               hx-target="#track-result"
-                              hx-indicator="#track-spinner">
+                              hx-indicator="#track-spinner"
+                              hx-vals='{"order_code": ""}'>
                             {% csrf_token %}
                             <div class="col-md-8">
                                 <label for="tracking_id" class="form-label fw-bold">Order Tracking ID</label>
-                                <input type="text" class="form-control form-control-lg" id="tracking_id" name="tracking_id" placeholder="Enter your 8-character ID" required>
+                                <input type="text" class="form-control form-control-lg" id="tracking_id" name="order_code" placeholder="Enter your 8-character ID" required>
                             </div>
                             <div class="col-md-4 d-flex align-items-end">
                                 <button type="submit" class="btn btn-success btn-lg w-100 shadow-sm d-flex align-items-center justify-content-center gap-2">
