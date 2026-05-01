@@ -452,13 +452,13 @@ def customer_order(request):
         
     context = {
         'form': form,
-        'google_maps_api_key': GOOGLE_MAPS_API_KEY,
+        'google_maps_api_key': GOOGLE_MAPS_API_KEY or "",
         'tenant': tenant,
         **landing_data
     }
 
-    logger.info(f"User {request.user} ALelele  ddjdjd g an order.")
-    return render(request, 'customer_order.html', context)
+    logger.info(f"User {request.user} rendering customer_landing.html")
+    return render(request, 'customer_landing.html', context)
 
 
 

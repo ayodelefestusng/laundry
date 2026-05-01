@@ -103,6 +103,7 @@
         background: linear-gradient(135deg, var(--lw-primary) 0%, #2563EB 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
+        color: var(--lw-primary); /* Fallback */
     }
     .hero-subtitle {
         font-size: 1.25rem;
@@ -345,7 +346,7 @@
 <section class="hero-section">
     <div class="container">
         <div class="row align-items-center">
-            <div class="col-lg-6 hero-content" data-aos="fade-right">
+            <div class="col-lg-6 hero-content">
 
 
                 
@@ -366,7 +367,7 @@
                     <div class="small fw-semibold">Trusted by <span class="text-accent">thousands of</span> Customers</div>
                 </div>
             </div>
-            <div class="col-lg-6" data-aos="fade-left" data-aos-delay="200">
+            <div class="col-lg-6">
                 <div class="swiper heroSwiper hero-swiper-container">
                     <div class="swiper-wrapper">
                         {% if landing_carousel %}
@@ -400,7 +401,7 @@
         <div class="row g-4">
             {% if landing_values %}
                 {% for val in landing_values %}
-                <div class="col-md-4" data-aos="fade-up" data-aos-delay="{{ forloop.counter0|add:1 }}00">
+                <div class="col-md-4">
                     <div class="value-item">
                         <div class="value-icon"><i class="{{ val.icon_class }}"></i></div>
                         <div>
@@ -411,7 +412,7 @@
                 </div>
                 {% endfor %}
             {% else %}
-            <div class="col-md-4" data-aos="fade-up">
+            <div class="col-md-4">
                 <div class="value-item">
                     <div class="value-icon"><i class="fas fa-truck-fast"></i></div>
                     <div>
@@ -420,7 +421,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">
+            <div class="col-md-4">
                 <div class="value-item">
                     <div class="value-icon"><i class="fas fa-stopwatch"></i></div>
                     <div>
@@ -429,7 +430,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">
+            <div class="col-md-4">
                 <div class="value-item">
                     <div class="value-icon"><i class="fas fa-leaf"></i></div>
                     <div>
@@ -756,9 +757,9 @@
         <div class="row g-5">
             <div class="col-lg-4">
                 <a class="navbar-brand fw-bold fs-2 text-white mb-4 d-block" href="#">
-                    <i class="fas fa-leaf text-accent me-2"></i>LaundryWala
+                    <i class="fas fa-leaf text-accent me-2"></i>{{ tenant_brand|default:tenant_name }}
                 </a>
-                <p class="text-white-50 mb-4 pe-lg-5">Trusted care for every garment — pickup, clean & deliver. India's most reliable laundry service.</p>
+                <p class="text-white-50 mb-4 pe-lg-5">Trusted care for every garment — pickup, clean & deliver. {{ tenant_brand }} is your reliable laundry partner.</p>
                 <div class="d-flex">
                     <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
                     <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
@@ -767,10 +768,16 @@
             </div>
             <div class="col-lg-2 col-md-4">
                 <h5 class="footer-heading">Services</h5>
-                <a href="#" class="footer-link">Wash & Fold</a>
-                <a href="#" class="footer-link">Dry Cleaning</a>
-                <a href="#" class="footer-link">Ironing</a>
-                <a href="#" class="footer-link">Shoe Cleaning</a>
+                {% if footer_services %}
+                    {% for svc in footer_services %}
+                        <a href="#" class="footer-link">{{ svc.name }}</a>
+                    {% endfor %}
+                {% else %}
+                    <a href="#" class="footer-link">Wash & Fold</a>
+                    <a href="#" class="footer-link">Dry Cleaning</a>
+                    <a href="#" class="footer-link">Ironing</a>
+                    <a href="#" class="footer-link">Shoe Cleaning</a>
+                {% endif %}
             </div>
             <div class="col-lg-2 col-md-4">
                 <h5 class="footer-heading">Company</h5>
@@ -789,7 +796,7 @@
             </div>
         </div>
         <div class="border-top border-secondary mt-5 pt-4 text-center text-white-50 small">
-            <p>&copy; 2026 LaundryWala. All rights reserved.</p>
+            <p>&copy; 2026 {{ tenant_brand|default:tenant_name }}. All rights reserved.</p>
         </div>
     </div>
 </footer>
@@ -821,13 +828,42 @@
                     
                     <!-- BOOK PANE -->
                     <div class="tab-pane fade show active" id="book" role="tabpanel">
-                        <form method="post" action="{% url 'laundry:customer_order' %}" id="main-order-form">
-                            {% csrf_token %}
-                            <input type="hidden" name="cart_items" id="cart_items_input" value="[]">
-                            <input type="hidden" name="book_and_pick" id="book_and_pick_flag" value="" disabled>
+                        <div class="row">
+                            <!-- Sidebar / Navigation Tabs (Desktop) -->
+                            <div class="col-lg-3 d-none d-lg-block">
+                                <div class="card bg-light shadow-sm border-0 rounded-4 sticky-top" style="top: 20px; z-index: 10;">
+                                    <div class="card-body p-3">
+                                        <h6 class="text-uppercase text-muted small fw-bold mb-3 px-2">Navigation</h6>
+                                        <div class="nav flex-column nav-pills" id="modal-nav">
+                                            <a class="nav-link mb-2 py-3 active" href="#customer-info-section">
+                                                <i class="fas fa-user me-2"></i> Customer Info
+                                            </a>
+                                            <a class="nav-link mb-2 py-3 toggle-cart-nav" href="#mode-tabs-container" style="display:none;">
+                                                <i class="fas fa-list-check me-2"></i> Order Mode
+                                            </a>
+                                            <a class="nav-link mb-2 py-3 toggle-cart-nav" href="#add-item-form" style="display:none;">
+                                                <i class="fas fa-plus-circle me-2"></i> Add Item
+                                            </a>
+                                            <a class="nav-link mb-2 py-3 toggle-cart-nav" href="#items-card" style="display:none;">
+                                                <i class="fas fa-receipt me-2"></i> Summary
+                                            </a>
+                                            <a class="nav-link mb-2 py-3 toggle-cart-nav" href="#shipping-section" style="display:none;">
+                                                <i class="fas fa-truck me-2"></i> Shipping
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
-                            <!-- 2. Customer Form -->
-                            <div id="customer-info-section" class="card shadow-sm p-4 mb-4 border-0 rounded-4 bg-white border-start border-primary border-5">
+                            <!-- Main Form Content -->
+                            <div class="col-lg-9">
+                                <form method="post" action="{% url 'laundry:customer_order' %}" id="main-order-form">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="cart_items" id="cart_items_input" value="[]">
+                                    <input type="hidden" name="book_and_pick" id="book_and_pick_flag" value="" disabled>
+
+                                    <!-- 2. Customer Form -->
+                                    <div id="customer-info-section" class="card shadow-sm p-4 mb-4 border-0 rounded-4 bg-white border-start border-primary border-5">
                                 <h4 class="mb-4 fw-bold text-primary"><i class="fas fa-user me-2"></i>Customer Information</h4>
                                 <div class="row g-4">
                                     <div class="col-md-6">{{ form.customer_name|as_crispy_field }}</div>
@@ -991,7 +1027,31 @@
                                     </button>
                                 </div>
                             </div> <!-- End mode-tabs-container -->
-                        </form>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Floating Bottom Navigation (Mobile) -->
+                        <div class="fixed-bottom d-lg-none bg-white border-top shadow-lg py-2 px-3" style="z-index: 1060;">
+                            <div class="nav nav-pills nav-justified" id="mobile-nav">
+                                <a class="nav-link py-2 px-0 border-0 active" href="#customer-info-section">
+                                    <i class="fas fa-user d-block mb-1 fs-5"></i>
+                                    <span class="smaller">Info</span>
+                                </a>
+                                <a class="nav-link py-2 px-0 border-0 toggle-cart-nav" href="#add-item-form" style="display:none;">
+                                    <i class="fas fa-plus-circle d-block mb-1 fs-5"></i>
+                                    <span class="smaller">Add</span>
+                                </a>
+                                <a class="nav-link py-2 px-0 border-0 toggle-cart-nav" href="#items-card" style="display:none;">
+                                    <i class="fas fa-receipt d-block mb-1 fs-5"></i>
+                                    <span class="smaller">Cart</span>
+                                </a>
+                                <a class="nav-link py-2 px-0 border-0 toggle-cart-nav" href="#shipping-section" style="display:none;">
+                                    <i class="fas fa-truck d-block mb-1 fs-5"></i>
+                                    <span class="smaller">Ship</span>
+                                </a>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- TRACK PANE -->
@@ -1043,10 +1103,12 @@
 
     function initMap() {
         try {
-            // Placeholder coordinates, will be replaced by DB fetching in future
-            const location = { lat: 9.0820, lng: 8.6753 }; // Center of Nigeria
+            const lat = parseFloat("{{ tenant_location_lat|default:'9.0820' }}");
+            const lng = parseFloat("{{ tenant_location_lng|default:'8.6753' }}");
+            const location = { lat: lat, lng: lng };
+            
             const mapOptions = {
-                zoom: 12,
+                zoom: 15,
                 center: location,
                 styles: [
                     { "elementType": "geometry", "stylers": [{"color": "#f5f5f5"}] },
@@ -1060,33 +1122,27 @@
             new google.maps.Marker({
                 position: location,
                 map: map,
-                title: "LaundryWala",
+                title: "{{ tenant_brand|default:'Our Location' }}",
                 animation: google.maps.Animation.DROP
             });
-            console.log("Google Maps initialized successfully.");
+            console.log("Google Maps initialized successfully at:", location);
         } catch (error) {
             console.error("Error initializing Google Maps:", error);
             document.getElementById("map-container").innerHTML = "<div class='p-4 text-center bg-light text-muted h-100 d-flex align-items-center justify-content-center'>Map failed to load. Please try again later.</div>";
         }
     }
 </script>
-<script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAP_KEY }}&callback=initMap" async defer></script>
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&callback=initMap" async defer></script>
 
 <script>
 // --- UI & Animations Initialization ---
 document.addEventListener('DOMContentLoaded', function() {
-    // Scroll animations
-    const fadeElements = document.querySelectorAll('.fade-up');
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('visible');
-                observer.unobserve(entry.target);
-            }
-        });
-    }, { threshold: 0.1 });
-    
-    fadeElements.forEach(el => observer.observe(el));
+    // AOS Scroll animations
+    AOS.init({
+        duration: 800,
+        once: true,
+        easing: 'ease-out-quad'
+    });
 
     // Swiper Initializations
     const heroSwiper = new Swiper('.heroSwiper', {
