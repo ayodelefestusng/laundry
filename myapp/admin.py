@@ -7,7 +7,10 @@ from .models import (Comment, CustomUser, Order, OrderItem, Package,
                      ServiceCategory,Tenant, TenantAttribute, Workflow, WorkflowStage, WorkflowInstance, WorkflowHistory,
                      ServiceChoices,PremiumClient,QR,DeliveryPricing, Color,Cluster, State, Town)
 
-
+from .landing_models import (
+    LandingCarousel, LandingText, LandingValue, LandingCommitment, 
+    LandingPricingCard, LandingCustomerStory, LandingFAQ
+)
 class CustomUserAdmin(UserAdmin):
     """
     Customizes the Django admin to manage the CustomUser model.
@@ -124,6 +127,18 @@ admin.site.register(Town)
 admin.site.register(PremiumClient, admin.ModelAdmin)
 admin.site.register(QR)
 admin.site.register(DeliveryPricing)
+
+
+
+
+
+admin.site.register(LandingCarousel)
+admin.site.register(LandingText)
+admin.site.register(LandingValue)
+admin.site.register(LandingCommitment)
+admin.site.register(LandingPricingCard)
+admin.site.register(LandingCustomerStory)
+admin.site.register(LandingFAQ)
 
 class WorkflowStepInline(admin.TabularInline):
     model = WorkflowStage
