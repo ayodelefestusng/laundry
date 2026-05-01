@@ -391,6 +391,8 @@ class TenantAttribute(TenantModel):
     location_lng = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     whatsapp_number = models.CharField(max_length=20, default="+2349068770054", help_text="WhatsApp phone number")
     address = models.CharField(max_length=255, blank=True, null=True, help_text="Tenant physical address")
+    operation_hours = models.CharField(max_length=255, blank=True, null=True, help_text="e.g., 8:00 AM - 8:00 PM")
+    operation_days = models.JSONField(default=list, blank=True, help_text="List of operation days, e.g., ['Mon', 'Tue']")
 
     def __str__(self):
         return f"{self.tenant.name} Attributes"
@@ -1201,3 +1203,4 @@ class HistoricalRecord(TenantModel):
         return f"{self.instance.workflow.name} - {self.action_description[:30]}"
 
 
+from .landing_models import *  # noqa: E402, F401, F403

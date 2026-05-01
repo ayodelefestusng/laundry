@@ -9,8 +9,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <!-- Swiper CSS -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" />
-<!-- Font Awesome -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- AOS Scroll Animations -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" />
 
 <style>
     :root {
@@ -311,9 +311,8 @@
     }
     .social-icon:hover { background: var(--lw-accent); transform: translateY(-3px); }
 
-    /* Animations */
-    .fade-up { opacity: 0; transform: translateY(30px); transition: 0.8s ease-out; }
-    .fade-up.visible { opacity: 1; transform: translateY(0); }
+    /* AOS overrides for smoother feel */
+    [data-aos] { transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important; }
 
     /* Modal Adjustments */
     .modal-content { border-radius: 24px; border: none; box-shadow: 0 25px 50px rgba(0,0,0,0.2); }
@@ -329,40 +328,26 @@
     }
 </style>
 
-<!-- Sticky Navigation -->
-<header class="landing-nav sticky-top">
-    <div class="container">
-        <nav class="navbar navbar-expand-lg navbar-light p-0">
-            <a class="navbar-brand fw-bold fs-3 text-primary" href="#">
-                <i class="fas fa-leaf text-accent me-2"></i>LaundryWala
-            </a>
-            <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav mx-auto">
-                    <li class="nav-item"><a class="nav-link" href="#how-it-works">How it Works</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#services">Services</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#pricing">Pricing</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#faq">FAQ</a></li>
-                </ul>
-                <div class="d-flex mt-3 mt-lg-0">
-                    <button class="btn-cta open-booking-modal" data-bs-toggle="modal" data-bs-target="#bookingModal">
-                        Schedule Pickup <i class="fas fa-arrow-right"></i>
-                    </button>
-                </div>
-            </div>
-        </nav>
-    </div>
-</header>
+{% block nav_extra_links %}
+<li class="nav-item"><a class="nav-link" href="#how-it-works">How it Works</a></li>
+<li class="nav-item"><a class="nav-link" href="#pricing">Pricing</a></li>
+<li class="nav-item"><a class="nav-link" href="#faq">FAQ</a></li>
+<li class="nav-item"><a class="nav-link" href="#contact">Contact</a></li>
+{% endblock %}
+
+{% block nav_cta %}
+<button class="btn-nav-cta open-booking-modal" data-bs-toggle="modal" data-bs-target="#bookingModal">
+    Schedule Pickup <i class="fas fa-arrow-right"></i>
+</button>
+{% endblock %}
 
 <!-- Hero Section -->
 <section class="hero-section">
     <div class="container">
         <div class="row align-items-center">
-            <div class="col-lg-6 hero-content fade-up">
-                <h1 class="hero-title">Laundry Made Simple, Fresh & Fast.</h1>
-                <p class="hero-subtitle">Experience premium garment care with free doorstep pickup & delivery. Eco-friendly cleaning that preserves your clothes and the planet.</p>
+            <div class="col-lg-6 hero-content" data-aos="fade-right">
+                <h1 class="hero-title">{% if landing_text %}{{ landing_text.hero_title }}{% else %}Laundry Made Simple, Fresh & Fast.{% endif %}</h1>
+                <p class="hero-subtitle">{% if landing_text %}{{ landing_text.hero_subtitle }}{% else %}Experience premium garment care with free doorstep pickup & delivery. Eco-friendly cleaning that preserves your clothes and the planet.{% endif %}</p>
                 <div class="d-flex flex-column flex-sm-row gap-3">
                     <button class="btn-cta btn-lg open-booking-modal" data-bs-toggle="modal" data-bs-target="#bookingModal">
                         Schedule Pickup Now <i class="fas fa-calendar-check"></i>
@@ -371,17 +356,23 @@
                 </div>
                 <div class="mt-4 pt-3 d-flex align-items-center gap-3">
                     <div class="d-flex">
-                        <img src="https://i.pravatar.cc/100?img=1" alt="User" class="rounded-circle border border-2 border-white" width="40" height="40" style="margin-left: -0px;">
+                        <img src="https://i.pravatar.cc/100?img=1" alt="User" class="rounded-circle border border-2 border-white" width="40" height="40" style="margin-left: 0;">
                         <img src="https://i.pravatar.cc/100?img=2" alt="User" class="rounded-circle border border-2 border-white" width="40" height="40" style="margin-left: -15px;">
                         <img src="https://i.pravatar.cc/100?img=3" alt="User" class="rounded-circle border border-2 border-white" width="40" height="40" style="margin-left: -15px;">
                     </div>
-                    <div class="small fw-semibold">Trusted by <span class="text-accent">4 Lakh+</span> Customers</div>
+                    <div class="small fw-semibold">Trusted by <span class="text-accent">thousands of</span> Customers</div>
                 </div>
             </div>
-            <div class="col-lg-6 fade-up" style="transition-delay: 0.2s;">
+            <div class="col-lg-6" data-aos="fade-left" data-aos-delay="200">
                 <div class="swiper heroSwiper hero-swiper-container">
                     <div class="swiper-wrapper">
-                        <!-- High quality webp placeholders -->
+                        {% if landing_carousel %}
+                            {% for slide in landing_carousel %}
+                            <div class="swiper-slide">
+                                <img src="{{ slide.image.url }}" alt="{{ slide.title }}">
+                            </div>
+                            {% endfor %}
+                        {% else %}
                         <div class="swiper-slide">
                             <img src="https://images.unsplash.com/photo-1545173168-9f1947eebb7f?auto=format&fit=crop&q=80&w=800" alt="Fresh Laundry">
                         </div>
@@ -391,6 +382,7 @@
                         <div class="swiper-slide">
                             <img src="https://images.unsplash.com/photo-1582735689369-4fe89db7114c?auto=format&fit=crop&q=80&w=800" alt="Ironing Service">
                         </div>
+                        {% endif %}
                     </div>
                     <div class="swiper-pagination"></div>
                 </div>
@@ -403,7 +395,20 @@
 <section class="value-bar">
     <div class="container">
         <div class="row g-4">
-            <div class="col-md-4 fade-up">
+            {% if landing_values %}
+                {% for val in landing_values %}
+                <div class="col-md-4" data-aos="fade-up" data-aos-delay="{{ forloop.counter0|add:1 }}00">
+                    <div class="value-item">
+                        <div class="value-icon"><i class="{{ val.icon_class }}"></i></div>
+                        <div>
+                            <h4 class="value-text">{{ val.value_text }}</h4>
+                            <p class="value-subtext">{{ val.value_subtext }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="col-md-4" data-aos="fade-up">
                 <div class="value-item">
                     <div class="value-icon"><i class="fas fa-truck-fast"></i></div>
                     <div>
@@ -412,7 +417,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-4 fade-up" style="transition-delay: 0.1s;">
+            <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">
                 <div class="value-item">
                     <div class="value-icon"><i class="fas fa-stopwatch"></i></div>
                     <div>
@@ -421,13 +426,43 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-4 fade-up" style="transition-delay: 0.2s;">
+            <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">
                 <div class="value-item">
                     <div class="value-icon"><i class="fas fa-leaf"></i></div>
                     <div>
                         <h4 class="value-text">Eco-Friendly Care</h4>
                         <p class="value-subtext">Non-toxic, safe detergents</p>
                     </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<!-- Track Your Order (Main Page) -->
+<section id="track-order" class="section-padding bg-soft">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8" data-aos="fade-up">
+                <div class="card shadow-sm p-4 p-md-5 border-0 rounded-4 bg-white border-start border-success border-5">
+                    <h3 class="fw-bold text-success mb-2"><i class="fas fa-search-location me-2"></i>Track Your Order</h3>
+                    <p class="text-muted mb-4">Enter your 8-character tracking ID to check the status of your order.</p>
+                    <form id="page-track-order-form" class="row g-3"
+                          hx-get="{% url 'laundry:htmx_track_order' %}"
+                          hx-target="#page-track-result"
+                          hx-indicator="#page-track-spinner">
+                        <div class="col-md-8">
+                            <input type="text" class="form-control form-control-lg" name="order_code" placeholder="e.g. A1B2C3D4" required>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-success btn-lg w-100 shadow-sm d-flex align-items-center justify-content-center gap-2 rounded-pill">
+                                <span>Track</span>
+                                <div id="page-track-spinner" class="htmx-indicator spinner-border spinner-border-sm text-light" role="status"></div>
+                            </button>
+                        </div>
+                    </form>
+                    <div id="page-track-result" class="mt-4"></div>
                 </div>
             </div>
         </div>
@@ -437,11 +472,11 @@
 <!-- How It Works -->
 <section id="how-it-works" class="section-padding bg-light">
     <div class="container">
-        <h2 class="section-title fade-up">How It Works</h2>
-        <p class="section-subtitle fade-up">Four simple steps to fresh, perfectly folded clothes.</p>
+        <h2 class="section-title" data-aos="fade-up">How It Works</h2>
+        <p class="section-subtitle" data-aos="fade-up">Four simple steps to fresh, perfectly folded clothes.</p>
         
         <div class="row g-4 mt-4">
-            <div class="col-md-3 col-sm-6 fade-up" style="transition-delay: 0.1s;">
+            <div class="col-md-3 col-sm-6" data-aos="fade-up" data-aos-delay="100">
                 <div class="step-card">
                     <div class="step-number">1</div>
                     <i class="fas fa-calendar-check step-icon"></i>
@@ -449,7 +484,7 @@
                     <p class="step-desc">Book a pickup online or via our app at your convenience.</p>
                 </div>
             </div>
-            <div class="col-md-3 col-sm-6 fade-up" style="transition-delay: 0.2s;">
+            <div class="col-md-3 col-sm-6" data-aos="fade-up" data-aos-delay="200">
                 <div class="step-card">
                     <div class="step-number">2</div>
                     <i class="fas fa-box step-icon"></i>
@@ -457,7 +492,7 @@
                     <p class="step-desc">Our executive collects your laundry from your doorstep.</p>
                 </div>
             </div>
-            <div class="col-md-3 col-sm-6 fade-up" style="transition-delay: 0.3s;">
+            <div class="col-md-3 col-sm-6" data-aos="fade-up" data-aos-delay="300">
                 <div class="step-card">
                     <div class="step-number">3</div>
                     <i class="fas fa-soap step-icon"></i>
@@ -465,7 +500,7 @@
                     <p class="step-desc">Expert cleaning, stain removal, and eco-friendly wash.</p>
                 </div>
             </div>
-            <div class="col-md-3 col-sm-6 fade-up" style="transition-delay: 0.4s;">
+            <div class="col-md-3 col-sm-6" data-aos="fade-up" data-aos-delay="400">
                 <div class="step-card">
                     <div class="step-number">4</div>
                     <i class="fas fa-truck step-icon"></i>
@@ -474,7 +509,7 @@
                 </div>
             </div>
         </div>
-        <div class="text-center mt-5 fade-up">
+        <div class="text-center mt-5" data-aos="fade-up">
             <button class="btn-cta open-booking-modal" data-bs-toggle="modal" data-bs-target="#bookingModal">
                 Book Your First Wash
             </button>
@@ -486,18 +521,31 @@
 <section id="about" class="section-padding">
     <div class="container">
         <div class="row align-items-center g-5">
-            <div class="col-lg-6 fade-up">
+            <div class="col-lg-6" data-aos="fade-right">
+                {% if landing_commitment and landing_commitment.image %}
+                <img src="{{ landing_commitment.image.url }}" alt="About Us" class="img-fluid rounded-4 shadow-lg">
+                {% else %}
                 <img src="https://images.unsplash.com/photo-1582735689369-4fe89db7114c?auto=format&fit=crop&q=80&w=800" alt="About Us" class="img-fluid rounded-4 shadow-lg">
+                {% endif %}
             </div>
-            <div class="col-lg-6 fade-up">
-                <h2 class="mb-4 fw-bold">Committed to <span class="text-accent">Garment Care</span> and Our Community.</h2>
-                <p class="lead text-muted mb-4">We believe that doing laundry shouldn't cost the earth. That's why we've pioneered a sustainable approach to garment care.</p>
+            <div class="col-lg-6" data-aos="fade-left">
+                <h2 class="mb-4 fw-bold">{% if landing_commitment %}{{ landing_commitment.committed_to }}{% else %}Committed to <span class="text-accent">Garment Care</span> and Our Community.{% endif %}</h2>
+                <p class="lead text-muted mb-4">{% if landing_commitment %}{{ landing_commitment.we_believe }}{% else %}We believe that doing laundry shouldn't cost the earth. That's why we've pioneered a sustainable approach to garment care.{% endif %}</p>
                 <ul class="list-unstyled mb-4">
-                    <li class="mb-3"><i class="fas fa-check-circle text-accent me-2 fs-5"></i> <strong>Non-toxic Detergents:</strong> Safe for sensitive skin and the environment.</li>
+                    <li class="mb-3"><i class="fas fa-check-circle text-accent me-2 fs-5"></i> {% if landing_commitment %}{{ landing_commitment.eco_friendly }}{% else %}<strong>Non-toxic Detergents:</strong> Safe for sensitive skin and the environment.{% endif %}</li>
                     <li class="mb-3"><i class="fas fa-check-circle text-accent me-2 fs-5"></i> <strong>Advanced Stain Removal:</strong> German-grade machines ensure 99% removal.</li>
                     <li class="mb-3"><i class="fas fa-check-circle text-accent me-2 fs-5"></i> <strong>Fabric Preservation:</strong> Zero shrinkage and color fading guarantee.</li>
                 </ul>
-                <button class="btn btn-outline-primary btn-lg rounded-pill fw-bold">Read Our Story</button>
+                {% if tenant_operation_hours %}
+                <div class="p-3 bg-soft rounded-3 mb-4">
+                    <i class="fas fa-clock text-accent me-2"></i>
+                    <strong>Operation Hours:</strong> {{ tenant_operation_hours }}
+                    {% if tenant_operation_days %}
+                    <br><i class="fas fa-calendar-alt text-accent me-2 mt-2"></i>
+                    <strong>Days:</strong> {{ tenant_operation_days|join:", " }}
+                    {% endif %}
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -506,46 +554,33 @@
 <!-- Pricing -->
 <section id="pricing" class="section-padding bg-soft">
     <div class="container">
-        <h2 class="section-title fade-up">Transparent Pricing</h2>
-        <p class="section-subtitle fade-up">Simple, affordable packages. Get <span class="fw-bold text-accent">20% OFF</span> your first order.</p>
+        <h2 class="section-title" data-aos="fade-up">Transparent Pricing</h2>
+        <p class="section-subtitle" data-aos="fade-up">Simple, affordable packages. Get <span class="fw-bold text-accent">20% OFF</span> your first order.</p>
         
         <div class="row g-4 justify-content-center">
-            <div class="col-lg-4 col-md-6 fade-up" style="transition-delay: 0.1s;">
-                <div class="pricing-card">
-                    <h3 class="fs-4 mb-2">Wash & Fold</h3>
-                    <p class="text-muted mb-4">Perfect for everyday wear.</p>
-                    <div class="mb-4">
-                        <span class="fs-1 fw-bold">₦800</span><span class="text-muted">/kg</span>
+            {% if landing_pricing %}
+                {% for card in landing_pricing %}
+                <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="{{ forloop.counter0|add:1 }}00">
+                    <div class="pricing-card {% if card.is_popular %}popular shadow-lg{% endif %}">
+                        {% if card.is_popular %}<div class="popular-badge">Most Popular</div>{% endif %}
+                        <h3 class="fs-4 mb-2">{{ card.title }}</h3>
+                        <p class="text-muted mb-4">{{ card.description }}</p>
+                        <div class="mb-4">
+                            <span class="fs-1 fw-bold">₦{{ card.price|floatformat:0 }}</span>
+                        </div>
+                        <ul class="list-unstyled mb-4">
+                            {% for feat in card.features %}
+                            <li class="mb-2"><i class="fas fa-check text-accent me-2"></i> {{ feat }}</li>
+                            {% endfor %}
+                        </ul>
+                        <button class="btn {% if card.is_popular %}bg-accent{% else %}btn-outline-primary{% endif %} w-100 rounded-pill fw-bold open-booking-modal" data-bs-toggle="modal" data-bs-target="#bookingModal">Choose Plan</button>
                     </div>
-                    <ul class="list-unstyled mb-4">
-                        <li class="mb-2"><i class="fas fa-check text-accent me-2"></i> Wash & Tumble Dry</li>
-                        <li class="mb-2"><i class="fas fa-check text-accent me-2"></i> Neat Folding</li>
-                        <li class="mb-2"><i class="fas fa-check text-accent me-2"></i> Eco-friendly Detergents</li>
-                    </ul>
-                    <button class="btn btn-outline-primary w-100 rounded-pill fw-bold open-booking-modal" data-bs-toggle="modal" data-bs-target="#bookingModal">Choose Plan</button>
                 </div>
-            </div>
-            
-            <div class="col-lg-4 col-md-6 fade-up" style="transition-delay: 0.2s;">
-                <div class="pricing-card popular shadow-lg">
-                    <div class="popular-badge">Most Popular</div>
-                    <h3 class="fs-4 mb-2">Wash & Iron</h3>
-                    <p class="text-muted mb-4">Crisp, wrinkle-free garments.</p>
-                    <div class="mb-4">
-                        <span class="fs-1 fw-bold">₦1,200</span><span class="text-muted">/kg</span>
-                    </div>
-                    <ul class="list-unstyled mb-4">
-                        <li class="mb-2"><i class="fas fa-check text-accent me-2"></i> Wash & Steam Iron</li>
-                        <li class="mb-2"><i class="fas fa-check text-accent me-2"></i> Premium Hanger Pack</li>
-                        <li class="mb-2"><i class="fas fa-check text-accent me-2"></i> Spot Treatment</li>
-                    </ul>
-                    <button class="btn bg-accent w-100 rounded-pill fw-bold open-booking-modal" data-bs-toggle="modal" data-bs-target="#bookingModal">Choose Plan</button>
-                </div>
-            </div>
-            
-            <div class="col-lg-4 col-md-6 fade-up" style="transition-delay: 0.3s;">
-                <div class="pricing-card">
-                    <h3 class="fs-4 mb-2">Premium Dry Clean</h3>
+                {% endfor %}
+            {% else %}
+                <div class="col-lg-4 col-md-6">
+                    <div class="pricing-card">
+                        <h3 class="fs-4 mb-2">Premium Dry Clean</h3>
                     <p class="text-muted mb-4">For delicate & special fabrics.</p>
                     <div class="mb-4">
                         <span class="fs-1 fw-bold">₦2,500</span><span class="text-muted">/item</span>
@@ -556,8 +591,9 @@
                         <li class="mb-2"><i class="fas fa-check text-accent me-2"></i> Minor Alterations</li>
                     </ul>
                     <button class="btn btn-outline-primary w-100 rounded-pill fw-bold open-booking-modal" data-bs-toggle="modal" data-bs-target="#bookingModal">Choose Plan</button>
+                    </div>
                 </div>
-            </div>
+            {% endif %}
         </div>
     </div>
 </section>

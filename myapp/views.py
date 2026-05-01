@@ -52,8 +52,14 @@ from .models import(Comment, Order, OrderItem, Package, ServiceCategory, Payment
 
     )
 from .utils import is_admin, analyze_sentiment, verify_qr_token, get_signed_token, generate_qr_base64
-from myapp.models import State, Town, Cluster
+from myapp.models import State, Town, Cluster, ServiceChoices
 from .models import log_with_context
+from .landing_models import (
+    LandingCarousel, LandingText, LandingValue, LandingCommitment, 
+    LandingPricingCard, LandingCustomerStory, LandingFAQ
+)
+from django.core.cache import cache
+from django.views.decorators.cache import cache_page
 
 from math import radians, cos, sin, asin, sqrt
 
@@ -241,6 +247,7 @@ def haversine(lon1, lat1, lon2, lat2):
 
 
 # @csrf_exempt
+@cache_page(3600)  # Cache GET responses for 1 hour
 def customer_order(request):
     logger.info(f"User {request.user} is placing an order.")
     tenant = getattr(request, 'tenant', None)
@@ -424,12 +431,34 @@ def customer_order(request):
         logger.info(f"User {request.user} is ALUKE g an order.")
         # form = OrderForm(user=request.user)
         form = OrderForm(user=request.user, tenant=tenant)
-    logger.info(f"User {request.user} ALelele  ddjdjd g an order.")
-    return render(request, 'customer_order.html', {
+    
+    # --- Landing Page Data Fetching & Caching ---
+    tenant_id = tenant.id if tenant else 0
+    cache_key = f"landing_page_data_{tenant_id}"
+    landing_data = cache.get(cache_key)
+
+    if not landing_data:
+        landing_data = {
+            'landing_carousel': list(LandingCarousel.objects.filter(tenant=tenant)),
+            'landing_text': LandingText.objects.filter(tenant=tenant).first(),
+            'landing_values': list(LandingValue.objects.filter(tenant=tenant)),
+            'landing_commitment': LandingCommitment.objects.filter(tenant=tenant).first(),
+            'landing_pricing': list(LandingPricingCard.objects.filter(tenant=tenant)),
+            'landing_stories': list(LandingCustomerStory.objects.filter(tenant=tenant)),
+            'landing_faqs': list(LandingFAQ.objects.filter(tenant=tenant)),
+            'footer_services': list(ServiceChoices.objects.filter(tenant=tenant)),
+        }
+        cache.set(cache_key, landing_data, 3600)  # Cache for 1 hour
+        
+    context = {
         'form': form,
         'google_maps_api_key': GOOGLE_MAPS_API_KEY,
-        'tenant': tenant
-    })
+        'tenant': tenant,
+        **landing_data
+    }
+
+    logger.info(f"User {request.user} ALelele  ddjdjd g an order.")
+    return render(request, 'customer_order.html', context)
 
 
 

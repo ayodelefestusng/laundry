@@ -26,5 +26,10 @@ def tenant_assets(request):
             'tenant_logo_url': logo_url,
             'tenant_name': tenant.name,
             'tenant_whatsapp_number': whatsapp_number,
+            'tenant_location_lat': attr.location_lat if attr else None,
+            'tenant_location_lng': attr.location_lng if attr else None,
+            'tenant_address': attr.address if attr else '',
+            'tenant_operation_hours': attr.operation_hours if attr else '',
+            'tenant_operation_days': attr.operation_days if attr else [],
         }
     return {}
