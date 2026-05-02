@@ -1,0 +1,2291 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<!-- ═══════════════════════════════════════════════════════════════
+     FRESHY LAUNDRY — World-Class Mobile-First Landing Page
+     Aesthetic: "Fresh & Airy" · Blue Primary · Green Accent · White
+     Typography: Syne (Display) + DM Sans (Body)
+     ═══════════════════════════════════════════════════════════════ -->
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+<!-- Swiper -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" />
+
+<style>
+/* ─── CSS Variables ────────────────────────────────────────────── */
+:root {
+  /* Core palette */
+  --blue-900: #0A1628;
+  --blue-800: #0D2040;
+  --blue-700: #1A3A6B;
+  --blue-600: #1E4FBF;
+  --blue-500: #2563EB;
+  --blue-400: #3B82F6;
+  --blue-100: #DBEAFE;
+  --blue-50:  #EFF6FF;
+
+  --green-600: #059669;
+  --green-500: #10B981;
+  --green-400: #34D399;
+  --green-100: #D1FAE5;
+  --green-50:  #ECFDF5;
+
+  --white: #FFFFFF;
+  --gray-50: #F8FAFC;
+  --gray-100: #F1F5F9;
+  --gray-200: #E2E8F0;
+  --gray-400: #94A3B8;
+  --gray-500: #64748B;
+  --gray-800: #1E293B;
+
+  /* Semantic */
+  --primary: var(--blue-500);
+  --primary-dark: var(--blue-700);
+  --accent: var(--green-500);
+  --accent-dark: var(--green-600);
+  --surface: var(--white);
+  --bg: var(--gray-50);
+  --text: var(--gray-800);
+  --text-muted: var(--gray-500);
+  --border: var(--gray-200);
+
+  /* Typography */
+  --font-display: 'Syne', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+
+  /* Motion */
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration: 0.45s;
+  --transition: var(--duration) var(--ease-spring);
+
+  /* Spacing */
+  --section-py: clamp(80px, 10vw, 120px);
+  --container-px: clamp(20px, 5vw, 48px);
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(10, 22, 40, 0.06);
+  --shadow-md: 0 8px 24px rgba(10, 22, 40, 0.10);
+  --shadow-lg: 0 20px 48px rgba(10, 22, 40, 0.12);
+  --shadow-xl: 0 32px 80px rgba(10, 22, 40, 0.16);
+  --shadow-blue: 0 12px 40px rgba(37, 99, 235, 0.22);
+  --shadow-green: 0 12px 40px rgba(16, 185, 129, 0.20);
+}
+
+/* ─── Reset & Base ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; font-size: 16px; }
+
+body {
+  font-family: var(--font-body);
+  color: var(--text);
+  background: var(--white);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+
+/* ─── Utility ──────────────────────────────────────────────────── */
+.container-fluid-xl {
+  width: 100%;
+  max-width: 1280px;
+  margin-inline: auto;
+  padding-inline: var(--container-px);
+}
+
+.section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--green-50);
+  border: 1px solid var(--green-100);
+  padding: 6px 14px;
+  border-radius: 100px;
+  margin-bottom: 20px;
+}
+.section-label::before {
+  content: '';
+  width: 6px; height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.7; }
+}
+
+h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.025em; line-height: 1.15; }
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--blue-600) 0%, var(--blue-400) 60%, var(--green-400) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Scroll animations ────────────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.7s var(--ease-out), transform 0.7s var(--ease-out);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.2s; }
+.reveal-delay-3 { transition-delay: 0.3s; }
+.reveal-delay-4 { transition-delay: 0.4s; }
+
+/* ─── Buttons ──────────────────────────────────────────────────── */
+.btn-primary-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  padding: 14px 28px;
+  background: var(--blue-500);
+  color: var(--white);
+  border: none;
+  border-radius: 100px;
+  cursor: pointer;
+  box-shadow: var(--shadow-blue);
+  transition: var(--transition);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn-primary-cta:hover {
+  background: var(--blue-600);
+  transform: translateY(-2px);
+  box-shadow: 0 16px 48px rgba(37, 99, 235, 0.32);
+  color: var(--white);
+}
+.btn-primary-cta:active { transform: translateY(0); }
+
+.btn-accent-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  padding: 14px 28px;
+  background: var(--accent);
+  color: var(--white);
+  border: none;
+  border-radius: 100px;
+  cursor: pointer;
+  box-shadow: var(--shadow-green);
+  transition: var(--transition);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn-accent-cta:hover {
+  background: var(--accent-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 16px 48px rgba(16, 185, 129, 0.32);
+  color: var(--white);
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  padding: 13px 27px;
+  background: transparent;
+  color: var(--blue-600);
+  border: 1.5px solid var(--blue-200, #BFDBFE);
+  border-radius: 100px;
+  cursor: pointer;
+  transition: var(--transition);
+  text-decoration: none;
+}
+.btn-ghost:hover {
+  background: var(--blue-50);
+  border-color: var(--blue-400);
+  color: var(--blue-700);
+  transform: translateY(-2px);
+}
+
+/* ─── NAVBAR ───────────────────────────────────────────────────── */
+.lw-nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  padding: 0;
+  transition: var(--transition);
+}
+.lw-nav.scrolled {
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+.lw-nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 72px;
+  gap: 24px;
+}
+.lw-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.lw-logo-icon {
+  width: 40px; height: 40px;
+  background: linear-gradient(135deg, var(--blue-500), var(--accent));
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: white;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+.lw-logo-text {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--blue-900);
+  letter-spacing: -0.02em;
+}
+.lw-logo-text span { color: var(--accent); }
+
+.lw-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  list-style: none;
+  margin: 0; padding: 0;
+}
+.lw-nav-links a {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: var(--gray-500);
+  text-decoration: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  transition: 0.25s ease;
+}
+.lw-nav-links a:hover { color: var(--blue-600); background: var(--blue-50); }
+
+.lw-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Track Order Button */
+.btn-track-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 10px 20px;
+  background: transparent;
+  color: var(--blue-600);
+  border: 1.5px solid var(--blue-200, #BFDBFE);
+  border-radius: 100px;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+.btn-track-nav:hover {
+  background: var(--blue-50);
+  border-color: var(--blue-400);
+  color: var(--blue-700);
+}
+.btn-track-nav.active {
+  background: var(--blue-500);
+  border-color: var(--blue-500);
+  color: white;
+}
+
+.btn-schedule-nav {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.875rem;
+  padding: 10px 22px;
+  background: var(--blue-500);
+  color: var(--white);
+  border: none;
+  border-radius: 100px;
+  cursor: pointer;
+  box-shadow: var(--shadow-blue);
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.btn-schedule-nav:hover {
+  background: var(--blue-600);
+  transform: translateY(-1px);
+}
+
+/* Mobile hamburger */
+.nav-hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  width: 40px; height: 40px;
+  background: none;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  padding: 0;
+}
+.nav-hamburger span {
+  display: block;
+  width: 18px; height: 2px;
+  background: var(--gray-800);
+  border-radius: 2px;
+  transition: 0.3s ease;
+}
+.nav-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.nav-hamburger.open span:nth-child(2) { opacity: 0; }
+.nav-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* Mobile menu */
+.mobile-menu {
+  display: none;
+  position: fixed;
+  top: 72px; left: 0; right: 0;
+  background: rgba(255,255,255,0.98);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid var(--border);
+  z-index: 999;
+  padding: 20px var(--container-px) 28px;
+  box-shadow: var(--shadow-lg);
+}
+.mobile-menu.open { display: block; animation: slideDown 0.3s var(--ease-out); }
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.mobile-menu ul {
+  list-style: none;
+  margin: 0 0 20px 0;
+  padding: 0;
+}
+.mobile-menu ul li a {
+  display: block;
+  padding: 12px 0;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+  border-bottom: 1px solid var(--gray-100);
+  transition: color 0.2s;
+}
+.mobile-menu ul li a:hover { color: var(--blue-600); }
+.mobile-menu-actions { display: flex; flex-direction: column; gap: 10px; }
+.mobile-menu-actions button,
+.mobile-menu-actions a { width: 100%; justify-content: center; }
+
+/* ─── TRACK ORDER DRAWER ───────────────────────────────────────── */
+.track-drawer {
+  position: fixed;
+  top: 72px; left: 0; right: 0;
+  z-index: 998;
+  background: white;
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.45s var(--ease-spring), padding 0.3s ease;
+}
+.track-drawer.open {
+  max-height: 300px;
+}
+.track-drawer-inner {
+  padding: 32px var(--container-px);
+  max-width: 1280px;
+  margin-inline: auto;
+}
+.track-drawer-inner h4 {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--blue-800);
+  margin-bottom: 6px;
+}
+.track-drawer-inner p {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+.track-form-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.track-input {
+  flex: 1;
+  min-width: 200px;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  padding: 12px 18px;
+  border: 1.5px solid var(--border);
+  border-radius: 100px;
+  outline: none;
+  transition: border-color 0.25s, box-shadow 0.25s;
+  background: var(--gray-50);
+}
+.track-input:focus {
+  border-color: var(--blue-400);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  background: white;
+}
+.track-submit-btn {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding: 12px 28px;
+  background: var(--blue-500);
+  color: white;
+  border: none;
+  border-radius: 100px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: var(--transition);
+  box-shadow: var(--shadow-blue);
+}
+.track-submit-btn:hover { background: var(--blue-600); transform: translateY(-1px); }
+#page-track-result { margin-top: 16px; }
+
+/* ─── HERO SECTION ─────────────────────────────────────────────── */
+.hero-section {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  padding-top: 72px;
+  overflow: hidden;
+  background: var(--white);
+}
+
+/* Airy background blobs */
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+.hero-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.5;
+}
+.hero-blob-1 {
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(219, 234, 254, 0.9) 0%, rgba(239, 246, 255, 0) 70%);
+  top: -10%; right: -5%;
+  animation: blob-drift 12s ease-in-out infinite alternate;
+}
+.hero-blob-2 {
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(209, 250, 229, 0.8) 0%, rgba(236, 253, 245, 0) 70%);
+  bottom: 10%; left: -5%;
+  animation: blob-drift 15s ease-in-out infinite alternate-reverse;
+}
+.hero-blob-3 {
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 70%);
+  top: 40%; left: 30%;
+  animation: blob-drift 18s ease-in-out infinite alternate;
+}
+
+@keyframes blob-drift {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(30px, 20px) scale(1.05); }
+}
+
+/* Grid texture overlay */
+.hero-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(226, 232, 240, 0.35) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(226, 232, 240, 0.35) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.4) 0%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.4) 0%, transparent 70%);
+}
+
+.hero-inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  padding-block: clamp(60px, 10vw, 100px);
+}
+.hero-grid-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(40px, 6vw, 80px);
+  align-items: center;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, var(--blue-50) 0%, var(--green-50) 100%);
+  border: 1px solid var(--blue-100);
+  color: var(--blue-600);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 100px;
+  margin-bottom: 24px;
+  opacity: 0;
+  animation: fadeSlideUp 0.6s var(--ease-out) 0.2s forwards;
+}
+.hero-badge i { color: var(--accent); font-size: 0.75rem; }
+
+.hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 5vw, 4.25rem);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  color: var(--blue-900);
+  margin-bottom: 24px;
+  opacity: 0;
+  animation: fadeSlideUp 0.7s var(--ease-out) 0.35s forwards;
+}
+
+.hero-sub {
+  font-size: clamp(1rem, 1.5vw, 1.15rem);
+  color: var(--text-muted);
+  line-height: 1.7;
+  max-width: 480px;
+  margin-bottom: 40px;
+  opacity: 0;
+  animation: fadeSlideUp 0.7s var(--ease-out) 0.5s forwards;
+}
+
+.hero-cta-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 48px;
+  opacity: 0;
+  animation: fadeSlideUp 0.7s var(--ease-out) 0.65s forwards;
+}
+
+.hero-social-proof {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  opacity: 0;
+  animation: fadeSlideUp 0.7s var(--ease-out) 0.8s forwards;
+}
+.avatar-stack {
+  display: flex;
+  align-items: center;
+}
+.avatar-stack img {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 2.5px solid white;
+  margin-left: -10px;
+  object-fit: cover;
+}
+.avatar-stack img:first-child { margin-left: 0; }
+.social-proof-text {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.social-proof-text strong { color: var(--text); }
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Hero image slider */
+.hero-visual {
+  position: relative;
+  opacity: 0;
+  animation: fadeIn 1s var(--ease-out) 0.4s forwards;
+}
+@keyframes fadeIn { to { opacity: 1; } }
+
+.hero-swiper-wrap {
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: var(--shadow-xl);
+  aspect-ratio: 4/5;
+  position: relative;
+}
+.hero-swiper-wrap .swiper { height: 100%; }
+.hero-swiper-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.swiper-pagination-bullet { background: white; opacity: 0.6; }
+.swiper-pagination-bullet-active { opacity: 1; width: 20px; border-radius: 4px; }
+
+/* Floating stat cards */
+.hero-float-card {
+  position: absolute;
+  background: rgba(255,255,255,0.96);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.9);
+  border-radius: 16px;
+  padding: 14px 18px;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  animation: float-card 6s ease-in-out infinite;
+}
+.hero-float-card-1 {
+  bottom: 28px; left: -40px;
+  animation-delay: 0s;
+}
+.hero-float-card-2 {
+  top: 40px; right: -30px;
+  animation-delay: -3s;
+}
+@keyframes float-card {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.float-card-icon {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+.float-card-icon.blue { background: var(--blue-50); color: var(--blue-500); }
+.float-card-icon.green { background: var(--green-50); color: var(--accent); }
+.float-card-label {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+}
+.float-card-value {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--blue-900);
+  line-height: 1.2;
+}
+
+/* ─── VALUE STRIP ──────────────────────────────────────────────── */
+.value-strip {
+  background: var(--blue-900);
+  padding: 28px 0;
+  overflow: hidden;
+}
+.value-strip-inner {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  animation: ticker 30s linear infinite;
+  width: max-content;
+}
+.value-strip-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 40px;
+  white-space: nowrap;
+  border-right: 1px solid rgba(255,255,255,0.15);
+}
+.value-strip-item:last-child { border-right: none; }
+.value-strip-item i { color: var(--green-400); font-size: 1rem; }
+.value-strip-text {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: white;
+}
+.value-strip-sub { font-size: 0.8rem; color: var(--gray-400); font-weight: 400; }
+
+@keyframes ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* ─── HOW IT WORKS ─────────────────────────────────────────────── */
+.how-section {
+  padding-block: var(--section-py);
+  background: var(--gray-50);
+  position: relative;
+  overflow: hidden;
+}
+.how-section::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -60px;
+  width: 320px; height: 320px;
+  background: radial-gradient(circle, var(--blue-100) 0%, transparent 70%);
+  border-radius: 50%;
+}
+
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  margin-top: 60px;
+  position: relative;
+}
+.steps-connector {
+  position: absolute;
+  top: 50px;
+  left: calc(12.5% + 36px);
+  right: calc(12.5% + 36px);
+  height: 2px;
+  background: linear-gradient(90deg, var(--blue-200) 0%, var(--green-200) 100%);
+  z-index: 0;
+}
+.steps-connector::after {
+  content: '';
+  position: absolute;
+  inset: -1px 0;
+  background: linear-gradient(90deg, var(--blue-400), var(--accent));
+  animation: progress-line 2s ease-out forwards;
+  transform-origin: left;
+}
+@keyframes progress-line {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+.step-card {
+  background: var(--white);
+  border-radius: 24px;
+  padding: 36px 28px;
+  border: 1px solid var(--border);
+  text-align: center;
+  position: relative;
+  z-index: 1;
+  transition: var(--transition);
+  cursor: default;
+}
+.step-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--blue-200);
+}
+.step-num {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, var(--blue-500), var(--accent));
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 800;
+  border: 3px solid var(--white);
+  box-shadow: var(--shadow-blue);
+}
+.step-icon-wrap {
+  width: 72px; height: 72px;
+  background: linear-gradient(135deg, var(--blue-50) 0%, var(--green-50) 100%);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  font-size: 1.75rem;
+  color: var(--blue-500);
+  transition: var(--transition);
+}
+.step-card:hover .step-icon-wrap {
+  background: linear-gradient(135deg, var(--blue-500), var(--accent));
+  color: white;
+  transform: scale(1.08) rotate(-3deg);
+}
+.step-title {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--blue-900);
+  margin-bottom: 10px;
+}
+.step-desc {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+/* ─── SERVICES / ABOUT ─────────────────────────────────────────── */
+.about-section {
+  padding-block: var(--section-py);
+  background: var(--white);
+}
+.about-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(40px, 6vw, 80px);
+  align-items: center;
+}
+.about-image-wrap {
+  position: relative;
+  border-radius: 28px;
+  overflow: hidden;
+  aspect-ratio: 4/5;
+  box-shadow: var(--shadow-xl);
+}
+.about-image-wrap img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.8s var(--ease-out);
+}
+.about-image-wrap:hover img { transform: scale(1.03); }
+.about-image-badge {
+  position: absolute;
+  bottom: 28px;
+  left: 28px;
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(8px);
+  border-radius: 16px;
+  padding: 16px 20px;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.about-badge-num {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--blue-500);
+  line-height: 1;
+}
+.about-badge-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  max-width: 80px;
+  line-height: 1.3;
+}
+
+.about-h2 {
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  color: var(--blue-900);
+  margin-bottom: 20px;
+}
+.about-lead {
+  font-size: 1.05rem;
+  color: var(--text-muted);
+  line-height: 1.75;
+  margin-bottom: 36px;
+}
+.feature-list { list-style: none; padding: 0; margin: 0 0 36px; display: flex; flex-direction: column; gap: 16px; }
+.feature-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  font-size: 0.95rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+.feature-check {
+  width: 24px; height: 24px;
+  background: var(--green-50);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--accent);
+  font-size: 0.7rem;
+  margin-top: 2px;
+}
+
+.hours-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--blue-50);
+  border: 1px solid var(--blue-100);
+  border-radius: 14px;
+  padding: 14px 18px;
+  font-size: 0.9rem;
+  color: var(--blue-800);
+}
+.hours-badge i { color: var(--blue-500); font-size: 1rem; }
+
+/* ─── PRICING ──────────────────────────────────────────────────── */
+.pricing-section {
+  padding-block: var(--section-py);
+  background: var(--blue-900);
+  position: relative;
+  overflow: hidden;
+}
+.pricing-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 20% 50%, rgba(37, 99, 235, 0.2) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.12) 0%, transparent 50%);
+}
+.pricing-section .section-label { background: rgba(52, 211, 153, 0.12); border-color: rgba(52, 211, 153, 0.3); }
+.pricing-section .section-title { color: white; }
+.pricing-section .section-sub { color: var(--gray-400); }
+
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 60px;
+  position: relative;
+  z-index: 1;
+}
+.pricing-card {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 28px;
+  padding: 40px 32px;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(4px);
+}
+.pricing-card:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.2);
+  transform: translateY(-8px);
+}
+.pricing-card.featured {
+  background: white;
+  border: none;
+  box-shadow: 0 0 0 2px var(--accent), var(--shadow-xl);
+  transform: scale(1.04);
+}
+.pricing-card.featured:hover { transform: scale(1.04) translateY(-8px); }
+
+.pricing-popular-ribbon {
+  position: absolute;
+  top: 22px; right: -12px;
+  background: var(--accent);
+  color: white;
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 5px 20px 5px 14px;
+  border-radius: 4px 0 0 4px;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 50%, 100% 100%, 0 100%);
+}
+
+.pricing-plan-name {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.pricing-card.featured .pricing-plan-name { color: var(--text-muted); }
+
+.pricing-desc { font-size: 0.88rem; color: rgba(255,255,255,0.5); margin-bottom: 28px; line-height: 1.5; }
+.pricing-card.featured .pricing-desc { color: var(--text-muted); }
+
+.pricing-amount {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-bottom: 32px;
+}
+.pricing-currency { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; color: white; }
+.pricing-card.featured .pricing-currency { color: var(--blue-800); }
+.pricing-number { font-family: var(--font-display); font-size: 3rem; font-weight: 800; line-height: 1; color: white; }
+.pricing-card.featured .pricing-number { color: var(--blue-900); }
+.pricing-per { font-size: 0.85rem; color: rgba(255,255,255,0.5); }
+.pricing-card.featured .pricing-per { color: var(--text-muted); }
+
+.pricing-features {
+  list-style: none;
+  padding: 0; margin: 0 0 32px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.pricing-features li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.75);
+}
+.pricing-card.featured .pricing-features li { color: var(--text); }
+.pricing-features li i { color: var(--green-400); font-size: 0.75rem; flex-shrink: 0; }
+.pricing-card.featured .pricing-features li i { color: var(--accent); }
+
+.btn-pricing {
+  width: 100%;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding: 13px 20px;
+  border-radius: 100px;
+  border: 1.5px solid rgba(255,255,255,0.25);
+  background: transparent;
+  color: white;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.btn-pricing:hover {
+  background: rgba(255,255,255,0.12);
+  border-color: white;
+}
+.btn-pricing-featured {
+  width: 100%;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding: 14px 20px;
+  border-radius: 100px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  box-shadow: var(--shadow-green);
+  transition: var(--transition);
+}
+.btn-pricing-featured:hover {
+  background: var(--accent-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 16px 40px rgba(16, 185, 129, 0.35);
+}
+
+/* ─── TESTIMONIALS ─────────────────────────────────────────────── */
+.testimonials-section {
+  padding-block: var(--section-py);
+  background: var(--gray-50);
+  overflow: hidden;
+}
+
+.testimonials-swiper { margin-top: 60px; padding-bottom: 48px; }
+.swiper-testimonial { padding: 0 12px; }
+.testi-card {
+  background: white;
+  border-radius: 24px;
+  padding: 36px 32px;
+  border: 1px solid var(--border);
+  transition: var(--transition);
+  height: 100%;
+}
+.testi-card:hover { box-shadow: var(--shadow-lg); border-color: var(--blue-200); transform: translateY(-4px); }
+.testi-stars { color: #F59E0B; margin-bottom: 18px; font-size: 0.9rem; letter-spacing: 2px; }
+.testi-quote {
+  font-size: 0.975rem;
+  line-height: 1.75;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-bottom: 24px;
+  position: relative;
+}
+.testi-quote::before {
+  content: '\201C';
+  position: absolute;
+  top: -24px; left: -6px;
+  font-size: 4rem;
+  color: var(--blue-100);
+  font-family: Georgia, serif;
+  line-height: 1;
+}
+.testi-author {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 20px;
+  border-top: 1px solid var(--gray-100);
+}
+.testi-author img {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2.5px solid var(--blue-100);
+}
+.testi-name { font-family: var(--font-display); font-size: 0.95rem; font-weight: 700; color: var(--blue-900); }
+.testi-role { font-size: 0.8rem; color: var(--text-muted); }
+.swiper-pagination-bullet { background: var(--blue-300); }
+.swiper-pagination-bullet-active { background: var(--blue-500); width: 20px; border-radius: 4px; }
+
+/* ─── FAQ ──────────────────────────────────────────────────────── */
+.faq-section {
+  padding-block: var(--section-py);
+  background: white;
+}
+.faq-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: clamp(40px, 6vw, 80px);
+  align-items: start;
+  margin-top: 60px;
+}
+.faq-sidebar h3 {
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  color: var(--blue-900);
+  margin-bottom: 16px;
+}
+.faq-sidebar p { color: var(--text-muted); margin-bottom: 28px; font-size: 0.95rem; line-height: 1.7; }
+
+.faq-list { display: flex; flex-direction: column; gap: 12px; }
+.faq-item {
+  background: var(--gray-50);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: var(--transition);
+}
+.faq-item:hover { border-color: var(--blue-200); }
+.faq-item.open { border-color: var(--blue-300); background: white; box-shadow: var(--shadow-sm); }
+.faq-question {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--blue-900);
+  transition: color 0.25s;
+}
+.faq-question:hover { color: var(--blue-600); }
+.faq-item.open .faq-question { color: var(--blue-600); }
+.faq-icon {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--border);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  transition: var(--transition);
+}
+.faq-item.open .faq-icon {
+  background: var(--blue-500);
+  color: white;
+  transform: rotate(45deg);
+}
+.faq-answer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s var(--ease-spring);
+}
+.faq-answer-inner {
+  padding: 0 24px 20px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.75;
+}
+.faq-item.open .faq-answer { max-height: 200px; }
+
+/* ─── CONTACT ──────────────────────────────────────────────────── */
+.contact-section {
+  padding-block: var(--section-py);
+  background: var(--gray-50);
+}
+.contact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(40px, 6vw, 80px);
+}
+#map-container {
+  border-radius: 24px;
+  overflow: hidden;
+  height: 100%;
+  min-height: 400px;
+  box-shadow: var(--shadow-md);
+}
+.contact-form-card {
+  background: white;
+  border-radius: 28px;
+  padding: clamp(28px, 4vw, 48px);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border);
+}
+.contact-form-card h3 {
+  font-size: 1.5rem;
+  color: var(--blue-900);
+  margin-bottom: 6px;
+}
+.contact-form-card p { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 28px; }
+
+.form-field {
+  margin-bottom: 16px;
+}
+.form-input, .form-textarea {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  padding: 13px 18px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  background: var(--gray-50);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
+}
+.form-input::placeholder, .form-textarea::placeholder { color: var(--gray-400); }
+.form-input:focus, .form-textarea:focus {
+  border-color: var(--blue-400);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  background: white;
+}
+.form-textarea { resize: vertical; min-height: 110px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.whatsapp-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 13px 20px;
+  background: #25D366;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: var(--transition);
+  text-decoration: none;
+  margin-top: 14px;
+}
+.whatsapp-btn:hover { background: #1EBE58; transform: translateY(-2px); color: white; }
+
+/* Contact info block */
+.contact-info-items { display: flex; flex-direction: column; gap: 16px; margin-bottom: 28px; }
+.contact-info-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 0.9rem;
+}
+.contact-info-icon {
+  width: 40px; height: 40px;
+  background: var(--blue-50);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--blue-500);
+  flex-shrink: 0;
+}
+.contact-info-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.contact-info-value { font-weight: 600; color: var(--text); }
+
+/* ─── CTA BANNER ───────────────────────────────────────────────── */
+.cta-banner {
+  padding-block: clamp(80px, 10vw, 120px);
+  background: linear-gradient(135deg, var(--blue-700) 0%, var(--blue-500) 50%, var(--accent) 100%);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.cta-banner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at top, rgba(255,255,255,0.08) 0%, transparent 60%);
+}
+.cta-banner::after {
+  content: '';
+  position: absolute;
+  bottom: -60px; left: 50%;
+  transform: translateX(-50%);
+  width: 600px; height: 120px;
+  background: radial-gradient(ellipse, rgba(52, 211, 153, 0.3) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.cta-banner h2 {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  color: white;
+  margin-bottom: 16px;
+  position: relative;
+  z-index: 1;
+}
+.cta-banner p { font-size: 1.1rem; color: rgba(255,255,255,0.8); margin-bottom: 40px; position: relative; z-index: 1; }
+.cta-banner-btns { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; position: relative; z-index: 1; }
+.btn-cta-white {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 14px 32px;
+  background: white;
+  color: var(--blue-700);
+  border: none;
+  border-radius: 100px;
+  cursor: pointer;
+  transition: var(--transition);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  display: inline-flex; align-items: center; gap: 10px;
+}
+.btn-cta-white:hover { transform: translateY(-3px); box-shadow: 0 16px 40px rgba(0,0,0,0.2); }
+.btn-cta-ghost-white {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 13px 31px;
+  background: transparent;
+  color: white;
+  border: 2px solid rgba(255,255,255,0.5);
+  border-radius: 100px;
+  cursor: pointer;
+  transition: var(--transition);
+  display: inline-flex; align-items: center; gap: 10px;
+  text-decoration: none;
+}
+.btn-cta-ghost-white:hover { border-color: white; background: rgba(255,255,255,0.1); color: white; }
+
+/* ─── FOOTER ───────────────────────────────────────────────────── */
+.lw-footer {
+  background: var(--blue-900);
+  color: white;
+  padding-top: clamp(60px, 8vw, 100px);
+}
+.footer-top {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1.5fr;
+  gap: 48px;
+  padding-bottom: 60px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.footer-brand p { font-size: 0.9rem; color: var(--gray-400); line-height: 1.7; margin-top: 16px; max-width: 280px; }
+.footer-h5 {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 20px;
+}
+.footer-links { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.footer-links a {
+  font-size: 0.9rem;
+  color: var(--gray-400);
+  text-decoration: none;
+  transition: color 0.25s, padding-left 0.25s;
+}
+.footer-links a:hover { color: white; padding-left: 6px; }
+
+.footer-contact-items { display: flex; flex-direction: column; gap: 12px; }
+.footer-contact-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.875rem;
+  color: var(--gray-400);
+}
+.footer-contact-item i { color: var(--green-400); width: 16px; }
+
+.social-links { display: flex; gap: 10px; margin-top: 20px; }
+.social-link {
+  width: 38px; height: 38px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--gray-400);
+  text-decoration: none;
+  transition: var(--transition);
+  font-size: 0.9rem;
+}
+.social-link:hover { background: var(--accent); color: white; transform: translateY(-3px); }
+
+.footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-block: 24px;
+  font-size: 0.8rem;
+  color: var(--gray-400);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.footer-bottom a { color: var(--gray-400); text-decoration: none; transition: color 0.2s; }
+.footer-bottom a:hover { color: white; }
+
+/* ─── Section headers ──────────────────────────────────────────── */
+.section-header { text-align: center; max-width: 600px; margin: 0 auto; }
+.section-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3.5vw, 2.75rem);
+  color: var(--blue-900);
+  margin-bottom: 16px;
+}
+.section-sub {
+  font-size: 1rem;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+
+/* ─── RESPONSIVE ───────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .steps-grid { grid-template-columns: repeat(2, 1fr); }
+  .steps-connector { display: none; }
+  .pricing-grid { grid-template-columns: 1fr; max-width: 420px; margin-inline: auto; }
+  .pricing-card.featured { transform: scale(1); }
+  .pricing-card.featured:hover { transform: translateY(-8px); }
+  .footer-top { grid-template-columns: 1fr 1fr; }
+  .faq-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+  .hero-grid-layout { grid-template-columns: 1fr; }
+  .hero-visual { display: none; }
+  .hero-section { min-height: auto; padding-block: 40px 80px; }
+  .hero-title { font-size: 2.25rem; }
+  .about-grid { grid-template-columns: 1fr; }
+  .about-image-wrap { aspect-ratio: 16/9; }
+  .contact-grid { grid-template-columns: 1fr; }
+  .footer-top { grid-template-columns: 1fr; gap: 32px; }
+  .footer-bottom { flex-direction: column; text-align: center; }
+  .form-row { grid-template-columns: 1fr; }
+  .lw-nav-links, .lw-nav-desktop-actions { display: none !important; }
+  .nav-hamburger { display: flex; }
+  .lw-nav-actions .btn-track-nav,
+  .lw-nav-actions .btn-schedule-nav { display: none; }
+  .steps-grid { grid-template-columns: 1fr 1fr; }
+  .hero-float-card-1 { display: none; }
+  .hero-float-card-2 { display: none; }
+}
+
+@media (max-width: 480px) {
+  .steps-grid { grid-template-columns: 1fr; }
+  .hero-cta-group { flex-direction: column; }
+  .hero-cta-group a, .hero-cta-group button { width: 100%; justify-content: center; }
+}
+
+/* ─── Utility overrides ────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--blue-400);
+  outline-offset: 2px;
+}
+img { max-width: 100%; height: auto; }
+</style>
+
+{% block nav_extra_links %}
+<li><a href="#how-it-works">How It Works</a></li>
+<li><a href="#pricing">Pricing</a></li>
+<li><a href="#faq">FAQ</a></li>
+<li><a href="#contact">Contact</a></li>
+{% endblock %}
+
+{% block nav_cta %}
+<div class="lw-nav-desktop-actions" style="display:flex;align-items:center;gap:10px">
+  <button class="btn-track-nav" id="track-order-toggle" aria-expanded="false" aria-controls="track-drawer" onclick="toggleTrackDrawer()">
+    <i class="fas fa-search-location"></i> Track Order
+  </button>
+  <button class="btn-schedule-nav open-booking-modal" data-bs-toggle="modal" data-bs-target="#bookingModal">
+    Schedule Pickup <i class="fas fa-arrow-right"></i>
+  </button>
+</div>
+<button class="nav-hamburger" id="hamburger-btn" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mobile-menu" onclick="toggleMobileMenu()">
+  <span></span><span></span><span></span>
+</button>
+{% endblock %}
+
+<!-- ═══ MOBILE NAV MENU ══════════════════════════════════════════ -->
+<nav id="mobile-menu" class="mobile-menu" aria-label="Mobile navigation">
+  <ul>
+    <li><a href="#how-it-works" onclick="toggleMobileMenu()">How It Works</a></li>
+    <li><a href="#about" onclick="toggleMobileMenu()">About Us</a></li>
+    <li><a href="#pricing" onclick="toggleMobileMenu()">Pricing</a></li>
+    <li><a href="#faq" onclick="toggleMobileMenu()">FAQ</a></li>
+    <li><a href="#contact" onclick="toggleMobileMenu()">Contact</a></li>
+  </ul>
+  <div class="mobile-menu-actions">
+    <button class="btn-track-nav" onclick="toggleMobileMenu(); toggleTrackDrawer();" style="justify-content:center">
+      <i class="fas fa-search-location"></i> Track Order
+    </button>
+    <button class="btn-schedule-nav open-booking-modal" data-bs-toggle="modal" data-bs-target="#bookingModal" onclick="toggleMobileMenu()" style="justify-content:center">
+      Schedule Pickup <i class="fas fa-arrow-right"></i>
+    </button>
+  </div>
+</nav>
+
+<!-- ═══ TRACK ORDER DRAWER (slides down from nav) ════════════════ -->
+<div id="track-drawer" class="track-drawer" role="region" aria-label="Track your order">
+  <div class="track-drawer-inner">
+    <h4><i class="fas fa-search-location" style="color:var(--blue-500);margin-right:8px"></i>Track Your Order</h4>
+    <p>Enter your 8-character tracking ID to check the real-time status of your laundry.</p>
+    <form id="page-track-order-form" class="track-form-row"
+          hx-get="{% url 'laundry:htmx_track_order' %}"
+          hx-target="#page-track-result"
+          hx-indicator="#page-track-spinner">
+      <input type="text"
+             class="track-input"
+             name="order_code"
+             placeholder="e.g. A1B2C3D4"
+             maxlength="8"
+             autocomplete="off"
+             required
+             aria-label="Order tracking code">
+      <button type="submit" class="track-submit-btn">
+        <i class="fas fa-search"></i>
+        <span>Track</span>
+        <span id="page-track-spinner" class="htmx-indicator" style="display:inline-block">
+          <i class="fas fa-spinner fa-spin"></i>
+        </span>
+      </button>
+    </form>
+    <div id="page-track-result"></div>
+  </div>
+</div>
+claude ai 
+<!-- ═══ HERO ══════════════════════════════════════════════════════ -->
+<main>
+<section class="hero-section" aria-labelledby="hero-heading">
+  <div class="hero-bg">
+    <div class="hero-blob hero-blob-1"></div>
+    <div class="hero-blob hero-blob-2"></div>
+    <div class="hero-blob hero-blob-3"></div>
+    <div class="hero-grid"></div>
+  </div>
+
+  <div class="hero-inner container-fluid-xl">
+    <div class="hero-grid-layout">
+      <!-- Copy -->
+      <div class="hero-copy">
+        <div class="hero-badge">
+          <i class="fas fa-leaf"></i> Eco-Friendly Premium Laundry
+        </div>
+        <h1 class="hero-title" id="hero-heading">
+          {% if landing_text %}{{ landing_text.hero_title }}{% else %}Laundry Made <span class="text-gradient">Fresh, Simple</span> &amp; Fast.{% endif %}
+        </h1>
+        <p class="hero-sub">
+          {% if landing_text %}{{ landing_text.hero_subtitle }}{% else %}Experience premium garment care with free doorstep pickup &amp; delivery. Eco-friendly cleaning that preserves your clothes and the planet.{% endif %}
+        </p>
+        <div class="hero-cta-group">
+          <button class="btn-primary-cta open-booking-modal" data-bs-toggle="modal" data-bs-target="#bookingModal" aria-label="Schedule laundry pickup">
+            Schedule Pickup <i class="fas fa-calendar-check"></i>
+          </button>
+          <a href="#how-it-works" class="btn-ghost">
+            How It Works <i class="fas fa-arrow-right"></i>
+          </a>
+        </div>
+        <div class="hero-social-proof">
+          <div class="avatar-stack" aria-hidden="true">
+            <img src="https://i.pravatar.cc/100?img=1" alt="Customer">
+            <img src="https://i.pravatar.cc/100?img=2" alt="Customer">
+            <img src="https://i.pravatar.cc/100?img=3" alt="Customer">
+          </div>
+          <p class="social-proof-text">Trusted by <strong>2,400+</strong> happy customers</p>
+        </div>
+      </div>
+
+      <!-- Visual -->
+      <div class="hero-visual" aria-hidden="true">
+        <div class="hero-swiper-wrap">
+          <div class="swiper heroSwiper">
+            <div class="swiper-wrapper">
+              {% if landing_carousel %}
+                {% for slide in landing_carousel %}
+                <div class="swiper-slide">
+                  <img src="{{ slide.image.url }}" alt="{{ slide.title }}" loading="eager">
+                </div>
+                {% endfor %}
+              {% else %}
+              <div class="swiper-slide">
+                <img src="https://images.unsplash.com/photo-1545173168-9f1947eebb7f?auto=format&fit=crop&q=80&w=800" alt="Fresh Laundry" loading="eager">
+              </div>
+              <div class="swiper-slide">
+                <img src="https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?auto=format&fit=crop&q=80&w=800" alt="Eco Friendly Wash" loading="lazy">
+              </div>
+              <div class="swiper-slide">
+                <img src="https://images.unsplash.com/photo-1582735689369-4fe89db7114c?auto=format&fit=crop&q=80&w=800" alt="Ironing Service" loading="lazy">
+              </div>
+              {% endif %}
+            </div>
+            <div class="swiper-pagination"></div>
+          </div>
+        </div>
+
+        <!-- Floating stat cards -->
+        <div class="hero-float-card hero-float-card-1">
+          <div class="float-card-icon green"><i class="fas fa-check-circle"></i></div>
+          <div>
+            <div class="float-card-label">Orders Completed</div>
+            <div class="float-card-value">12,000+</div>
+          </div>
+        </div>
+        <div class="hero-float-card hero-float-card-2">
+          <div class="float-card-icon blue"><i class="fas fa-star"></i></div>
+          <div>
+            <div class="float-card-label">Average Rating</div>
+            <div class="float-card-value">4.9 / 5.0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ VALUE TICKER ══════════════════════════════════════════════ -->
+<section class="value-strip" aria-label="Our value propositions">
+  <div class="value-strip-inner" aria-hidden="true">
+    <!-- Duplicated for seamless loop -->
+    {% for i in "12" %}
+    <div class="value-strip-item"><i class="fas fa-truck-fast"></i><span class="value-strip-text">Free Pickup &amp; Delivery <span class="value-strip-sub">· Doorstep Service</span></span></div>
+    <div class="value-strip-item"><i class="fas fa-stopwatch"></i><span class="value-strip-text">24h Turnaround <span class="value-strip-sub">· Express Available</span></span></div>
+    <div class="value-strip-item"><i class="fas fa-leaf"></i><span class="value-strip-text">Eco-Friendly Wash <span class="value-strip-sub">· Non-toxic Detergents</span></span></div>
+    <div class="value-strip-item"><i class="fas fa-shield-alt"></i><span class="value-strip-text">100% Satisfaction <span class="value-strip-sub">· Guaranteed</span></span></div>
+    <div class="value-strip-item"><i class="fas fa-star"></i><span class="value-strip-text">4.9★ Rated <span class="value-strip-sub">· 2,400+ Reviews</span></span></div>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- ═══ HOW IT WORKS ══════════════════════════════════════════════ -->
+<section id="how-it-works" class="how-section">
+  <div class="container-fluid-xl">
+    <div class="section-header reveal">
+      <div class="section-label">Simple Process</div>
+      <h2 class="section-title">How It Works</h2>
+      <p class="section-sub">Four effortless steps to fresh, perfectly folded clothes delivered to your door.</p>
+    </div>
+
+    <div class="steps-grid" role="list">
+      <div class="steps-connector" aria-hidden="true"></div>
+
+      <article class="step-card reveal reveal-delay-1" role="listitem">
+        <div class="step-num" aria-hidden="true">1</div>
+        <div class="step-icon-wrap" aria-hidden="true"><i class="fas fa-calendar-check"></i></div>
+        <h3 class="step-title">Schedule</h3>
+        <p class="step-desc">Book a pickup online in under 60 seconds — choose your date and time.</p>
+      </article>
+      <article class="step-card reveal reveal-delay-2" role="listitem">
+        <div class="step-num" aria-hidden="true">2</div>
+        <div class="step-icon-wrap" aria-hidden="true"><i class="fas fa-box-open"></i></div>
+        <h3 class="step-title">Pickup</h3>
+        <p class="step-desc">Our executive arrives at your doorstep to collect your garments.</p>
+      </article>
+      <article class="step-card reveal reveal-delay-3" role="listitem">
+        <div class="step-num" aria-hidden="true">3</div>
+        <div class="step-icon-wrap" aria-hidden="true"><i class="fas fa-soap"></i></div>
+        <h3 class="step-title">Clean</h3>
+        <p class="step-desc">Expert eco-friendly cleaning, stain removal &amp; careful garment care.</p>
+      </article>
+      <article class="step-card reveal reveal-delay-4" role="listitem">
+        <div class="step-num" aria-hidden="true">4</div>
+        <div class="step-icon-wrap" aria-hidden="true"><i class="fas fa-truck"></i></div>
+        <h3 class="step-title">Deliver</h3>
+        <p class="step-desc">Fresh, folded, and neatly packed clothes returned within 24 hours.</p>
+      </article>
+    </div>
+
+    <div class="text-center" style="margin-top:52px">
+      <button class="btn-primary-cta open-booking-modal reveal" data-bs-toggle="modal" data-bs-target="#bookingModal">
+        Book Your First Wash <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ ABOUT / COMMITMENT ════════════════════════════════════════ -->
+<section id="about" class="about-section">
+  <div class="container-fluid-xl">
+    <div class="about-grid">
+      <!-- Image -->
+      <div class="about-image-wrap reveal">
+        {% if landing_commitment and landing_commitment.image %}
+        <img src="{{ landing_commitment.image.url }}" alt="Our commitment to garment care" loading="lazy">
+        {% else %}
+        <img src="https://images.unsplash.com/photo-1582735689369-4fe89db7114c?auto=format&fit=crop&q=80&w=800" alt="Premium garment care" loading="lazy">
+        {% endif %}
+        <div class="about-image-badge" aria-label="12 years experience">
+          <div class="about-badge-num">12+</div>
+          <div class="about-badge-label">Years of Garment Excellence</div>
+        </div>
+      </div>
+      <!-- Copy -->
+      <div class="reveal reveal-delay-2">
+        <div class="section-label">Our Commitment</div>
+        <h2 class="about-h2">
+          {% if landing_commitment %}{{ landing_commitment.committed_to }}{% else %}Committed to <span class="text-gradient">Garment Care</span> &amp; Our Community.{% endif %}
+        </h2>
+        <p class="about-lead">
+          {% if landing_commitment %}{{ landing_commitment.we_believe }}{% else %}We believe that doing laundry shouldn't cost the earth. That's why we've pioneered a sustainable approach to garment care that's good for your clothes and the planet.{% endif %}
+        </p>
+        <ul class="feature-list" role="list">
+          <li>
+            <span class="feature-check" aria-hidden="true"><i class="fas fa-check"></i></span>
+            <span>{% if landing_commitment %}{{ landing_commitment.eco_friendly }}{% else %}<strong>Non-toxic Detergents:</strong> Safe for sensitive skin and the environment.{% endif %}</span>
+          </li>
+          <li>
+            <span class="feature-check" aria-hidden="true"><i class="fas fa-check"></i></span>
+            <span><strong>Advanced Stain Removal:</strong> German-grade machines ensure 99% removal rate.</span>
+          </li>
+          <li>
+            <span class="feature-check" aria-hidden="true"><i class="fas fa-check"></i></span>
+            <span><strong>Fabric Preservation:</strong> Zero shrinkage and colour-fading guaranteed.</span>
+          </li>
+          <li>
+            <span class="feature-check" aria-hidden="true"><i class="fas fa-check"></i></span>
+            <span><strong>Individual Processing:</strong> Your garments never mixed with others — ever.</span>
+          </li>
+        </ul>
+        {% if tenant_operation_hours %}
+        <div class="hours-badge" role="note">
+          <i class="fas fa-clock" aria-hidden="true"></i>
+          <div>
+            <strong>Operation Hours:</strong> {{ tenant_operation_hours }}
+            {% if tenant_operation_days %}<br><strong>Days:</strong> {{ tenant_operation_days|join:", " }}{% endif %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ PRICING ═══════════════════════════════════════════════════ -->
+<section id="pricing" class="pricing-section">
+  <div class="container-fluid-xl">
+    <div class="section-header reveal" style="position:relative;z-index:1">
+      <div class="section-label">Transparent Pricing</div>
+      <h2 class="section-title" style="color:white">Simple, Affordable Plans</h2>
+      <p class="section-sub" style="color:var(--gray-400)">Get <strong style="color:var(--green-400)">20% OFF</strong> your first order. No hidden charges.</p>
+    </div>
+
+    <div class="pricing-grid">
+      {% if landing_pricing %}
+        {% for card in landing_pricing %}
+        <article class="pricing-card {% if card.is_popular %}featured{% endif %} reveal reveal-delay-{{ forloop.counter }}">
+          {% if card.is_popular %}<div class="pricing-popular-ribbon">Most Popular</div>{% endif %}
+          <div class="pricing-plan-name">{{ card.title }}</div>
+          <p class="pricing-desc">{{ card.description }}</p>
+          <div class="pricing-amount">
+            <span class="pricing-currency">₦</span>
+            <span class="pricing-number">{{ card.price|floatformat:0 }}</span>
+          </div>
+          <ul class="pricing-features" role="list">
+            {% for feat in card.features %}
+            <li><i class="fas fa-check-circle" aria-hidden="true"></i> {{ feat }}</li>
+            {% endfor %}
+          </ul>
+          {% if card.is_popular %}
+          <button class="btn-pricing-featured open-booking-modal" data-bs-toggle="modal" data-bs-target="#bookingModal" aria-label="Choose {{ card.title }} plan">Get Started</button>
+          {% else %}
+          <button class="btn-pricing open-booking-modal" data-bs-toggle="modal" data-bs-target="#bookingModal" aria-label="Choose {{ card.title }} plan">Choose Plan</button>
+          {% endif %}
+        </article>
+        {% endfor %}
+      {% else %}
+      <article class="pricing-card reveal reveal-delay-1">
+        <div class="pricing-plan-name">Essential Wash</div>
+        <p class="pricing-desc">Everyday washing for casual and regular garments.</p>
+        <div class="pricing-amount">
+          <span class="pricing-currency">₦</span>
+          <span class="pricing-number">1,200</span>
+          <span class="pricing-per">/item</span>
+        </div>
+        <ul class="pricing-features" role="list">
+          <li><i class="fas fa-check-circle"></i> Wash &amp; Fold</li>
+          <li><i class="fas fa-check-circle"></i> Eco-Friendly Detergents</li>
+          <li><i class="fas fa-check-circle"></i> 48-Hour Turnaround</li>
+          <li><i class="fas fa-check-circle"></i> Free Pickup &amp; Delivery</li>
+        </ul>
+        <button class="btn-pricing open-booking-modal" data-bs-toggle="modal" data-bs-target="#bookingModal">Choose Plan</button>
+      </article>
+      <article class="pricing-card featured reveal reveal-delay-2">
+        <div class="pricing-popular-ribbon">Most Popular</div>
+        <div class="pricing-plan-name">Premium Care</div>
+        <p class="pricing-desc">For your quality items that deserve extra attention.</p>
+        <div class="pricing-amount">
+          <span class="pricing-currency">₦</span>
+          <span class="pricing-number">2,000</span>
+          <span class="pricing-per">/item</span>
+        </div>
+        <ul class="pricing-features" role="list">
+          <li><i class="fas fa-check-circle"></i> Wash, Dry &amp; Press</li>
+          <li><i class="fas fa-check-circle"></i> Stain Pre-Treatment</li>
+          <li><i class="fas fa-check-circle"></i> 24-Hour Express</li>
+          <li><i class="fas fa-check-circle"></i> Free Pickup &amp; Delivery</li>
+          <li><i class="fas fa-check-circle"></i> Fabric Softener</li>
+        </ul>
+        <button class="btn-pricing-featured open-booking-modal" data-bs-toggle="modal" data-bs-target="#bookingModal">Get Started</button>
+      </article>
+      <article class="pricing-card reveal reveal-delay-3">
+        <div class="pricing-plan-name">Dry Clean</div>
+        <p class="pricing-desc">For delicate, designer &amp; special-occasion garments.</p>
+        <div class="pricing-amount">
+          <span class="pricing-currency">₦</span>
+          <span class="pricing-number">2,500</span>
+          <span class="pricing-per">/item</span>
+        </div>
+        <ul class="pricing-features" role="list">
+          <li><i class="fas fa-check-circle"></i> Chemical-free Solvents</li>
+          <li><i class="fas fa-check-circle"></i> Hand Finishing</li>
+          <li><i class="fas fa-check-circle"></i> Minor Alterations</li>
+          <li><i class="fas fa-check-circle"></i> Garment Bag Packaging</li>
+        </ul>
+        <button class="btn-pricing open-booking-modal" data-bs-toggle="modal" data-bs-target="#bookingModal">Choose Plan</button>
+      </article>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<!-- ═══ TESTIMONIALS ══════════════════════════════════════════════ -->
+<section class="testimonials-section">
+  <div class="container-fluid-xl">
+    <div class="section-header reveal">
+      <div class="section-label">Customer Stories</div>
+      <h2 class="section-title">What Our Customers Say</h2>
+      <p class="section-sub">Don't just take our word for it — hear from people who trust us with their garments every week.</p>
+    </div>
+
+    <div class="swiper testimonialSwiper testimonials-swiper reveal">
+      <div class="swiper-wrapper">
+        <div class="swiper-slide swiper-testimonial">
+          <div class="testi-card">
+            <div class="testi-stars" aria-label="5 stars">★★★★★</div>
+            <p class="testi-quote">I absolutely loved how fresh and neatly folded my clothes arrived. No harsh smell, no wrinkles, and the fabric felt softer. Genuinely stress-free.</p>
+            <div class="testi-author">
+              <img src="https://i.pravatar.cc/100?img=4" alt="Himanshu Yadav" loading="lazy">
+              <div>
+                <div class="testi-name">Himanshu Yadav</div>
+                <div class="testi-role">Verified Customer</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="swiper-slide swiper-testimonial">
+          <div class="testi-card">
+            <div class="testi-stars" aria-label="5 stars">★★★★★</div>
+            <p class="testi-quote">I trusted them with my delicate gowns and formal outfits, and they returned looking brand-new. The shine, shape, and texture were perfectly maintained.</p>
+            <div class="testi-author">
+              <img src="https://i.pravatar.cc/100?img=5" alt="Vikas Dubey" loading="lazy">
+              <div>
+                <div class="testi-name">Vikas Dubey</div>
+                <div class="testi-role">Verified Customer</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="swiper-slide swiper-testimonial">
+          <div class="testi-card">
+            <div class="testi-stars" aria-label="5 stars">★★★★★</div>
+            <p class="testi-quote">My curtains and sofa covers came back spotless, neatly packed, and smelling wonderfully fresh. Dust vanished without harming fabric colour. Highly recommend!</p>
+            <div class="testi-author">
+              <img src="https://i.pravatar.cc/100?img=6" alt="Naman Pandey" loading="lazy">
+              <div>
+                <div class="testi-name">Naman Pandey</div>
+                <div class="testi-role">Verified Customer</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="swiper-slide swiper-testimonial">
+          <div class="testi-card">
+            <div class="testi-stars" aria-label="5 stars">★★★★★</div>
+            <p class="testi-quote">Super fast service! I scheduled on Monday morning and had everything back by Tuesday evening. The ironing was immaculate. Will definitely keep using!</p>
+            <div class="testi-author">
+              <img src="https://i.pravatar.cc/100?img=7" alt="Amara Okafor" loading="lazy">
+              <div>
+                <div class="testi-name">Amara Okafor</div>
+                <div class="testi-role">Verified Customer</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="swiper-pagination" style="bottom:0"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FAQ ═══════════════════════════════════════════════════════ -->
+<section id="faq" class="faq-section">
+  <div class="container-fluid-xl">
+    <div class="faq-grid">
+      <!-- Sidebar -->
+      <div class="faq-sidebar reveal">
+        <div class="section-label">FAQ</div>
+        <h3>Everything You Need to Know</h3>
+        <p>Can't find your answer below? Reach out to our support team and we'll be happy to help.</p>
+        <a href="#contact" class="btn-ghost">Contact Support <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <!-- Accordion -->
+      <div class="faq-list reveal reveal-delay-2" role="list">
+        <div class="faq-item open" role="listitem">
+          <button class="faq-question" aria-expanded="true" onclick="toggleFaq(this)">
+            What is your turnaround time?
+            <span class="faq-icon"><i class="fas fa-plus"></i></span>
+          </button>
+          <div class="faq-answer" role="region">
+            <div class="faq-answer-inner">Standard delivery takes 48–72 hours. We also offer Express Delivery for a 24-hour turnaround at a minimal extra charge.</div>
+          </div>
+        </div>
+        <div class="faq-item" role="listitem">
+          <button class="faq-question" aria-expanded="false" onclick="toggleFaq(this)">
+            What if I'm not home for pickup or delivery?
+            <span class="faq-icon"><i class="fas fa-plus"></i></span>
+          </button>
+          <div class="faq-answer" role="region">
+            <div class="faq-answer-inner">You can leave your laundry bag with your concierge, security desk, or a designated safe spot. Just let us know in "Special Instructions" when booking.</div>
+          </div>
+        </div>
+        <div class="faq-item" role="listitem">
+          <button class="faq-question" aria-expanded="false" onclick="toggleFaq(this)">
+            Do you mix my clothes with other customers'?
+            <span class="faq-icon"><i class="fas fa-plus"></i></span>
+          </button>
+          <div class="faq-answer" role="region">
+            <div class="faq-answer-inner">Absolutely not. We process every customer's order individually in dedicated machines to maintain strict hygiene and ensure garments are never mixed.</div>
+          </div>
+        </div>
+        <div class="faq-item" role="listitem">
+          <button class="faq-question" aria-expanded="false" onclick="toggleFaq(this)">
+            How do I track my order?
+            <span class="faq-icon"><i class="fas fa-plus"></i></span>
+          </button>
+          <div class="faq-answer" role="region">
+            <div class="faq-answer-inner">Click the "Track Order" button in the navigation bar and enter your 8-character tracking code. You'll see real-time status updates for your order.</div>
+          </div>
+        </div>
+        <div class="faq-item" role="listitem">
+          <button class="faq-question" aria-expanded="false" onclick="toggleFaq(this)">
+            Are your detergents safe for sensitive skin?
+            <span class="faq-icon"><i class="fas fa-plus"></i></span>
+          </button>
+          <div class="faq-answer" role="region">
+            <div class="faq-answer-inner">Yes! We exclusively use non-toxic, hypoallergenic detergents that are gentle on all skin types, including children's. Just mention any allergies in your order notes.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ CONTACT & MAP ══════════════════════════════════════════════ -->
+<section id="contact" class="contact-section">
+  <div class="container-fluid-xl">
+    <div class="section-header reveal" style="margin-bottom:60px">
+      <div class="section-label">Get In Touch</div>
+      <h2 class="section-title">Find Us &amp; Reach Out</h2>
+      <p class="section-sub">We're available across major areas. Visit our store or let us come to you.</p>
+    </div>
+
+    <div class="contact-grid">
+      <!-- Map -->
+      <div class="reveal">
+        <div id="map-container" aria-label="Map showing our location" role="application"></div>
+      </div>
+      <!-- Form -->
+      <div class="contact-form-card reveal reveal-delay-2">
+        <h3>Send Us a Message</h3>
+        <p>Fill in the form and we'll respond within a few hours.</p>
+        <form id="landing-contact-form" novalidate>
+          <div class="form-row">
+            <div class="form-field">
+              <label for="c-name" class="sr-only">Your Name</label>
+              <input type="text" id="c-name" class="form-input" placeholder="Your Name" required autocomplete="name">
+            </div>
+            <div class="form-field">
+              <label for="c-email" class="sr-only">Email Address</label>
+              <input type="email" id="c-email" class="form-input" placeholder="Email Address" required autocomplete="email">
+            </div>
+          </div>
+          <div class="form-field">
+            <label for="c-phone" class="sr-only">Phone Number</label>
+            <input type="tel" id="c-phone" class="form-input" placeholder="Phone Number (optional)" autocomplete="tel">
+          </div>
+          <div class="form-field">
+            <label for="c-msg" class="sr-only">Message</label>
+            <textarea id="c-msg" class="form-textarea" placeholder="How can we help you?" required></textarea>
+          </div>
+          <button type="submit" class="btn-accent-cta" style="width:100%;justify-content:center">
+            Send Message <i class="fas fa-paper-plane"></i>
+          </button>
+        </form>
+        <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border)">
+          <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em">Prefer WhatsApp?</p>
+          <a href="https://wa.me/1234567890" class="whatsapp-btn" target="_blank" rel="noopener" aria-label="Chat with support on WhatsApp">
+            <i class="fab fa-whatsapp fs-5"></i> Chat with Support
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ CTA BANNER ════════════════════════════════════════════════ -->
+<section class="cta-banner" aria-labelledby="cta-heading">
+  <div class="container-fluid-xl">
+    <h2 id="cta-heading">Ready for Clothes That Feel Brand New?</h2>
+    <p>Schedule your first pickup today and get 20% off. No commitment needed.</p>
+    <div class="cta-banner-btns">
+      <button class="btn-cta-white open-booking-modal" data-bs-toggle="modal" data-bs-target="#bookingModal" aria-label="Schedule your first pickup">
+        Schedule Pickup Now <i class="fas fa-calendar-check"></i>
+      </button>
+      <a href="#how-it-works" class="btn-cta-ghost-white">
+        Learn More <i class="fas fa-arrow-right"></i>
+      </a>
+    </div>
+  </div>
+</section>
+</main>
+
+<!-- ═══ FOOTER ════════════════════════════════════════════════════ -->
+<footer class="lw-footer" role="contentinfo">
+  <div class="container-fluid-xl">
+    <div class="footer-top">
+      <!-- Brand -->
+      <div class="footer-brand">
+        <div class="lw-logo">
+          <div class="lw-logo-icon"><i class="fas fa-soap"></i></div>
+          <span class="lw-logo-text">Freshy<span>.</span></span>
+        </div>
+        <p>Premium eco-friendly laundry service with free doorstep pickup &amp; delivery. Trusted by thousands across the city.</p>
+        <div class="social-links" aria-label="Social media links">
+          <a href="#" class="social-link" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+          <a href="#" class="social-link" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+          <a href="#" class="social-link" aria-label="Twitter"><i class="fab fa-x-twitter"></i></a>
+          <a href="#" class="social-link" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+        </div>
+      </div>
+      <!-- Services -->
+      <nav aria-label="Services">
+        <div class="footer-h5">Services</div>
+        <ul class="footer-links">
+          <li><a href="#pricing">Wash &amp; Fold</a></li>
+          <li><a href="#pricing">Dry Cleaning</a></li>
+          <li><a href="#pricing">Premium Care</a></li>
+          <li><a href="#pricing">Express Service</a></li>
+          <li><a href="#pricing">Household Fabrics</a></li>
+        </ul>
+      </nav>
+      <!-- Company -->
+      <nav aria-label="Company">
+        <div class="footer-h5">Company</div>
+        <ul class="footer-links">
+          <li><a href="#about">About Us</a></li>
+          <li><a href="#how-it-works">How It Works</a></li>
+          <li><a href="#faq">FAQ</a></li>
+          <li><a href="#contact">Contact</a></li>
+          <li><a href="#">Privacy Policy</a></li>
+        </ul>
+      </nav>
+      <!-- Contact -->
+      <div>
+        <div class="footer-h5">Contact Us</div>
+        <div class="footer-contact-items">
+          <div class="footer-contact-item"><i class="fas fa-map-marker-alt"></i> 14 Clean Street, Lekki, Lagos</div>
+          <div class="footer-contact-item"><i class="fas fa-phone"></i> +234 800 000 0000</div>
+          <div class="footer-contact-item"><i class="fas fa-envelope"></i> hello@freshy.ng</div>
+          <div class="footer-contact-item"><i class="fas fa-clock"></i> Mon–Sat: 8am – 6pm</div>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2025 Freshy Laundry. All rights reserved.</span>
+      <div style="display:flex;gap:20px">
+        <a href="#">Terms of Service</a>
+        <a href="#">Privacy Policy</a>
+        <a href="#">Cookie Policy</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ═══ SCRIPTS ════════════════════════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
+<script>
+/* ── Swiper instances ──────────────────────────────────────── */
+const heroSwiper = new Swiper('.heroSwiper', {
+  loop: true,
+  effect: 'fade',
+  fadeEffect: { crossFade: true },
+  autoplay: { delay: 4500, disableOnInteraction: false },
+  pagination: { el: '.heroSwiper .swiper-pagination', clickable: true },
+  speed: 800,
+});
+
+const testimonialSwiper = new Swiper('.testimonialSwiper', {
+  slidesPerView: 1,
+  spaceBetween: 0,
+  loop: true,
+  autoplay: { delay: 5000, disableOnInteraction: false },
+  pagination: { el: '.testimonialSwiper .swiper-pagination', clickable: true },
+  breakpoints: {
+    640: { slidesPerView: 1.5, spaceBetween: 0 },
+    900: { slidesPerView: 2.5, spaceBetween: 0 },
+    1200: { slidesPerView: 3, spaceBetween: 0 },
+  },
+  speed: 700,
+});
+
+/* ── Navbar scroll effect ──────────────────────────────────── */
+const nav = document.querySelector('.lw-nav');
+if (nav) {
+  const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 20);
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+}
+
+/* ── Scroll reveal ─────────────────────────────────────────── */
+const revealObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); revealObs.unobserve(e.target); } });
+}, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+
+/* ── Track Order Drawer ────────────────────────────────────── */
+function toggleTrackDrawer() {
+  const drawer = document.getElementById('track-drawer');
+  const btn = document.getElementById('track-order-toggle');
+  const isOpen = drawer.classList.toggle('open');
+  btn.classList.toggle('active', isOpen);
+  btn.setAttribute('aria-expanded', isOpen);
+  if (isOpen) {
+    setTimeout(() => {
+      const input = drawer.querySelector('.track-input');
+      if (input) input.focus();
+    }, 350);
+  }
+}
+
+// Close drawer when clicking outside
+document.addEventListener('click', (e) => {
+  const drawer = document.getElementById('track-drawer');
+  const btn = document.getElementById('track-order-toggle');
+  if (drawer && drawer.classList.contains('open')) {
+    if (!drawer.contains(e.target) && !btn.contains(e.target)) {
+      drawer.classList.remove('open');
+      btn.classList.remove('active');
+      btn.setAttribute('aria-expanded', 'false');
+    }
+  }
+});
+
+// Close on Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const drawer = document.getElementById('track-drawer');
+    const btn = document.getElementById('track-order-toggle');
+    if (drawer && drawer.classList.contains('open')) {
+      drawer.classList.remove('open');
+      btn.classList.remove('active');
+      btn.setAttribute('aria-expanded', 'false');
+      btn.focus();
+    }
+  }
+});
+
+/* ── Mobile menu ───────────────────────────────────────────── */
+function toggleMobileMenu() {
+  const menu = document.getElementById('mobile-menu');
+  const hamburger = document.getElementById('hamburger-btn');
+  if (!menu || !hamburger) return;
+  const isOpen = menu.classList.toggle('open');
+  hamburger.classList.toggle('open', isOpen);
+  hamburger.setAttribute('aria-expanded', isOpen);
+}
+
+/* ── FAQ accordion ─────────────────────────────────────────── */
+function toggleFaq(btn) {
+  const item = btn.closest('.faq-item');
+  const wasOpen = item.classList.contains('open');
+  // Close all
+  document.querySelectorAll('.faq-item.open').forEach(i => {
+    i.classList.remove('open');
+    i.querySelector('.faq-question').setAttribute('aria-expanded', 'false');
+  });
+  if (!wasOpen) {
+    item.classList.add('open');
+    btn.setAttribute('aria-expanded', 'true');
+  }
+}
+
+/* ── Contact form feedback ─────────────────────────────────── */
+const contactForm = document.getElementById('landing-contact-form');
+if (contactForm) {
+  contactForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const btn = this.querySelector('[type=submit]');
+    const origHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check"></i> Message Sent!';
+    btn.style.background = 'var(--accent)';
+    setTimeout(() => { btn.innerHTML = origHTML; btn.style.background = ''; }, 3000);
+  });
+}
+
+/* ── Smooth anchor scroll ──────────────────────────────────── */
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const id = a.getAttribute('href').slice(1);
+    if (!id) return;
+    const target = document.getElementById(id);
+    if (target) {
+      e.preventDefault();
+      // Close mobile menu if open
+      const menu = document.getElementById('mobile-menu');
+      if (menu) menu.classList.remove('open');
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+});
+
+/* ── Stagger step cards on enter ───────────────────────────── */
+document.querySelectorAll('.step-card').forEach((card, i) => {
+  card.style.transitionDelay = `${i * 0.1}s`;
+});
+</script>
+
+{% endblock %}

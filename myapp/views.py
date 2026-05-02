@@ -197,6 +197,7 @@ def password_reset_request(request):
         form = PasswordResetForm()
     return render(request, "registration/password_reset.html", {"form": form})
 
+# dddd
 # @csrf_exempt
 def change_password(request):
     if request.method == "POST":
@@ -247,7 +248,7 @@ def haversine(lon1, lat1, lon2, lat2):
 
 
 # @csrf_exempt
-@cache_page(3600)  # Cache GET responses for 1 hour
+# @cache_page(2)  # Cache GET responses for 1 hour
 def customer_order(request):
     logger.info(f"User {request.user} is placing an order.")
     tenant = getattr(request, 'tenant', None)
@@ -434,8 +435,9 @@ def customer_order(request):
     
     # --- Landing Page Data Fetching & Caching ---
     tenant_id = tenant.id if tenant else 0
-    cache_key = f"landing_page_data_{tenant_id}"
-    landing_data = cache.get(cache_key)
+    # cache_key = f"landing_page_data_{tenant_id}"
+    # landing_data = cache.get(cache_key)
+    landing_data=None
 
     if not landing_data:
         landing_data = {
@@ -448,8 +450,10 @@ def customer_order(request):
             'landing_faqs': list(LandingFAQ.objects.filter(tenant=tenant)),
             'footer_services': list(ServiceChoices.objects.filter(tenant=tenant)),
         }
-        cache.set(cache_key, landing_data, 3600)  # Cache for 1 hour
-        
+        # cache.set(cache_key, landing_data, 2)  # Cache for 2 seconds
+
+        # cache.delete(cache_key)
+
     context = {
         'form': form,
         'google_maps_api_key': GOOGLE_MAPS_API_KEY or "",
@@ -457,10 +461,10 @@ def customer_order(request):
         **landing_data
     }
 
-    logger.info(f"User {request.user} rendering customer_landing.html")
-    return render(request, 'customer_landing.html', context)
-
-
+    logger.info(f"User {request.user} rendering customer_landing_refactored.html")
+    return render(request, 'customer_order.html', context)
+    # logger.info(f"User {request.user} rendering ai/customer_landing_gemini_studio.html")
+    # return render(request, 'ai/customer_landing_claude.html', context)
 
 @require_http_methods(["GET"])
 def admin_review_request(request, order_id):

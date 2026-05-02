@@ -1,0 +1,430 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- Custom CSS -->
+<link rel="stylesheet" href="{% static 'css/laundry-refactor.css' %}">
+
+<!-- AOS Animation Library -->
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+{% endblock %}
+
+{% block content %}
+<!-- Navigation -->
+<nav class="navbar navbar-expand-lg navbar-light bg-white fixed-top py-3" id="mainNav">
+  <div class="container">
+    <a class="navbar-brand fw-bold fs-3" href="#">
+      <span class="text-primary">Fresh</span><span class="text-success">Clean</span>
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarResponsive">
+      <ul class="navbar-nav ms-auto my-2 my-lg-0">
+        <li class="nav-item"><a class="nav-link" href="#services">Services</a></li>
+        <li class="nav-item"><a class="nav-link" href="#pricing">Pricing</a></li>
+        <li class="nav-item"><a class="nav-link" href="#testimonials">Testimonials</a></li>
+        <li class="nav-item"><a class="nav-link" href="#contact">Contact</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero Section -->
+<section class="hero" id="hero">
+  <div class="container">
+    <div class="row align-items-center">
+      <div class="col-lg-6" data-aos="fade-right">
+        <h1 class="hero-title mb-4">Professional Laundry Service Delivered to Your Doorstep</h1>
+        <p class="hero-subtitle">Experience the convenience of fresh, clean clothes without leaving your home. Our eco-friendly service saves you time and keeps your wardrobe looking pristine.</p>
+        <div class="hero-buttons mt-4">
+          <a href="#contact" class="btn btn-primary btn-lg me-3 mb-3">Schedule Pickup</a>
+          <button id="trackOrderBtn" class="btn btn-secondary btn-lg mb-3">Track Order</button>
+        </div>
+      </div>
+      <div class="col-lg-6 d-none d-lg-block" data-aos="fade-left">
+        <img src="{% static 'images/hero-image.jpg' %}" alt="Laundry Service" class="img-fluid rounded-3 shadow-lg">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Track Order Section (Hidden by default) -->
+<section id="trackOrderSection" class="track-order-section container py-5 d-none">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm rounded-3">
+        <div class="card-body p-4 p-md-5">
+          <h3 class="text-center mb-4">Track Your Order</h3>
+          <form id="trackOrderForm">
+            <div class="mb-3">
+              <label for="trackingCode" class="form-label">Enter Tracking Code</label>
+              <input type="text" class="form-control form-control-lg" id="trackingCode" placeholder="e.g. FC123456789" required>
+            </div>
+            <div class="text-center">
+              <button type="submit" class="btn btn-primary btn-lg">Track Order</button>
+            </div>
+          </form>
+          <div id="trackingResult" class="mt-4 d-none">
+            <h4 class="text-center">Order Status</h4>
+            <div class="card border-0 shadow-sm">
+              <div class="card-body">
+                <h5 class="card-title">Order #<span id="orderNumber">FC123456789</span></h5>
+                <p class="card-text">Status: <span id="orderStatus" class="badge bg-success">Processing</span></p>
+                <p class="card-text">Estimated Delivery: <span id="deliveryDate">May 5, 2023</span></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Services Section -->
+<section class="section services" id="services">
+  <div class="container">
+    <div class="section-header" data-aos="fade-up">
+      <h2 class="section-title">Our Services</h2>
+      <h3 class="section-heading">Premium Laundry Solutions</h3>
+      <p>We offer a range of professional laundry services tailored to meet your needs.</p>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="100">
+        <div class="card feature-box h-100 border-0 shadow-sm">
+          <div class="card-body text-center p-4">
+            <div class="service-icon text-primary mb-3">
+              <i class="fas fa-tshirt fa-2x"></i>
+            </div>
+            <h4 class="card-title">Wash & Fold</h4>
+            <p class="card-text">Professional washing and folding of your everyday clothes with our gentle, eco-friendly detergents.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="200">
+        <div class="card feature-box h-100 border-0 shadow-sm">
+          <div class="card-body text-center p-4">
+            <div class="service-icon text-primary mb-3">
+              <i class="fas fa-soap fa-2x"></i>
+            </div>
+            <h4 class="card-title">Dry Cleaning</h4>
+            <p class="card-text">Specialized care for delicate fabrics, suits, and garments that require professional attention.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="300">
+        <div class="card feature-box h-100 border-0 shadow-sm">
+          <div class="card-body text-center p-4">
+            <div class="service-icon text-primary mb-3">
+              <i class="fas fa-star fa-2x"></i>
+            </div>
+            <h4 class="card-title">Premium Care</h4>
+            <p class="card-text">Extra attention for special items including hand-washing, starching, and pressing.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- How It Works Section -->
+<section class="section bg-light">
+  <div class="container">
+    <div class="section-header" data-aos="fade-up">
+      <h2 class="section-title">How It Works</h2>
+      <h3 class="section-heading">Simple & Convenient Process</h3>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-6 col-lg-3" data-aos="fade-up" data-aos-delay="100">
+        <div class="text-center">
+          <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px;">
+            <span class="fs-4">1</span>
+          </div>
+          <h4>Schedule Pickup</h4>
+          <p>Book online or call to schedule a convenient pickup time.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3" data-aos="fade-up" data-aos-delay="200">
+        <div class="text-center">
+          <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px;">
+            <span class="fs-4">2</span>
+          </div>
+          <h4>We Collect</h4>
+          <p>Our uniformed professionals arrive to collect your laundry.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3" data-aos="fade-up" data-aos-delay="300">
+        <div class="text-center">
+          <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px;">
+            <span class="fs-4">3</span>
+          </div>
+          <h4>Professional Cleaning</h4>
+          <p>Your items are expertly cleaned using premium products.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3" data-aos="fade-up" data-aos-delay="400">
+        <div class="text-center">
+          <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px;">
+            <span class="fs-4">4</span>
+          </div>
+          <h4>Delivery</h4>
+          <p>Fresh, clean clothes delivered back to your doorstep.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Pricing Section -->
+<section class="section pricing" id="pricing">
+  <div class="container">
+    <div class="section-header" data-aos="fade-up">
+      <h2 class="section-title">Transparent Pricing</h2>
+      <h3 class="section-heading">Affordable Rates</h3>
+      <p>No hidden fees. No surprises. Just clean clothes at fair prices.</p>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="100">
+        <div class="card price-card text-center h-100 border-0 shadow-sm">
+          <div class="card-body p-4">
+            <h4 class="card-title">Basic Wash</h4>
+            <div class="price mb-3">
+              <span class="fs-1 fw-bold text-primary">$1.50</span>
+              <span class="text-muted">/ lb</span>
+            </div>
+            <ul class="list-unstyled mb-4">
+              <li class="mb-2">Wash & Dry</li>
+              <li class="mb-2">Folded & Bagged</li>
+              <li class="mb-2">Free Pickup/Delivery</li>
+              <li class="mb-2 text-muted"><del>Premium Detergent</del></li>
+              <li class="mb-2 text-muted"><del>Stain Removal</del></li>
+            </ul>
+            <a href="#contact" class="btn btn-outline-primary">Order Now</a>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="200">
+        <div class="card price-card text-center h-100 border-primary border-2 border-0 shadow-sm">
+          <div class="card-body p-4">
+            <div class="position-absolute top-0 start-50 translate-middle badge bg-primary">
+              Most Popular
+            </div>
+            <h4 class="card-title">Premium Wash</h4>
+            <div class="price mb-3">
+              <span class="fs-1 fw-bold text-primary">$2.50</span>
+              <span class="text-muted">/ lb</span>
+            </div>
+            <ul class="list-unstyled mb-4">
+              <li class="mb-2">Wash & Dry</li>
+              <li class="mb-2">Folded & Bagged</li>
+              <li class="mb-2">Free Pickup/Delivery</li>
+              <li class="mb-2">Premium Detergent</li>
+              <li class="mb-2">Basic Stain Removal</li>
+            </ul>
+            <a href="#contact" class="btn btn-primary">Order Now</a>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="300">
+        <div class="card price-card text-center h-100 border-0 shadow-sm">
+          <div class="card-body p-4">
+            <h4 class="card-title">Deluxe Care</h4>
+            <div class="price mb-3">
+              <span class="fs-1 fw-bold text-primary">$4.00</span>
+              <span class="text-muted">/ lb</span>
+            </div>
+            <ul class="list-unstyled mb-4">
+              <li class="mb-2">Wash & Dry</li>
+              <li class="mb-2">Individually Hand-Folded</li>
+              <li class="mb-2">Free Pickup/Delivery</li>
+              <li class="mb-2">Premium Detergent</li>
+              <li class="mb-2">Advanced Stain Removal</li>
+            </ul>
+            <a href="#contact" class="btn btn-outline-primary">Order Now</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Testimonials Section -->
+<section class="section testimonials bg-light" id="testimonials">
+  <div class="container">
+    <div class="section-header" data-aos="fade-up">
+      <h2 class="section-title">Customer Reviews</h2>
+      <h3 class="section-heading">What People Say</h3>
+      <p>Hear from our satisfied customers about their experience.</p>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="100">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body p-4">
+            <div class="testimonial-content mb-3">
+              FreshClean has been a game-changer for my busy family. Their service is reliable, and my clothes always come back looking perfect!
+            </div>
+            <div class="testimonial-author d-flex align-items-center">
+              <img src="{% static 'images/customer1.jpg' %}" alt="Customer" class="testimonial-avatar rounded-circle me-3">
+              <div class="testimonial-info">
+                <h5 class="mb-0">Sarah Johnson</h5>
+                <p class="text-muted mb-0">Regular Customer</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="200">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body p-4">
+            <div class="testimonial-content mb-3">
+              As someone with a demanding job, I don't have time for laundry. FreshClean handles everything perfectly. Highly recommended!
+            </div>
+            <div class="testimonial-author d-flex align-items-center">
+              <img src="{% static 'images/customer2.jpg' %}" alt="Customer" class="testimonial-avatar rounded-circle me-3">
+              <div class="testimonial-info">
+                <h5 class="mb-0">Michael Chen</h5>
+                <p class="text-muted mb-0">Business Professional</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="300">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body p-4">
+            <div class="testimonial-content mb-3">
+              The attention to detail is impressive. My delicates are handled with care, and the pickup/delivery service is incredibly convenient.
+            </div>
+            <div class="testimonial-author d-flex align-items-center">
+              <img src="{% static 'images/customer3.jpg' %}" alt="Customer" class="testimonial-avatar rounded-circle me-3">
+              <div class="testimonial-info">
+                <h5 class="mb-0">Emily Rodriguez</h5>
+                <p class="text-muted mb-0">Fashion Designer</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Contact Section -->
+<section class="section contact" id="contact">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="section-header text-center" data-aos="fade-up">
+          <h2 class="section-title">Get In Touch</h2>
+          <h3 class="section-heading">Schedule Your Pickup</h3>
+          <p>Ready to experience the best laundry service? Fill out the form below to schedule your pickup.</p>
+        </div>
+        <div class="contact-form" data-aos="fade-up">
+          <form id="pickupForm">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <div class="form-group">
+                  <label for="name" class="form-label">Full Name</label>
+                  <input type="text" class="form-control form-control-lg" id="name" required>
+                </div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <div class="form-group">
+                  <label for="email" class="form-label">Email Address</label>
+                  <input type="email" class="form-control form-control-lg" id="email" required>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <div class="form-group">
+                  <label for="phone" class="form-label">Phone Number</label>
+                  <input type="tel" class="form-control form-control-lg" id="phone" required>
+                </div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <div class="form-group">
+                  <label for="pickupDate" class="form-label">Preferred Pickup Date</label>
+                  <input type="date" class="form-control form-control-lg" id="pickupDate" required>
+                </div>
+              </div>
+            </div>
+            <div class="form-group mb-3">
+              <label for="address" class="form-label">Pickup Address</label>
+              <textarea class="form-control form-control-lg" id="address" rows="3" required></textarea>
+            </div>
+            <div class="form-group mb-4">
+              <label for="notes" class="form-label">Special Instructions</label>
+              <textarea class="form-control form-control-lg" id="notes" rows="3"></textarea>
+            </div>
+            <div class="text-center">
+              <button type="submit" class="btn btn-primary btn-lg">Schedule Pickup</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer bg-white">
+  <div class="container py-5">
+    <div class="row">
+      <div class="col-md-4 mb-4 mb-md-0">
+        <h3 class="footer-brand">FreshClean</h3>
+        <p>Professional laundry service that brings convenience to your doorstep with eco-friendly practices.</p>
+        <div class="social-links">
+          <a href="#" class="social-link me-3"><i class="fab fa-facebook-f"></i></a>
+          <a href="#" class="social-link me-3"><i class="fab fa-twitter"></i></a>
+          <a href="#" class="social-link me-3"><i class="fab fa-instagram"></i></a>
+          <a href="#" class="social-link"><i class="fab fa-linkedin-in"></i></a>
+        </div>
+      </div>
+      <div class="col-md-2 mb-4 mb-md-0">
+        <h5>Services</h5>
+        <ul class="footer-links list-unstyled">
+          <li><a href="#">Wash & Fold</a></li>
+          <li><a href="#">Dry Cleaning</a></li>
+          <li><a href="#">Premium Care</a></li>
+          <li><a href="#">Alterations</a></li>
+        </ul>
+      </div>
+      <div class="col-md-2 mb-4 mb-md-0">
+        <h5>Company</h5>
+        <ul class="footer-links list-unstyled">
+          <li><a href="#">About Us</a></li>
+          <li><a href="#">Careers</a></li>
+          <li><a href="#">Blog</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+      </div>
+      <div class="col-md-4">
+        <h5>Contact Info</h5>
+        <ul class="footer-links list-unstyled">
+          <li class="mb-2"><i class="fas fa-map-marker-alt me-2"></i> 123 Clean Street, City, State 12345</li>
+          <li class="mb-2"><i class="fas fa-phone me-2"></i> (123) 456-7890</li>
+          <li><i class="fas fa-envelope me-2"></i> info@freshclean.com</li>
+        </ul>
+      </div>
+    </div>
+    <div class="copyright text-center pt-4 mt-4 border-top">
+      <p>&copy; 2023 FreshClean Laundry Service. All rights reserved.</p>
+    </div>
+  </div>
+</footer>
+{% endblock %}
+
+{% block extra_js %}
+<!-- JavaScript Libraries -->
+<script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script src="{% static 'js/laundry-refactor.js' %}"></script>
+
+<!-- Font Awesome for icons -->
+<script src="https://kit.fontawesome.com/your-code-here.js" crossorigin="anonymous"></script>
+{% endblock %}
