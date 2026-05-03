@@ -139,13 +139,20 @@
         padding-right: 30px;
     }
     .hero-title {
-        font-size: clamp(3rem, 5vw, 4.5rem);
-        line-height: 1.1;
+        font-size: clamp(3.2rem, 6vw, 5rem);
+        font-weight: 900;
+        line-height: 1.05;
         margin-bottom: 24px;
         background: linear-gradient(135deg, var(--lw-primary) 0%, #2563EB 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         color: var(--lw-primary); /* Fallback */
+    }
+    .hero-title .text-gradient {
+        background: linear-gradient(135deg, var(--lw-accent) 0%, var(--lw-accent-hover) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        display: block;
     }
     .hero-subtitle {
         font-size: 1.25rem;
@@ -546,6 +553,37 @@
     @media (min-width: 992px) {
         .mobile-bottom-nav { display: none !important; }
     }
+    @media (max-width: 575.98px) {
+        /* Hero title — full width, no clipping */
+        .hero-title {
+            font-size: clamp(2.6rem, 9vw, 3.5rem);
+            padding-left: 0;
+            padding-right: 0;
+            width: 100%;
+        }
+        /* Carousel — remove border-radius and bleed edge-to-edge */
+        .hero-swiper-container {
+            border-radius: 0;
+            margin-left: -12px;
+            margin-right: -12px;
+            width: calc(100% + 24px);
+        }
+        /* Step cards — remove side padding so cards stretch to edges */
+        #how-it-works .step-card {
+            border-radius: 0;
+            border-left: none;
+            border-right: none;
+        }
+        /* Commitment image — full bleed */
+        #about .col-lg-6[data-aos="fade-right"] img {
+            border-radius: 0;
+            width: 100%;
+            margin-left: -12px;
+            margin-right: -12px;
+            width: calc(100% + 24px);
+            max-width: none;
+        }
+    }
 </style>
 
 {% block nav_extra_links %}
@@ -569,7 +607,7 @@
                 <div class="hero-badge reveal">
                     <i class="fas fa-sparkles"></i> 20% OFF YOUR FIRST ORDER
                 </div>
-                <h1 class="hero-title">{% if landing_text %}{{ landing_text.hero_title }}{% else %}Laundry Made Simple, <br class="d-block d-md-none"><span class="text-gradient">Fresh & Fast.</span>{% endif %}</h1>
+                <h1 class="hero-title">{% if landing_text %}{{ landing_text.hero_title }}{% else %}Laundry Made Simple,<span class="text-gradient">Fresh &amp; Fast.</span>{% endif %}</h1>
                 <p class="hero-subtitle">{% if landing_text %}{{ landing_text.hero_subtitle }}{% else %}Experience premium garment care with free doorstep pickup & delivery. Eco-friendly cleaning that preserves your clothes and the planet.{% endif %}</p>
                 <div class="d-flex flex-column flex-sm-row gap-3">
                     <button class="btn-primary open-booking-modal" data-bs-toggle="modal" data-bs-target="#bookingModal" onclick="switchToTab('book-tab')">
