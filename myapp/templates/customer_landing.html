@@ -521,6 +521,24 @@
         .footer-top { grid-template-columns: 1fr 1fr; }
         .faq-grid { grid-template-columns: 1fr; }
     }
+    @media (max-width: 575.98px) {
+        .hero-section > .container,
+        #how-it-works > .container {
+            max-width: 100%;
+            padding-left: 0;
+            padding-right: 0;
+        }
+        .hero-section > .container > .row,
+        #how-it-works > .container > .row {
+            margin-left: 0;
+            margin-right: 0;
+        }
+        .hero-section > .container > .row > [class*="col-"],
+        #how-it-works > .container > .row > [class*="col-"] {
+            padding-left: 12px;
+            padding-right: 12px;
+        }
+    }
     @media (max-width: 768px) {
         .footer-top { grid-template-columns: 1fr; gap: 32px; }
         .footer-bottom { flex-direction: column; text-align: center; }
