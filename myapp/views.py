@@ -462,7 +462,7 @@ def customer_order(request):
     }
 
     logger.info(f"User {request.user} rendering customer_landing_refactored.html")
-    return render(request, 'customer_order.html', context)
+    return render(request, 'customer_landing.html', context)
     # logger.info(f"User {request.user} rendering ai/customer_landing_gemini_studio.html")
     # return render(request, 'ai/customer_landing_claude.html', context)
 
@@ -480,10 +480,12 @@ def admin_review_request(request, order_id):
     tenant = getattr(request, "tenant", None)
     
     
-        # Otherwise, restrict to states that have towns in clusters for this tenant
     clusters = Cluster.objects.filter(tenant=tenant)
-    towns_in_clusters = Town.objects.filter(clusters__in=clusters).distinct()
-    states = State.objects.filter(towns__in=towns_in_clusters).distinct().order_by("name")
+    if clusters.exists():
+        towns_in_clusters = Town.objects.filter(clusters__in=clusters).distinct()
+        states = State.objects.filter(towns__in=towns_in_clusters).distinct().order_by("name")
+    else:
+        states = State.objects.all().order_by("name")
         
     context = {
         'order': order,

@@ -151,14 +151,14 @@ class OrderForm(forms.ModelForm):
             }),
             'customer_phone': forms.TextInput(attrs={'class': 'form-control'}),
             'state': forms.Select(attrs={
-                'class': 'form-select select2', 
+                'class': 'form-select', 
                 'id': 'id_state', 
                 'hx-get': reverse_lazy('laundry:htmx_get_towns'), 
                 'hx-target': '#id_town', 
                 'hx-trigger': 'change'
             }),
             'town': forms.Select(attrs={
-                'class': 'form-select select2', 
+                'class': 'form-select', 
                 'id': 'id_town',
                 'hx-get': reverse_lazy('laundry:htmx_calculate_deliverys'),
                 'hx-target': '#delivery-price-display',
@@ -172,12 +172,12 @@ class OrderForm(forms.ModelForm):
             'recipient_email': forms.EmailInput(attrs={'class': 'form-control'}),
             'recipient_phone': forms.TextInput(attrs={'class': 'form-control'}),
             'recipient_state': forms.Select(attrs={
-                'class': 'form-select select2',
+                'class': 'form-select',
                 'hx-get': reverse_lazy('laundry:htmx_get_towns'),
                 'hx-target': '#id_recipient_town',
                 'hx-trigger': 'change'
             }),
-            'recipient_town': forms.Select(attrs={'class': 'form-select select2', 'id': 'id_recipient_town'}),
+            'recipient_town': forms.Select(attrs={'class': 'form-select', 'id': 'id_recipient_town'}),
             'recipient_address': forms.TextInput(attrs={'class': 'form-control', 'id': 'id_recipient_address', 'placeholder': 'Enter recipient address'}),
             'pickup_latitude': forms.HiddenInput(),
             'pickup_longitude': forms.HiddenInput(),
@@ -235,14 +235,24 @@ class OrderForm(forms.ModelForm):
         # Restrict states/towns to those in clusters for this tenant
         if tenant:
             clusters = Cluster.objects.filter(tenant=tenant)
-            towns_in_clusters = Town.objects.filter(clusters__in=clusters).distinct()
-            states_in_clusters = State.objects.filter(towns__in=towns_in_clusters).distinct()
-
-            self.fields['state'].queryset = states_in_clusters.order_by('name')
-            self.fields['town'].queryset = towns_in_clusters.order_by('name')
-
-            self.fields['recipient_state'].queryset = states_in_clusters.order_by('name')
-            self.fields['recipient_town'].queryset = towns_in_clusters.order_by('name')
+            if clusters.exists():
+                towns_in_clusters = Town.objects.filter(clusters__in=clusters).distinct()
+                states_in_clusters = State.objects.filter(towns__in=towns_in_clusters).distinct()
+                
+                self.fields['state'].queryset = states_in_clusters.order_by('name')
+                self.fields['town'].queryset = towns_in_clusters.order_by('name')
+                self.fields['recipient_state'].queryset = states_in_clusters.order_by('name')
+                self.fields['recipient_town'].queryset = towns_in_clusters.order_by('name')
+            else:
+                self.fields['state'].queryset = State.objects.all().order_by('name')
+                self.fields['town'].queryset = Town.objects.all().order_by('name')
+                self.fields['recipient_state'].queryset = State.objects.all().order_by('name')
+                self.fields['recipient_town'].queryset = Town.objects.all().order_by('name')
+        else:
+            self.fields['state'].queryset = State.objects.all().order_by('name')
+            self.fields['town'].queryset = Town.objects.all().order_by('name')
+            self.fields['recipient_state'].queryset = State.objects.all().order_by('name')
+            self.fields['recipient_town'].queryset = Town.objects.all().order_by('name')
             
         # Auto-populate if user is in Customer group
         if user and user.is_authenticated:
@@ -454,13 +464,13 @@ class OrderForm_Antigraviy(forms.ModelForm):
             }),
             'customer_phone': forms.TextInput(attrs={'class': 'form-control'}),
             'state': forms.Select(attrs={
-                'class': 'form-select select2', 
+                'class': 'form-select', 
                 'hx-get': reverse_lazy('laundry:htmx_get_towns'), 
                 'hx-target': '#id_town', 
                 'hx-trigger': 'change'
             }),
             'town': forms.Select(attrs={
-                'class': 'form-select select2', 
+                'class': 'form-select', 
                 'id': 'id_town',
                 'hx-get': reverse_lazy('laundry:htmx_calculate_deliverys'),
                 'hx-target': '#delivery-price-display',
@@ -474,12 +484,12 @@ class OrderForm_Antigraviy(forms.ModelForm):
             'recipient_email': forms.EmailInput(attrs={'class': 'form-control'}),
             'recipient_phone': forms.TextInput(attrs={'class': 'form-control'}),
             'recipient_state': forms.Select(attrs={
-                'class': 'form-select select2',
+                'class': 'form-select',
                 'hx-get': reverse_lazy('laundry:htmx_get_towns'),
                 'hx-target': '#id_recipient_town',
                 'hx-trigger': 'change'
             }),
-            'recipient_town': forms.Select(attrs={'class': 'form-select select2', 'id': 'id_recipient_town'}),
+            'recipient_town': forms.Select(attrs={'class': 'form-select', 'id': 'id_recipient_town'}),
             'recipient_address': forms.TextInput(attrs={'class': 'form-control', 'id': 'id_recipient_address', 'placeholder': 'Enter recipient address'}),
             'pickup_latitude': forms.HiddenInput(),
             'pickup_longitude': forms.HiddenInput(),

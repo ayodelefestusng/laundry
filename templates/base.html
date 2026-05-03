@@ -213,11 +213,16 @@
             if ($(this).hasClass('select2-hidden-accessible')) {
                 $(this).select2('destroy');
             }
-            $(this).select2({
+            var modalParent = $(this).closest('.modal');
+            var select2Opts = {
                 width: '100%',
                 placeholder: "Search and select...",
                 allowClear: true
-            });
+            };
+            if (modalParent.length) {
+                select2Opts.dropdownParent = modalParent;
+            }
+            $(this).select2(select2Opts);
         });
     }
 
@@ -227,12 +232,17 @@
                 $(this).select2('destroy');
             }
             
-            $(this).select2({
+            var modalParent = $(this).closest('.modal');
+            var select2Opts = {
                 theme: 'bootstrap-5',
                 width: '100%',
                 templateResult: formatColor,
                 templateSelection: formatColor
-            });
+            };
+            if (modalParent.length) {
+                select2Opts.dropdownParent = modalParent;
+            }
+            $(this).select2(select2Opts);
 
             // Handle "Other" color input toggle natively
             $(this).off('change.colorToggle').on('change.colorToggle', function() {

@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load crispy_forms_tags %}
+{% load humanize %}
 
 {% block content %}
 <!-- Google Fonts -->
@@ -64,24 +65,65 @@
     }
     .landing-nav .nav-link:hover { color: var(--lw-accent); }
     
-    .btn-cta {
-        background-color: var(--lw-accent);
+    .btn-primary {
+        background-color: var(--lw-primary);
         color: var(--lw-white);
-        font-weight: 700;
         padding: 12px 30px;
         border-radius: 50px;
+        font-weight: 600;
         border: none;
-        box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2);
+        transition: var(--transition);
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        box-shadow: 0 4px 10px rgba(10, 37, 64, 0.15);
+    }
+    .btn-primary:hover {
+        background-color: #071a2d;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(10, 37, 64, 0.2);
+        color: var(--lw-white);
+    }
+    .btn-outline {
+        background: transparent;
+        border: 2px solid var(--lw-primary);
+        color: var(--lw-primary);
+        padding: 10px 28px;
+        border-radius: 50px;
+        font-weight: 600;
         transition: var(--transition);
         display: inline-flex;
         align-items: center;
         gap: 10px;
     }
-    .btn-cta:hover {
-        background-color: var(--lw-accent-hover);
-        transform: translateY(-3px);
-        box-shadow: 0 15px 25px rgba(16, 185, 129, 0.3);
+    .btn-outline:hover {
+        background: var(--lw-primary);
         color: var(--lw-white);
+    }
+    
+    .btn-cta {
+        background-color: var(--lw-primary);
+        color: var(--lw-white);
+        font-weight: 600;
+        padding: 10px 24px;
+        border-radius: 50px;
+        border: none;
+        box-shadow: 0 4px 6px rgba(10, 37, 64, 0.1);
+        transition: var(--transition);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .btn-cta:hover {
+        background-color: #071a2d;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(10, 37, 64, 0.15);
+        color: var(--lw-white);
+    }
+    
+    #map-container {
+        height: 400px;
+        width: 100%;
     }
 
     /* Hero Section */
@@ -320,12 +362,171 @@
     .modal-header { border-bottom: 1px solid var(--lw-border); padding: 25px 30px; }
     .modal-body { padding: 30px; background: var(--lw-bg-light); }
     
+    /* Refactored Additions */
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, var(--lw-bg-soft) 0%, #d1fae5 100%);
+      border: 1px solid #a7f3d0;
+      color: var(--lw-primary);
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 100px;
+      margin-bottom: 24px;
+    }
+    .hero-badge i { color: var(--lw-accent); font-size: 0.75rem; }
+
+    .text-gradient {
+      background: linear-gradient(135deg, var(--lw-primary) 0%, var(--lw-accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Value Strip */
+    .value-strip {
+      background: var(--lw-primary);
+      padding: 28px 0;
+      overflow: hidden;
+    }
+    .value-strip-inner {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      animation: ticker 30s linear infinite;
+      width: max-content;
+    }
+    .value-strip-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 40px;
+      white-space: nowrap;
+      border-right: 1px solid rgba(255,255,255,0.15);
+    }
+    .value-strip-item:last-child { border-right: none; }
+    .value-strip-item i { color: var(--lw-accent); font-size: 1rem; }
+    .value-strip-text {
+      font-weight: 700;
+      color: white;
+    }
+    .value-strip-sub { font-size: 0.8rem; color: var(--lw-text-muted); font-weight: 400; margin-left: 6px; }
+
+    @keyframes ticker {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    /* FAQ Sidebar */
+    .faq-grid {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 40px;
+    }
+
+    /* Footer */
+    .lw-footer {
+      background: var(--lw-primary);
+      color: white;
+      padding-top: 80px;
+    }
+    .footer-top {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1.5fr;
+      gap: 48px;
+      padding-bottom: 60px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .footer-brand p { font-size: 0.9rem; color: #94A3B8; line-height: 1.7; margin-top: 16px; max-width: 280px; }
+    .footer-h5 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: white;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 20px;
+    }
+    .footer-links { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+    .footer-links a {
+      font-size: 0.9rem;
+      color: #94A3B8;
+      text-decoration: none;
+      transition: color 0.25s, padding-left 0.25s;
+    }
+    .footer-links a:hover { color: white; padding-left: 6px; }
+
+    .footer-contact-items { display: flex; flex-direction: column; gap: 12px; }
+    .footer-contact-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.875rem;
+      color: #94A3B8;
+    }
+    .footer-contact-item i { color: var(--lw-accent); width: 16px; }
+
+    .social-links { display: flex; gap: 10px; margin-top: 20px; }
+    .social-link {
+      width: 38px; height: 38px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: #94A3B8;
+      text-decoration: none;
+      transition: var(--transition);
+      font-size: 0.9rem;
+    }
+    .social-link:hover { background: var(--lw-accent); color: white; transform: translateY(-3px); }
+
+    .footer-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-block: 24px;
+      font-size: 0.8rem;
+      color: #94A3B8;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .footer-bottom a { color: #94A3B8; text-decoration: none; transition: color 0.2s; }
+    .footer-bottom a:hover { color: white; }
+
+    /* Mobile Bottom Nav */
+    .mobile-bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: white;
+      display: flex;
+      justify-content: space-around;
+      padding: 12px;
+      box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+      z-index: 1050;
+    }
+
+    /* Tabs styling for Contact & FAQ */
+    .nav-tabs-custom { border-bottom: 2px solid var(--lw-border); }
+    .nav-tabs-custom .nav-link { color: var(--lw-text-muted); font-weight: 600; border: none; border-bottom: 2px solid transparent; padding: 12px 24px; }
+    .nav-tabs-custom .nav-link.active { color: var(--lw-primary); border-bottom: 2px solid var(--lw-primary); background: transparent; }
+    
     @media (max-width: 991px) {
         .hero-section { padding: 100px 0 60px; text-align: center; }
         .hero-content { padding-right: 0; margin-bottom: 40px; }
         .hero-swiper-container { height: 400px; }
         .value-item { margin-bottom: 20px; flex-direction: column; text-align: center; }
         .btn-cta { width: 100%; justify-content: center; }
+        .footer-top { grid-template-columns: 1fr 1fr; }
+        .faq-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 768px) {
+        .footer-top { grid-template-columns: 1fr; gap: 32px; }
+        .footer-bottom { flex-direction: column; text-align: center; }
+    }
+    @media (min-width: 992px) {
+        .mobile-bottom-nav { display: none !important; }
     }
 </style>
 
@@ -337,9 +538,7 @@
 {% endblock %}
 
 {% block nav_cta %}
-<button class="btn-nav-cta open-booking-modal" data-bs-toggle="modal" data-bs-target="#bookingModal">
-    Schedule Pickup <i class="fas fa-arrow-right"></i>
-</button>
+
 {% endblock %}
 
 <!-- Hero Section -->
@@ -349,20 +548,24 @@
             <div class="col-lg-6 hero-content">
 
 
-                
-                <h1 class="hero-title">{% if landing_text %}{{ landing_text.hero_title }}{% else %}Laundry Made Simple, Fresh & Fast.{% endif %}</h1>
+                <div class="hero-badge reveal">
+                    <i class="fas fa-sparkles"></i> 20% OFF YOUR FIRST ORDER
+                </div>
+                <h1 class="hero-title">{% if landing_text %}{{ landing_text.hero_title }}{% else %}Laundry Made Simple, <br class="d-block d-md-none"><span class="text-gradient">Fresh & Fast.</span>{% endif %}</h1>
                 <p class="hero-subtitle">{% if landing_text %}{{ landing_text.hero_subtitle }}{% else %}Experience premium garment care with free doorstep pickup & delivery. Eco-friendly cleaning that preserves your clothes and the planet.{% endif %}</p>
                 <div class="d-flex flex-column flex-sm-row gap-3">
-                    <button class="btn-cta btn-lg open-booking-modal" data-bs-toggle="modal" data-bs-target="#bookingModal">
-                        Schedule Pickup Now <i class="fas fa-calendar-check"></i>
+                    <button class="btn-primary open-booking-modal" data-bs-toggle="modal" data-bs-target="#bookingModal" onclick="switchToTab('book-tab')">
+                        <i class="fas fa-calendar-check"></i> Schedule Pickup Now
                     </button>
-                    <a href="#how-it-works" class="btn btn-outline-primary btn-lg fw-bold rounded-pill px-4">See How It Works</a>
+                    <button class="btn-outline" data-bs-toggle="modal" data-bs-target="#bookingModal" onclick="switchToTab('track-tab')">
+                        <i class="fas fa-search-location"></i> Track Order
+                    </button>
                 </div>
                 <div class="mt-4 pt-3 d-flex align-items-center gap-3">
                     <div class="d-flex">
-                        <img src="https://i.pravatar.cc/100?img=1" alt="User" class="rounded-circle border border-2 border-white" width="40" height="40" style="margin-left: 0;">
-                        <img src="https://i.pravatar.cc/100?img=2" alt="User" class="rounded-circle border border-2 border-white" width="40" height="40" style="margin-left: -15px;">
-                        <img src="https://i.pravatar.cc/100?img=3" alt="User" class="rounded-circle border border-2 border-white" width="40" height="40" style="margin-left: -15px;">
+                        <img src="https://i.pravatar.cc/100?img=51" alt="User" class="rounded-circle border border-2 border-white" width="40" height="40" style="margin-left: 0;">
+                        <img src="https://i.pravatar.cc/100?img=59" alt="User" class="rounded-circle border border-2 border-white" width="40" height="40" style="margin-left: -15px;">
+                        <img src="https://i.pravatar.cc/100?img=64" alt="User" class="rounded-circle border border-2 border-white" width="40" height="40" style="margin-left: -15px;">
                     </div>
                     <div class="small fw-semibold">Trusted by <span class="text-accent">thousands of</span> Customers</div>
                 </div>
@@ -395,83 +598,27 @@
     </div>
 </section>
 
-<!-- Value Bar -->
-<section class="value-bar">
-    <div class="container">
-        <div class="row g-4">
-            {% if landing_values %}
-                {% for val in landing_values %}
-                <div class="col-md-4">
-                    <div class="value-item">
-                        <div class="value-icon"><i class="{{ val.icon_class }}"></i></div>
-                        <div>
-                            <h4 class="value-text">{{ val.value_text }}</h4>
-                            <p class="value-subtext">{{ val.value_subtext }}</p>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            {% else %}
-            <div class="col-md-4">
-                <div class="value-item">
-                    <div class="value-icon"><i class="fas fa-truck-fast"></i></div>
-                    <div>
-                        <h4 class="value-text">Free Pickup & Delivery</h4>
-                        <p class="value-subtext">Right from your doorstep</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="value-item">
-                    <div class="value-icon"><i class="fas fa-stopwatch"></i></div>
-                    <div>
-                        <h4 class="value-text">24h Turnaround</h4>
-                        <p class="value-subtext">Express services available</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="value-item">
-                    <div class="value-icon"><i class="fas fa-leaf"></i></div>
-                    <div>
-                        <h4 class="value-text">Eco-Friendly Care</h4>
-                        <p class="value-subtext">Non-toxic, safe detergents</p>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-        </div>
-    </div>
+<!-- Value Strip -->
+<section class="value-strip" aria-label="Our value propositions">
+  <div class="value-strip-inner" aria-hidden="true">
+    <!-- Loop through values multiple times for continuous scrolling effect -->
+    {% for i in "12" %}
+        {% if landing_values %}
+            {% for val in landing_values %}
+            <div class="value-strip-item"><i class="{{ val.icon_class }}"></i><span class="value-strip-text">{{ val.value_text }} <span class="value-strip-sub">· {{ val.value_subtext }}</span></span></div>
+            {% endfor %}
+        {% else %}
+        <div class="value-strip-item"><i class="fas fa-truck-fast"></i><span class="value-strip-text">Free Pickup &amp; Delivery <span class="value-strip-sub">· Doorstep Service</span></span></div>
+        <div class="value-strip-item"><i class="fas fa-stopwatch"></i><span class="value-strip-text">24h Turnaround <span class="value-strip-sub">· Express Available</span></span></div>
+        <div class="value-strip-item"><i class="fas fa-leaf"></i><span class="value-strip-text">Eco-Friendly Wash <span class="value-strip-sub">· Non-toxic Detergents</span></span></div>
+        <div class="value-strip-item"><i class="fas fa-shield-alt"></i><span class="value-strip-text">100% Satisfaction <span class="value-strip-sub">· Guaranteed</span></span></div>
+        <div class="value-strip-item"><i class="fas fa-star"></i><span class="value-strip-text">4.9★ Rated <span class="value-strip-sub">· 2,400+ Reviews</span></span></div>
+        {% endif %}
+    {% endfor %}
+  </div>
 </section>
 
-<!-- Track Your Order (Main Page) -->
-<section id="track-order" class="section-padding bg-soft">
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-lg-8" data-aos="fade-up">
-                <div class="card shadow-sm p-4 p-md-5 border-0 rounded-4 bg-white border-start border-success border-5">
-                    <h3 class="fw-bold text-success mb-2"><i class="fas fa-search-location me-2"></i>Track Your Order</h3>
-                    <p class="text-muted mb-4">Enter your 8-character tracking ID to check the status of your order.</p>
-                    <form id="page-track-order-form" class="row g-3"
-                          hx-get="{% url 'laundry:htmx_track_order' %}"
-                          hx-target="#page-track-result"
-                          hx-indicator="#page-track-spinner">
-                        <div class="col-md-8">
-                            <input type="text" class="form-control form-control-lg" name="order_code" placeholder="e.g. A1B2C3D4" required>
-                        </div>
-                        <div class="col-md-4 d-flex align-items-end">
-                            <button type="submit" class="btn btn-success btn-lg w-100 shadow-sm d-flex align-items-center justify-content-center gap-2 rounded-pill">
-                                <span>Track</span>
-                                <div id="page-track-spinner" class="htmx-indicator spinner-border spinner-border-sm text-light" role="status"></div>
-                            </button>
-                        </div>
-                    </form>
-                    <div id="page-track-result" class="mt-4"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
+
 
 <!-- How It Works -->
 <section id="how-it-works" class="section-padding bg-light">
@@ -570,7 +717,7 @@
                         <h3 class="fs-4 mb-2">{{ card.title }}</h3>
                         <p class="text-muted mb-4">{{ card.description }}</p>
                         <div class="mb-4">
-                            <span class="fs-1 fw-bold">₦{{ card.price|floatformat:0 }}</span>
+                            <span class="fs-1 fw-bold">₦{{ card.price|floatformat:0|intcomma }}</span>
                         </div>
                         <ul class="list-unstyled mb-4">
                             {% for feat in card.features %}
@@ -618,9 +765,9 @@
                         </div>
                         <p class="fst-italic mb-4">"I absolutely loved how fresh and neatly folded my clothes arrived. There was no harsh smell, no wrinkles, and the fabric felt softer than before. Genuinely stress-free."</p>
                         <div class="d-flex align-items-center">
-                            <img src="https://i.pravatar.cc/100?img=4" class="rounded-circle me-3" width="50" height="50" alt="Himanshu">
+                            <img src="https://i.pravatar.cc/100?img=51" class="rounded-circle me-3" width="50" height="50" alt="Himanshu">
                             <div>
-                                <h5 class="mb-0 fs-6">Himanshu Yadav</h5>
+                                <h5 class="mb-0 fs-6">Ikechukwu  Orji</h5>
                                 <span class="text-muted small">Verified Customer</span>
                             </div>
                         </div>
@@ -634,9 +781,9 @@
                         </div>
                         <p class="fst-italic mb-4">"I trusted them with my delicate gowns and formal outfits, and they returned looking brand-new. The shine, shape, and texture were perfectly maintained. Truly world-class."</p>
                         <div class="d-flex align-items-center">
-                            <img src="https://i.pravatar.cc/100?img=5" class="rounded-circle me-3" width="50" height="50" alt="Vikas">
+                            <img src="https://i.pravatar.cc/100?img=59" class="rounded-circle me-3" width="50" height="50" alt="Vikas">
                             <div>
-                                <h5 class="mb-0 fs-6">Vikas Dubey</h5>
+                                <h5 class="mb-0 fs-6">Segun Olawale</h5>
                                 <span class="text-muted small">Verified Customer</span>
                             </div>
                         </div>
@@ -650,9 +797,9 @@
                         </div>
                         <p class="fst-italic mb-4">"The curtains and sofa covers I sent were returned spotless, neatly packed, and smelling wonderfully fresh. Dust vanished without harming fabric colour. Highly recommend!"</p>
                         <div class="d-flex align-items-center">
-                            <img src="https://i.pravatar.cc/100?img=6" class="rounded-circle me-3" width="50" height="50" alt="Naman">
+                            <img src="https://i.pravatar.cc/100?img=64" class="rounded-circle me-3" width="50" height="50" alt="Naman">
                             <div>
-                                <h5 class="mb-0 fs-6">Naman Pandey</h5>
+                                <h5 class="mb-0 fs-6">Joseph Itodo</h5>
                                 <span class="text-muted small">Verified Customer</span>
                             </div>
                         </div>
@@ -664,86 +811,110 @@
     </div>
 </section>
 
-<!-- FAQ -->
-<section id="faq" class="section-padding bg-light">
+<!-- Contact & FAQ Tabs -->
+<section id="contact-faq" class="section-padding bg-light">
     <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-lg-8 fade-up">
-                <h2 class="section-title">Frequently Asked Questions</h2>
-                <p class="section-subtitle">Everything you need to know about our services.</p>
-                
-                <div class="accordion" id="faqAccordion">
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="headingOne">
-                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true">
-                                What is your turnaround time?
-                            </button>
-                        </h2>
-                        <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
-                            <div class="accordion-body text-muted">
-                                Standard delivery takes 48-72 hours. We also offer Express Delivery for a 24-hour turnaround at a minimal extra charge.
-                            </div>
+        <h2 class="section-title fade-up">We're Here to Help</h2>
+        <p class="section-subtitle fade-up">Get answers or reach out to us directly.</p>
+
+        <!-- Nav tabs -->
+        <ul class="nav nav-tabs nav-tabs-custom justify-content-center mb-5 fade-up" id="contactFaqTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="faq-tab" data-bs-toggle="tab" data-bs-target="#faq-pane" type="button" role="tab">FAQs</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="contact-tab" data-bs-toggle="tab" data-bs-target="#contact-pane" type="button" role="tab">Contact Us</button>
+            </li>
+        </ul>
+
+        <!-- Tab panes -->
+        <div class="tab-content">
+            <!-- FAQ Pane -->
+            <div class="tab-pane fade show active" id="faq-pane" role="tabpanel">
+                <div class="faq-grid">
+                    <div class="faq-sidebar">
+                        <div class="contact-card border-0 bg-white" style="position: sticky; top: 100px;">
+                            <h4 class="fw-bold mb-3">Still have questions?</h4>
+                            <p class="text-muted mb-4">Can't find the answer you're looking for? Please chat to our friendly team.</p>
+                            <button class="btn btn-cta w-100 mb-3" onclick="document.getElementById('contact-tab').click()">Get in Touch</button>
+                            <a href="https://wa.me/2348021299221" class="btn btn-outline-success rounded-pill fw-bold w-100">
+                                <i class="fab fa-whatsapp me-2"></i> WhatsApp Us
+                            </a>
                         </div>
                     </div>
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="headingTwo">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
-                                What if I'm not home for pickup or delivery?
-                            </button>
-                        </h2>
-                        <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                            <div class="accordion-body text-muted">
-                                You can leave your laundry bag with your concierge, security desk, or a designated safe spot. Just let us know in the "Special Instructions" when booking.
+                    <div class="faq-content">
+                        <div class="accordion" id="faqAccordion">
+                            <div class="accordion-item border-0 bg-white mb-3 shadow-sm rounded-4">
+                                <h2 class="accordion-header" id="headingOne">
+                                    <button class="accordion-button rounded-4 fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true">
+                                        What is your turnaround time?
+                                    </button>
+                                </h2>
+                                <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body text-muted">
+                                        Standard delivery takes 48-72 hours. We also offer Express Delivery for a 24-hour turnaround at a minimal extra charge.
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="headingThree">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree">
-                                Do you mix my clothes with others?
-                            </button>
-                        </h2>
-                        <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                            <div class="accordion-body text-muted">
-                                Absolutely not. We process every customer's order individually in dedicated machines to maintain strict hygiene standards and ensure garments are never mixed.
+                            <div class="accordion-item border-0 bg-white mb-3 shadow-sm rounded-4">
+                                <h2 class="accordion-header" id="headingTwo">
+                                    <button class="accordion-button collapsed rounded-4 fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
+                                        What if I'm not home for pickup or delivery?
+                                    </button>
+                                </h2>
+                                <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body text-muted">
+                                        You can leave your laundry bag with your concierge, security desk, or a designated safe spot. Just let us know in the "Special Instructions" when booking.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item border-0 bg-white shadow-sm rounded-4">
+                                <h2 class="accordion-header" id="headingThree">
+                                    <button class="accordion-button collapsed rounded-4 fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree">
+                                        Do you mix my clothes with others?
+                                    </button>
+                                </h2>
+                                <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body text-muted">
+                                        Absolutely not. We process every customer's order individually in dedicated machines to maintain strict hygiene standards and ensure garments are never mixed.
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-</section>
 
-<!-- Contact & Map -->
-<section id="contact" class="section-padding">
-    <div class="container">
-        <div class="row g-5">
-            <div class="col-lg-6 fade-up">
-                <h2 class="fw-bold mb-4">Find Us</h2>
-                <p class="text-muted mb-4">We are available across major areas. Drop by our store or let us come to you.</p>
-                <div id="map-container"></div>
-            </div>
-            <div class="col-lg-6 fade-up" style="transition-delay: 0.2s;">
-                <div class="contact-card">
-                    <h3 class="fw-bold mb-4">Get in Touch</h3>
-                    <form id="landing-contact-form">
-                        <div class="mb-3">
-                            <input type="text" class="form-control form-control-lg bg-light border-0" placeholder="Your Name" required>
+            <!-- Contact Pane -->
+            <div class="tab-pane fade" id="contact-pane" role="tabpanel">
+                <div class="row g-5">
+                    <div class="col-lg-6">
+                        <h2 class="fw-bold mb-4">Find Us</h2>
+                        <p class="text-muted mb-4">We are available across major areas. Drop by our store or let us come to you.</p>
+                        <div id="map-container" class="shadow-sm rounded-4"></div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="contact-card border-0 bg-white shadow-sm rounded-4 p-4 p-md-5">
+                            <h3 class="fw-bold mb-4">Get in Touch</h3>
+                            <form id="landing-contact-form">
+                                <div class="mb-3">
+                                    <input type="text" class="form-control form-control-lg bg-light border-0" placeholder="Your Name" required>
+                                </div>
+                                <div class="mb-3">
+                                    <input type="email" class="form-control form-control-lg bg-light border-0" placeholder="Email Address" required>
+                                </div>
+                                <div class="mb-4">
+                                    <textarea class="form-control form-control-lg bg-light border-0" rows="4" placeholder="How can we help?" required></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-cta w-100 justify-content-center">Send Message</button>
+                            </form>
+                            <div class="mt-4 pt-4 border-top">
+                                <h5 class="fw-bold fs-6 mb-3">Connect via WhatsApp</h5>
+                                <a href="https://wa.me/2348021299221" class="btn btn-outline-success rounded-pill fw-bold w-100">
+                                    <i class="fab fa-whatsapp me-2 fs-5"></i> Chat with Support
+                                </a>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <input type="email" class="form-control form-control-lg bg-light border-0" placeholder="Email Address" required>
-                        </div>
-                        <div class="mb-4">
-                            <textarea class="form-control form-control-lg bg-light border-0" rows="4" placeholder="How can we help?" required></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-cta w-100 justify-content-center">Send Message</button>
-                    </form>
-                    <div class="mt-4 pt-4 border-top">
-                        <h5 class="fw-bold fs-6 mb-3">Connect via WhatsApp</h5>
-                        <a href="https://wa.me/1234567890" class="btn btn-outline-success rounded-pill fw-bold w-100">
-                            <i class="fab fa-whatsapp me-2 fs-5"></i> Chat with Support
-                        </a>
                     </div>
                 </div>
             </div>
@@ -752,53 +923,70 @@
 </section>
 
 <!-- Footer -->
-<footer class="landing-footer">
-    <div class="container">
-        <div class="row g-5">
-            <div class="col-lg-4">
-                <a class="navbar-brand fw-bold fs-2 text-white mb-4 d-block" href="#">
-                    <i class="fas fa-leaf text-accent me-2"></i>{{ tenant_brand|default:tenant_name }}
-                </a>
-                <p class="text-white-50 mb-4 pe-lg-5">Trusted care for every garment — pickup, clean & deliver. {{ tenant_brand }} is your reliable laundry partner.</p>
-                <div class="d-flex">
-                    <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
-                    <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
-                    <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
-                </div>
-            </div>
-            <div class="col-lg-2 col-md-4">
-                <h5 class="footer-heading">Services</h5>
-                {% if footer_services %}
-                    {% for svc in footer_services %}
-                        <a href="#" class="footer-link">{{ svc.name }}</a>
-                    {% endfor %}
-                {% else %}
-                    <a href="#" class="footer-link">Wash & Fold</a>
-                    <a href="#" class="footer-link">Dry Cleaning</a>
-                    <a href="#" class="footer-link">Ironing</a>
-                    <a href="#" class="footer-link">Shoe Cleaning</a>
-                {% endif %}
-            </div>
-            <div class="col-lg-2 col-md-4">
-                <h5 class="footer-heading">Company</h5>
-                <a href="#" class="footer-link">About Us</a>
-                <a href="#" class="footer-link">Pricing</a>
-                <a href="#" class="footer-link">Stores</a>
-                <a href="#" class="footer-link">Contact</a>
-            </div>
-            <div class="col-lg-4 col-md-4">
-                <h5 class="footer-heading">Newsletter</h5>
-                <p class="text-white-50 small mb-3">Get tips & deals directly in your inbox.</p>
-                <div class="input-group mb-3">
-                    <input type="email" class="form-control border-0 rounded-start-pill ps-4" placeholder="Email address">
-                    <button class="btn btn-accent bg-accent text-white rounded-end-pill px-4" type="button">Subscribe</button>
-                </div>
-            </div>
+<footer class="lw-footer" role="contentinfo">
+  <div class="container-fluid-xl">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <a class="navbar-brand fw-bold fs-2 text-white mb-4 d-flex align-items-center gap-2 text-decoration-none" href="#">
+            <i class="fas fa-leaf text-accent"></i>{{ tenant_brand|default:tenant_name }}
+        </a>
+        <p>Trusted care for every garment — pickup, clean & deliver. {{ tenant_brand|default:tenant_name }} is your reliable laundry partner, committed to quality and sustainability.</p>
+        <div class="social-links">
+          <a href="#" class="social-link" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+          <a href="#" class="social-link" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+          <a href="#" class="social-link" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
         </div>
-        <div class="border-top border-secondary mt-5 pt-4 text-center text-white-50 small">
-            <p>&copy; 2026 {{ tenant_brand|default:tenant_name }}. All rights reserved.</p>
+      </div>
+      <div>
+        <h5 class="footer-h5">Services</h5>
+        <ul class="footer-links">
+          {% if footer_services %}
+            {% for svc in footer_services %}
+              <li><a href="#">{{ svc.name }}</a></li>
+            {% endfor %}
+          {% else %}
+            <li><a href="#">Wash & Fold</a></li>
+            <li><a href="#">Dry Cleaning</a></li>
+            <li><a href="#">Ironing & Pressing</a></li>
+            <li><a href="#">Shoe Cleaning</a></li>
+            <li><a href="#">Stain Removal</a></li>
+          {% endif %}
+        </ul>
+      </div>
+      <div>
+        <h5 class="footer-h5">Company</h5>
+        <ul class="footer-links">
+          <li><a href="#">About Us</a></li>
+          <li><a href="#">Pricing</a></li>
+          <li><a href="#">How it Works</a></li>
+          <li><a href="#">FAQ</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5 class="footer-h5">Contact Us</h5>
+        <div class="footer-contact-items">
+          <div class="footer-contact-item">
+            <i class="fas fa-phone-alt"></i> <span>+234 800 LAUNDRY</span>
+          </div>
+          <div class="footer-contact-item">
+            <i class="fas fa-envelope"></i> <span>hello@{{ tenant_brand|default:"laundry"|lower|slugify }}.com</span>
+          </div>
+          <div class="footer-contact-item align-items-start mt-2">
+            <i class="fas fa-map-marker-alt mt-1"></i>
+            <span>123 Fresh Avenue,<br>Victoria Island, Lagos.</span>
+          </div>
         </div>
+      </div>
     </div>
+    <div class="footer-bottom">
+      <div>&copy; 2026 {{ tenant_brand|default:tenant_name }}. All rights reserved.</div>
+      <div class="d-flex gap-4">
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+      </div>
+    </div>
+  </div>
 </footer>
 
 <!-- ============================================== -->
@@ -1080,6 +1268,26 @@
     </div>
 </div>
 
+<!-- Mobile Bottom Navigation -->
+<nav class="mobile-bottom-nav d-lg-none">
+    <a href="#contact-faq" class="text-center text-decoration-none" onclick="document.getElementById('faq-tab').click();">
+        <i class="fas fa-question-circle d-block fs-4 text-primary"></i>
+        <small class="text-dark">FAQ</small>
+    </a>
+    <a href="#" class="text-center text-decoration-none" onclick="switchToTab('book-tab')" data-bs-toggle="modal" data-bs-target="#bookingModal">
+        <i class="fas fa-calendar-check d-block fs-4 text-primary"></i>
+        <small class="text-dark">Book</small>
+    </a>
+    <a href="#" class="text-center text-decoration-none" onclick="switchToTab('track-tab')" data-bs-toggle="modal" data-bs-target="#bookingModal">
+        <i class="fas fa-search-location d-block fs-4 text-primary"></i>
+        <small class="text-dark">Track</small>
+    </a>
+    <a href="#pricing" class="text-center text-decoration-none">
+        <i class="fas fa-tags d-block fs-4 text-primary"></i>
+        <small class="text-dark">Pricing</small>
+    </a>
+</nav>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -1144,6 +1352,19 @@ document.addEventListener('DOMContentLoaded', function() {
         easing: 'ease-out-quad'
     });
 
+    // Handle map resize when Contact tab is opened
+    const contactTabEl = document.querySelector('button[data-bs-target="#contact-pane"]');
+    if (contactTabEl) {
+        contactTabEl.addEventListener('shown.bs.tab', function (event) {
+            if (typeof google !== 'undefined' && map) {
+                google.maps.event.trigger(map, "resize");
+                const lat = parseFloat("{{ tenant_location_lat|default:'9.0820' }}");
+                const lng = parseFloat("{{ tenant_location_lng|default:'8.6753' }}");
+                map.setCenter({ lat: lat, lng: lng });
+            }
+        });
+    }
+
     // Swiper Initializations
     const heroSwiper = new Swiper('.heroSwiper', {
         effect: 'fade',
@@ -1205,6 +1426,18 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+function switchToTab(tabId) {
+    try {
+        const triggerEl = document.querySelector(`#${tabId}`);
+        if (triggerEl) {
+            const tab = new bootstrap.Tab(triggerEl);
+            tab.show();
+        }
+    } catch (e) {
+        console.error("Tab switch error: ", e);
+    }
+}
 
 // --- Legacy Cart & Mode Logic (from original customer_order.html) ---
 const CatalogManager = {
