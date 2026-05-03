@@ -15,11 +15,11 @@
 
 <style>
     :root {
-        --lw-primary: #0A2540;
-        --lw-accent: #10B981;
-        --lw-accent-hover: #059669;
+        --lw-primary: #0072CE;
+        --lw-accent: #00B140;
+        --lw-accent-hover: #009933;
         --lw-bg-light: #F8FAFC;
-        --lw-bg-soft: #ECFDF5;
+        --lw-bg-soft: #E6F7EE;
         --lw-text-main: #1E293B;
         --lw-text-muted: #64748B;
         --lw-white: #FFFFFF;
@@ -143,15 +143,12 @@
         font-weight: 900;
         line-height: 1.05;
         margin-bottom: 24px;
-        background: linear-gradient(135deg, var(--lw-primary) 0%, #2563EB 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        color: var(--lw-primary); /* Fallback */
+        color: #0072CE;
+        -webkit-text-fill-color: #0072CE;
     }
     .hero-title .text-gradient {
-        background: linear-gradient(135deg, var(--lw-accent) 0%, var(--lw-accent-hover) 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        color: #00B140;
+        -webkit-text-fill-color: #00B140;
         display: block;
     }
     .hero-subtitle {
@@ -259,6 +256,57 @@
     .step-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 10px; }
     .step-desc { color: var(--lw-text-muted); font-size: 0.95rem; line-height: 1.5; }
 
+    /* Mobile step-card horizontal snap scroll */
+    @media (max-width: 767.98px) {
+        #how-it-works .row.g-4 {
+            display: flex;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            gap: 0;
+            padding-bottom: 16px;
+            margin-left: 0;
+            margin-right: 0;
+            scrollbar-width: none;
+        }
+        #how-it-works .row.g-4::-webkit-scrollbar { display: none; }
+        #how-it-works .row.g-4 > [class*='col-'] {
+            flex: 0 0 78vw;
+            max-width: 78vw;
+            scroll-snap-align: start;
+            padding-left: 12px;
+            padding-right: 8px;
+        }
+        #how-it-works .row.g-4 > [class*='col-']:first-child { padding-left: 16px; }
+        #how-it-works .row.g-4 > [class*='col-']:last-child { padding-right: 16px; flex: 0 0 85vw; max-width: 85vw; }
+        #how-it-works .step-card {
+            height: 100%;
+            border-radius: 20px;
+            border: 1px solid var(--lw-border);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            transform: none !important;
+        }
+        /* Scroll hint dots */
+        #how-it-works .step-scroll-hint {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 12px;
+        }
+        #how-it-works .step-scroll-hint span {
+            width: 8px; height: 8px;
+            background: var(--lw-border);
+            border-radius: 50%;
+            display: block;
+        }
+        #how-it-works .step-scroll-hint span:first-child {
+            background: var(--lw-accent);
+            width: 20px;
+            border-radius: 4px;
+        }
+    }
+
     /* Pricing */
     .pricing-card {
         background: var(--lw-white);
@@ -281,16 +329,30 @@
     .pricing-card.popular .text-muted { color: #94A3B8 !important; }
     .popular-badge {
         position: absolute;
-        top: 20px;
-        right: -30px;
+        top: 0;
+        right: 0;
+        width: 120px;
+        height: 120px;
+        overflow: hidden;
+        pointer-events: none;
+    }
+    .popular-badge::before {
+        content: 'MOST POPULAR';
+        position: absolute;
+        top: 22px;
+        right: -28px;
+        width: 130px;
         background: var(--lw-accent);
         color: white;
-        padding: 8px 40px;
-        transform: rotate(45deg);
-        font-size: 0.8rem;
+        text-align: center;
+        padding: 7px 0;
+        font-size: 0.65rem;
         font-weight: 800;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 1.5px;
+        transform: rotate(45deg);
+        transform-origin: center;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.25);
     }
 
     /* Testimonials */
@@ -520,8 +582,8 @@
     .nav-tabs-custom .nav-link.active { color: var(--lw-primary); border-bottom: 2px solid var(--lw-primary); background: transparent; }
     
     @media (max-width: 991px) {
-        .hero-section { padding: 100px 0 60px; text-align: center; }
-        .hero-content { padding-right: 0; margin-bottom: 40px; }
+        .hero-section { padding: 100px 0 60px; }
+        .hero-content { padding-right: 0; margin-bottom: 40px; text-align: left; }
         .hero-swiper-container { height: 400px; }
         .value-item { margin-bottom: 20px; flex-direction: column; text-align: center; }
         .btn-cta { width: 100%; justify-content: center; }
@@ -554,12 +616,13 @@
         .mobile-bottom-nav { display: none !important; }
     }
     @media (max-width: 575.98px) {
-        /* Hero title — full width, no clipping */
+        /* Hero title — full width, no clipping, always left-aligned */
         .hero-title {
             font-size: clamp(2.6rem, 9vw, 3.5rem);
             padding-left: 0;
             padding-right: 0;
             width: 100%;
+            text-align: left;
         }
         /* Carousel — remove border-radius and bleed edge-to-edge */
         .hero-swiper-container {
@@ -587,7 +650,7 @@
 </style>
 
 {% block nav_extra_links %}
-{#  <li class="nav-item"><a class="nav-link" href="#how-it-works">How it Workssssss</a></li>  #}
+{#  <li class="nav-item"><a class="nav-link" href="#how-it-works">How it Works</a></li>  #}
 {#  <li class="nav-item"><a class="nav-link" href="#pricing">Pricing</a></li>  #}
 {#  <li class="nav-item"><a class="nav-link" href="#faq">FAQ</a></li>  #}
 {#  <li class="nav-item"><a class="nav-link" href="#contact">Contact</a></li>  #}
@@ -716,6 +779,10 @@
                 </div>
             </div>
         </div>
+        <!-- Mobile scroll indicator dots -->
+        <div class="step-scroll-hint d-md-none">
+            <span></span><span></span><span></span><span></span>
+        </div>
         <div class="text-center mt-5" data-aos="fade-up">
             <button class="btn-cta open-booking-modal" data-bs-toggle="modal" data-bs-target="#bookingModal">
                 Book Your First Wash
@@ -769,7 +836,7 @@
                 {% for card in landing_pricing %}
                 <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="{{ forloop.counter0|add:1 }}00">
                     <div class="pricing-card {% if card.is_popular %}popular shadow-lg{% endif %}">
-                        {% if card.is_popular %}<div class="popular-badge">Most Popular</div>{% endif %}
+                        {% if card.is_popular %}<div class="popular-badge"></div>{% endif %}
                         <h3 class="fs-4 mb-2">{{ card.title }}</h3>
                         <p class="text-muted mb-4">{{ card.description }}</p>
                         <div class="mb-4">
