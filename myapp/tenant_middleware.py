@@ -22,6 +22,7 @@ class TenantMiddleware(MiddlewareMixin):
             # "ayo.vectra.ng",
              "vectra.ng",
             "laundry.dignityconcept.tech",
+           "laundry.vectra.ng",
             "dignityconcept.tech",
             "laundryhub.dignityconcept.tech",
             "whatsapp-1-laundry-2-compose.xqqhik.easypanel.host",
