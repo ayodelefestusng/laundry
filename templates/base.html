@@ -220,7 +220,7 @@
                 allowClear: true
             };
             if (modalParent.length) {
-                select2Opts.dropdownParent = modalParent;
+                select2Opts.dropdownParent = modalParent.find('.modal-body').length ? modalParent.find('.modal-body') : modalParent;
             }
             $(this).select2(select2Opts);
         });
@@ -240,7 +240,7 @@
                 templateSelection: formatColor
             };
             if (modalParent.length) {
-                select2Opts.dropdownParent = modalParent;
+                select2Opts.dropdownParent = modalParent.find('.modal-body').length ? modalParent.find('.modal-body') : modalParent;
             }
             $(this).select2(select2Opts);
 
