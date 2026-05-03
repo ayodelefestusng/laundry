@@ -26,12 +26,10 @@ def send_email_async(subject, text_content, html_content, to_emails, from_email=
     brand_name = "Vectra Laundry"  # Default brand name
     if tenant_id:
         try:
-            try:
-                tenant = Tenant.objects.get(pk=tenant_id)
-                if hasattr(tenant, 'attribute') and tenant.attribute.brand_name:
-                    brand_name = tenant.attribute.brand_name
-            except Tenant.DoesNotExist:
-                pass
+            tenant = Tenant.objects.get(pk=tenant_id)
+            if hasattr(tenant, 'attribute') and tenant.attribute.brand_name:
+                brand_name = tenant.attribute.brand_name
+            
             from_header = f"{brand_name} <{smtp_username}>"
             
             if tenant.vectra_email and tenant.password:

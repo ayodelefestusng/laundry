@@ -275,7 +275,37 @@ WORKFLOW_STAGES = (
 #     def __str__(self):
 #         return self.email
 
+
+import logging
+import os
+
+logger = logging.getLogger(__name__)
+
 def tenant_directory_path(instance, filename):
+    """
+    Dynamic path generator for multi-tenant assets.
+    Standardized to: MEDIA_ROOT/tenant_<id>/<model_name>/filename
+    """
+    try:
+        model_name = instance.__class__.__name__.lower()
+        
+        # Determine the tenant ID safely
+        if model_name == "tenant":
+            tenant_id = instance.id
+        else:
+            # Using getattr to avoid AttributeError if tenant hasn't been assigned yet
+            tenant = getattr(instance, 'tenant', None)
+            tenant_id = tenant.id if tenant else "shared"
+
+        # Ensure filename is sanitized or localized
+        path = f"tenant_{tenant_id}/{model_name}/{filename}"
+        return path
+
+    except Exception as e:
+        # Fallback to a 'general' folder so the upload doesn't crash the request
+        logger.error(f"Error generating tenant path for {filename}: {str(e)}", exc_info=True)
+        return f"general/misc/{filename}"
+def tenant_directory_pathv1(instance, filename):
     # file will be uploaded to MEDIA_ROOT/tenant_<id>/<model_name>/filename
     # For Tenant model itself, use instance.id; for other models, use instance.tenant.id
     model_name = instance.__class__.__name__.lower()
@@ -460,12 +490,20 @@ class PremiumClient(TenantModel):
 
 
 class ServiceCategory(TenantModel):
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100)
+    
+    class Meta:
+        unique_together = ('name', 'tenant')
+
     def __str__(self):
         return self.name
 
 class ServiceChoices(TenantModel):
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100)
+
+    class Meta:
+        unique_together = ('name', 'tenant')
+
     def __str__(self):
         return self.name
 
@@ -515,7 +553,7 @@ class Package(TenantModel):
     price = models.DecimalField(max_digits=10, decimal_places=2,help_text="Price of service")
     delivery_time_days = models.IntegerField(help_text="Estimated delivery time in days.")
     class Meta:
-        unique_together = ('category', 'service_type')
+        unique_together = ('category', 'service_type', 'tenant')
         ordering = ["category", 'service_type']
         
     def __str__(self):
