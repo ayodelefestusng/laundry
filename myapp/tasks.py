@@ -115,3 +115,45 @@ def send_test_email1():
         from_email=None,  # backend sets automatically
         recipient_list=["buyriteautosng@gmail.com"],
     )
+
+
+
+
+# myapp/tasks.py
+from celery import shared_task
+import os
+import smtplib
+import logging
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+logger = logging.getLogger(__name__)
+
+@shared_task(name="myapp.tasks.send_power_email")
+def send_power_email(status, device_time, server_time):
+    gmail_user = os.getenv("GMAIL_USER")
+    gmail_password = os.getenv("GMAIL_APP_PASSWORD")
+    to_email = os.getenv("ALERT_RECIPIENT")
+
+    subject = f"ALERT: Grid Power is {status.upper()}"
+    body = (
+        f"Grid Status: {status.upper()}\n"
+        f"Server Event Time: {server_time}\n"
+        f"Device Uptime (ms): {device_time}\n"
+        f"Location: Ikorodu Node"
+    )
+
+    msg = MIMEMultipart()
+    msg['From'] = gmail_user
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    msg.attach(MIMEText(body, 'plain'))
+
+    try:
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(gmail_user, gmail_password)
+            server.sendmail(gmail_user, to_email, msg.as_string())
+        logger.info(f"Email sent successfully for status: {status}")
+    except Exception as e:
+        logger.error(f"Email failed in worker: {e}")
+        # Celery best practice: wrap in try-except to prevent worker crash

@@ -17,6 +17,21 @@ services:
     volumes:
       - ./media:/app/media   # ✅ persist tenant logos/uploads
       - ./static:/app/static # optional: persist static files
+    
+    #FastAPI app
+    
+    fastapi_app:
+    build: 
+      context: .
+      dockerfile: Dockerfile.fastapi
+    environment:
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASS=${RABBITMQ_PASS}
+      - RABBITMQ_HOST=rabbitmq
+    depends_on:
+      - rabbitmq
+    restart: always
+
 
   worker:
     build: .
