@@ -117,7 +117,8 @@ def send_test_email1():
     )
 
 
-
+    
+    
 
 # myapp/tasks.py
 from celery import shared_task
