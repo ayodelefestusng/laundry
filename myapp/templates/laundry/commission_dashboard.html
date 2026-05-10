@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Commission Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-800 dark:text-white">Commission Dashboard</h1>
+        <a href="{% url 'laundry:export_commission_csv' %}?{{ request.GET.urlencode }}" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition">
+            <i class="fas fa-download mr-2"></i> Export CSV
+        </a>
+    </div>
+
+    <!-- Metrics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 border-l-4 border-blue-500">
+            <p class="text-sm text-gray-500 dark:text-gray-400 font-medium">Total Order Value</p>
+            <h3 class="text-2xl font-bold text-gray-800 dark:text-white mt-2">₦{{ totals.total_order_value|default:"0.00" }}</h3>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 border-l-4 border-indigo-500">
+            <p class="text-sm text-gray-500 dark:text-gray-400 font-medium">Tenant Share</p>
+            <h3 class="text-2xl font-bold text-gray-800 dark:text-white mt-2">₦{{ totals.total_tenant|default:"0.00" }}</h3>
+        </div>
+        {% if is_superuser %}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 border-l-4 border-green-500">
+            <p class="text-sm text-gray-500 dark:text-gray-400 font-medium">Dignity Commission</p>
+            <h3 class="text-2xl font-bold text-gray-800 dark:text-white mt-2">₦{{ totals.total_dignity|default:"0.00" }}</h3>
+        </div>
+        {% endif %}
+        {% if is_superuser or is_aggregator %}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 border-l-4 border-purple-500">
+            <p class="text-sm text-gray-500 dark:text-gray-400 font-medium">Aggregator Commission</p>
+            <h3 class="text-2xl font-bold text-gray-800 dark:text-white mt-2">₦{{ totals.total_aggregator|default:"0.00" }}</h3>
+        </div>
+        {% endif %}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 border-l-4 border-yellow-500">
+            <p class="text-sm text-gray-500 dark:text-gray-400 font-medium">DSA Commission</p>
+            <h3 class="text-2xl font-bold text-gray-800 dark:text-white mt-2">₦{{ totals.total_dsa|default:"0.00" }}</h3>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 mb-8">
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date</label>
+                <input type="date" name="start_date" value="{{ request.GET.start_date }}" class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Date</label>
+                <input type="date" name="end_date" value="{{ request.GET.end_date }}" class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+            {% if is_superuser %}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tenant</label>
+                <select name="tenant" class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <option value="">All Tenants</option>
+                    {% for t in tenants %}
+                    <option value="{{ t.id }}" {% if request.GET.tenant == t.id|stringformat:"s" %}selected{% endif %}>{{ t.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Order ID</label>
+                <input type="text" name="order_id" value="{{ request.GET.order_id }}" placeholder="e.g. ORD123" class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+            <div class="md:col-span-4 flex justify-end">
+                <a href="{% url 'laundry:commission_dashboard' %}" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 transition mr-2">Clear</a>
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition">Apply Filters</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Table -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700/50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Order</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tenant</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Order Val</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tenant Share</th>
+                        {% if is_superuser %}
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Dignity</th>
+                        {% endif %}
+                        {% if is_superuser or is_aggregator %}
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Aggregator</th>
+                        {% endif %}
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">DSA</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for c in commissions %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">{{ c.created_at|date:"M d, Y" }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 dark:text-blue-400">{{ c.order.order_code }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ c.tenant.name }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 dark:text-gray-300">₦{{ c.total_order_value }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500 dark:text-gray-400">₦{{ c.tenant_share }}</td>
+                        {% if is_superuser %}
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-green-600 dark:text-green-400">₦{{ c.net_dignity_commission }}</td>
+                        {% endif %}
+                        {% if is_superuser or is_aggregator %}
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-purple-600 dark:text-purple-400">₦{{ c.aggregator_commission_amount }}</td>
+                        {% endif %}
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-yellow-600 dark:text-yellow-400">₦{{ c.dsa_commission_amount }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">No commissions found for the selected filters.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

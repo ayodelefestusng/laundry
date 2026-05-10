@@ -431,6 +431,16 @@
     .modal-header { border-bottom: 1px solid var(--lw-border); padding: 25px 30px; }
     .modal-body { padding: 30px; background: var(--lw-bg-light); }
     
+    /* Enlarge Logo */
+    .navbar-brand img {
+        height: auto !important;
+        width: 150px !important;
+        max-height: none !important;
+    }
+    .navbar-brand span {
+        display: none !important; /* Hide text if logo is prominent */
+    }
+
     /* Refactored Additions */
     .hero-badge {
       display: inline-flex;
@@ -624,12 +634,12 @@
             width: 100%;
             text-align: left;
         }
-        /* Carousel — remove border-radius and bleed edge-to-edge */
+        /* Carousel — adjust for mobile to not bleed edge-to-edge */
         .hero-swiper-container {
-            border-radius: 0;
-            margin-left: -12px;
-            margin-right: -12px;
-            width: calc(100% + 24px);
+            border-radius: 16px;
+            margin-left: 0;
+            margin-right: 0;
+            width: 100%;
         }
         /* Step cards — remove side padding so cards stretch to edges */
         #how-it-works .step-card {
@@ -664,7 +674,7 @@
 <section class="hero-section">
     <div class="container">
         <div class="row align-items-center">
-            <div class="col-lg-6 hero-content">
+            <div class="col-lg-6 hero-content order-2 order-lg-1 mt-4 mt-lg-0">
 
 
                 <div class="hero-badge reveal">
@@ -689,7 +699,7 @@
                     <div class="small fw-semibold">Trusted by <span class="text-accent">thousands of</span> Customers</div>
                 </div>
             </div>
-            <div class="col-lg-6">
+            <div class="col-lg-6 order-1 order-lg-2">
                 <div class="swiper heroSwiper hero-swiper-container">
                     <div class="swiper-wrapper">
                         {% if landing_carousel %}
@@ -759,7 +769,7 @@
                     <div class="step-number">2</div>
                     <i class="fas fa-box step-icon"></i>
                     <h3 class="step-title">Pickup</h3>
-                    <p class="step-desc">Our executive collects your laundry from your doorstep.</p>
+                    <p class="step-desc">Our representativecollects your laundry from your doorstep.</p>
                 </div>
             </div>
             <div class="col-md-3 col-sm-6" data-aos="fade-up" data-aos-delay="300">
@@ -1405,25 +1415,7 @@
     </div>
 </div>
 
-<!-- Mobile Bottom Navigation -->
-<nav class="mobile-bottom-nav d-lg-none">
-    <a href="#contact-faq" class="text-center text-decoration-none" onclick="document.getElementById('faq-tab').click();">
-        <i class="fas fa-question-circle d-block fs-4 text-primary"></i>
-        <small class="text-dark">FAQ</small>
-    </a>
-    <a href="#" class="text-center text-decoration-none" onclick="switchToTab('book-tab')" data-bs-toggle="modal" data-bs-target="#bookingModal">
-        <i class="fas fa-calendar-check d-block fs-4 text-primary"></i>
-        <small class="text-dark">Book</small>
-    </a>
-    <a href="#" class="text-center text-decoration-none" onclick="switchToTab('track-tab')" data-bs-toggle="modal" data-bs-target="#bookingModal">
-        <i class="fas fa-search-location d-block fs-4 text-primary"></i>
-        <small class="text-dark">Track</small>
-    </a>
-    <a href="#pricing" class="text-center text-decoration-none">
-        <i class="fas fa-tags d-block fs-4 text-primary"></i>
-        <small class="text-dark">Pricing</small>
-    </a>
-</nav>
+<!-- Mobile Bottom Navigation removed -->
 
 {% endblock %}
 

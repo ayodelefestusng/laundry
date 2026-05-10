@@ -53,6 +53,10 @@ urlpatterns = [
     path('bi/dashboard-async/', views.dashboard_details_async, name='dashboard_details_async'),
     path('bi/export/', views.export_bi_csv, name='export_bi_csv'),
     
+    # Commission Dashboard Views
+    path('commission/', views.commission_dashboard, name='commission_dashboard'),
+    path('commission/export/', views.export_commission_csv, name='export_commission_csv'),
+    
     # Employee Workflow views
     path('employee/queue/', views.employee_queue, name='employee_queue'),
     path('employee/accept/<int:item_id>/', views.accept_item, name='accept_item'),

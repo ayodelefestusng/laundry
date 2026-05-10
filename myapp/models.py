@@ -357,8 +357,16 @@ class TenantManager(models.Manager):
         
         return qs
 
+class ServiceChargeTier(models.Model):
+    name = models.CharField(max_length=100)
+    charge = models.IntegerField(help_text="Charge percentage (e.g. 3 for 3%)")
+
+    def __str__(self):
+        return f"{self.name} ({self.charge}%)"
+
 class Tenant(models.Model):
     name = models.CharField(max_length=255,default="Dignity", help_text="Tenant name, e.g., Dignity")
+    service_charge_tier = models.ForeignKey(ServiceChargeTier, on_delete=models.SET_NULL, null=True, blank=True, help_text="Service charge tier applied to this tenant")
     code = models.CharField(
         max_length=50,
         unique=True,
@@ -1240,5 +1248,81 @@ class HistoricalRecord(TenantModel):
     def __str__(self):
         return f"{self.instance.workflow.name} - {self.action_description[:30]}"
 
+
+class Commission_Structure(models.Model):
+    aggregator = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, limit_choices_to={'groups__name': 'Aggregator'})
+    aggregator_commission = models.IntegerField(help_text="Percentage of Dignity's charge")
+    dignity_commission = models.IntegerField(help_text="Percentage of Dignity's charge")
+    dsa_commission = models.IntegerField(editable=False, help_text="Auto-calculated")
+
+    def save(self, *args, **kwargs):
+        self.dsa_commission = 100 - (self.aggregator_commission + self.dignity_commission)
+        if self.dsa_commission < 0:
+            raise ValidationError("Total commission exceeds 100%")
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Structure for {self.aggregator}"
+
+class Commission(TenantModel):
+    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name="commission_record")
+    total_order_value = models.DecimalField(max_digits=10, decimal_places=2)
+    service_charge_percentage = models.IntegerField()
+    dignity_portion = models.DecimalField(max_digits=10, decimal_places=2)
+    tenant_share = models.DecimalField(max_digits=10, decimal_places=2)
+    
+    dsa = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="dsa_commissions")
+    aggregator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="aggregator_commissions")
+    
+    aggregator_commission_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    dsa_commission_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    net_dignity_commission = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Commission for Order {self.order.order_code}"
+
+@receiver(post_save, sender=Order)
+def create_commission_on_paid(sender, instance, created, **kwargs):
+    if instance.status == 'paid' and not hasattr(instance, 'commission_record'):
+        tenant = instance.tenant
+        if not tenant:
+            return
+            
+        tier = getattr(tenant, 'service_charge_tier', None)
+        charge_pct = tier.charge if tier else 0
+        total_val = instance.total_price or Decimal('0.00')
+        
+        dignity_portion = (Decimal(charge_pct) / Decimal('100.0')) * total_val
+        tenant_share = total_val - dignity_portion
+        
+        dsa = tenant.created_by
+        aggregator = dsa.line_manager if (dsa and hasattr(dsa, 'line_manager')) else None
+        
+        agg_amt = Decimal('0.00')
+        dsa_amt = Decimal('0.00')
+        net_dig = dignity_portion
+        
+        if aggregator:
+            structure = Commission_Structure.objects.filter(aggregator=aggregator).first()
+            if structure:
+                agg_amt = (Decimal(structure.aggregator_commission) / Decimal('100.0')) * dignity_portion
+                dsa_amt = (Decimal(structure.dsa_commission) / Decimal('100.0')) * dignity_portion
+                net_dig = (Decimal(structure.dignity_commission) / Decimal('100.0')) * dignity_portion
+        
+        Commission.objects.create(
+            tenant=tenant,
+            order=instance,
+            total_order_value=total_val,
+            service_charge_percentage=charge_pct,
+            dignity_portion=dignity_portion,
+            tenant_share=tenant_share,
+            dsa=dsa,
+            aggregator=aggregator,
+            aggregator_commission_amount=agg_amt,
+            dsa_commission_amount=dsa_amt,
+            net_dignity_commission=net_dig
+        )
 
 from .landing_models import *  # noqa: E402, F401, F403
