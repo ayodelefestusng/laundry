@@ -425,14 +425,19 @@ if WORKER_URL.startswith("redis://"):
 elif WORKER_URL.startswith("amqp://"):
     # RabbitMQ broker
     CELERY_BROKER_URL = WORKER_URL
-    CELERY_RESULT_BACKEND = "rpc://"
-
+    # CELERY_RESULT_BACKEND = "rpc://"
+    CELERY_RESULT_BACKEND = os.getenv("REDIS_URL", "redis://redis:6379/0")
     # RabbitMQ cannot serve as a Django cache backend.
     # Use a safe fallback like LocMemCache or keep Redis separately for caching.
     CACHES = {
         "default": {
-            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-            "LOCATION": "unique-snowflake",
+            # "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            # "LOCATION": "unique-snowflake",
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": os.getenv("REDIS_URL", "redis://redis:6379/1"),
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            }
         }
     }
 
