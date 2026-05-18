@@ -4,6 +4,7 @@ Django settings for myproject project.
 
 from pathlib import Path
 import os
+import ssl
 import django
 from dotenv import load_dotenv
 from yaml import compose
@@ -399,76 +400,18 @@ GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "YOUR_PLACEHOLDER_KEY")
 #  Redis & Celery Configuration
 # ==============================================================================
 
-# import os
-# import re
-
-# WORKER_URL = os.getenv("WORKER_URL", "redis://redis:6379")
-# # WORKER_URL = "amqp://akanni:@Ajibandele23$03$@whatsapp-1-rabbitmq.xqqhik.easypanel.host:5672/"
-
-# if WORKER_URL.startswith("redis://"):
-#     # Strip trailing /db number for clean base
-#     base_redis_url = re.sub(r'/[0-9]*$', '', WORKER_URL)
-
-#     CELERY_BROKER_URL = f"{base_redis_url}/0"
-#     CELERY_RESULT_BACKEND = f"{base_redis_url}/0"
-
-#     CACHES = {
-#         "default": {
-#             "BACKEND": "django_redis.cache.RedisCache",
-#             "LOCATION": f"{base_redis_url}/1",
-#             "OPTIONS": {
-#                 "CLIENT_CLASS": "django_redis.client.DefaultClient",
-#             }
-#         }
-#     }
-
-# elif WORKER_URL.startswith("amqp://"):
-#     # RabbitMQ broker
-#     CELERY_BROKER_URL = WORKER_URL
-#     # CELERY_RESULT_BACKEND = "rpc://"
-#     CELERY_RESULT_BACKEND = os.getenv("REDIS_URL", "redis://redis:6379/0")
-#     # RabbitMQ cannot serve as a Django cache backend.
-#     # Use a safe fallback like LocMemCache or keep Redis separately for caching.
-#     CACHES = {
-#         "default": {
-#             # "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-#             # "LOCATION": "unique-snowflake",
-#             "BACKEND": "django_redis.cache.RedisCache",
-#             "LOCATION": os.getenv("REDIS_URL", "redis://redis:6379/1"),
-#             "OPTIONS": {
-#                 "CLIENT_CLASS": "django_redis.client.DefaultClient",
-#             }
-#         }
-#     }
-
-# # Common Celery settings
-# CELERY_ACCEPT_CONTENT = ['json']
-# CELERY_TASK_SERIALIZER = 'json'
-# CELERY_RESULT_SERIALIZER = 'json'
-# CELERY_TIMEZONE = TIME_ZONE
-
-# # Connection retry settings
-# CELERY_BROKER_CONNECTION_RETRY = True
-# CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
-# CELERY_BROKER_CONNECTION_MAX_RETRIES = None   # None = infinite retries
-# CELERY_BROKER_CONNECTION_TIMEOUT = 30    
-
-
 import os
 import re
 
-WORKER_URL = os.getenv("WORKER_URL", "redis://localhost:6379")
+WORKER_URL = os.getenv("WORKER_URL", "redis://redis:6379")
+# WORKER_URL = "amqp://akanni:@Ajibandele23$03$@whatsapp-1-rabbitmq.xqqhik.easypanel.host:5672/"
 
-if WORKER_URL.startswith("redis://") or WORKER_URL.startswith("rediss://"):
+if WORKER_URL.startswith("redis://"):
     # Strip trailing /db number for clean base
     base_redis_url = re.sub(r'/[0-9]*$', '', WORKER_URL)
 
     CELERY_BROKER_URL = f"{base_redis_url}/0"
     CELERY_RESULT_BACKEND = f"{base_redis_url}/0"
-
-    # If using TLS (rediss://), enable SSL
-    if WORKER_URL.startswith("rediss://"):
-        BROKER_USE_SSL = {"ssl_cert_reqs": "required"}
 
     CACHES = {
         "default": {
@@ -483,12 +426,16 @@ if WORKER_URL.startswith("redis://") or WORKER_URL.startswith("rediss://"):
 elif WORKER_URL.startswith("amqp://"):
     # RabbitMQ broker
     CELERY_BROKER_URL = WORKER_URL
-    CELERY_RESULT_BACKEND = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-
+    # CELERY_RESULT_BACKEND = "rpc://"
+    CELERY_RESULT_BACKEND = os.getenv("REDIS_URL", "redis://redis:6379/0")
+    # RabbitMQ cannot serve as a Django cache backend.
+    # Use a safe fallback like LocMemCache or keep Redis separately for caching.
     CACHES = {
         "default": {
+            # "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            # "LOCATION": "unique-snowflake",
             "BACKEND": "django_redis.cache.RedisCache",
-            "LOCATION": os.getenv("REDIS_URL", "redis://localhost:6379/1"),
+            "LOCATION": os.getenv("REDIS_URL", "redis://redis:6379/1"),
             "OPTIONS": {
                 "CLIENT_CLASS": "django_redis.client.DefaultClient",
             }
@@ -499,10 +446,10 @@ elif WORKER_URL.startswith("amqp://"):
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = os.getenv("TIME_ZONE", "UTC")
+CELERY_TIMEZONE = TIME_ZONE
 
 # Connection retry settings
 CELERY_BROKER_CONNECTION_RETRY = True
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
-CELERY_BROKER_CONNECTION_MAX_RETRIES = None   # infinite retries
-CELERY_BROKER_CONNECTION_TIMEOUT = 30
+CELERY_BROKER_CONNECTION_MAX_RETRIES = None   # None = infinite retries
+CELERY_BROKER_CONNECTION_TIMEOUT = 30    
