@@ -155,6 +155,8 @@ DATABASES1 = {
     }
 }
 
+
+# ddd
 # AUTH_USER_MODEL = 'myapp.CustomUser' # Correct user model reference
 AUTH_USER_MODEL = 'myapp.CustomUser'
 
