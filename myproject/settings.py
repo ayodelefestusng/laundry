@@ -127,24 +127,33 @@ WSGI_APPLICATION = 'myproject.wsgi.application'
 
 import dj_database_url
 
-_db_config = dj_database_url.config(
-    default=os.getenv("DATABASE_URI", f"sqlite:///{os.path.join(BASE_DIR, 'db.sqlite3')}"),
-    conn_max_age=600,
-    conn_health_checks=True,
-)
-# Add timeout options for PostgreSQL to prevent hanging on bad network
-if _db_config.get('ENGINE') == 'django.db.backends.postgresql':
-    _db_config.setdefault('OPTIONS', {}).update({
-        'connect_timeout': 10,
-        'options': '-c statement_timeout=30000',  # 30 seconds max per statement
-    })
-DATABASES = {'default': _db_config}
+# Use SQLite locally (dev only)
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.sqlite3',
 #         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
 # }
+
+# Uncomment below to use remote PostgreSQL (when server is accessible)
+_db_config = dj_database_url.config(
+    default=os.getenv("DATABASE_URI", f"sqlite:///{os.path.join(BASE_DIR, 'db.sqlite3')}"),
+    conn_max_age=600,
+    conn_health_checks=True,
+)
+if _db_config.get('ENGINE') == 'django.db.backends.postgresql':
+    _db_config.setdefault('OPTIONS', {}).update({
+        'connect_timeout': 10,
+        'options': '-c statement_timeout=30000',
+    })
+DATABASES = {'default': _db_config}
+print("Using DB:", DATABASES['default']['ENGINE'], "at", DATABASES['default'].get('HOST', 'local SQLite'))
+DATABASES1 = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
 
 # AUTH_USER_MODEL = 'myapp.CustomUser' # Correct user model reference
 AUTH_USER_MODEL = 'myapp.CustomUser'
