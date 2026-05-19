@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'django_otp.plugins.otp_static',
     'django_otp.plugins.otp_email',
     'django_htmx',   # optional, for enhanced HTMX support
+    'django_celery_beat', # Added for celery beat admin
   
   
     # Allauth apps
@@ -448,8 +449,27 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 
-# Connection retry settings
+# Connection retry & reliability settings
+CELERY_TASK_ACKS_LATE = True
+CELERY_TASK_ALWAYS_EAGER = os.getenv("CELERY_ALWAYS_EAGER", "False").lower() == "true"
+CELERY_TASK_WORKER_LOST = 30 # Seconds to wait before declaring a worker lost
+CELERY_TASK_IGNORE_RESULT = True
+CELERY_TASK_RETRY_POLICY = {
+    'max_retries': 5,
+    'interval_start': 0, # First retry delay in seconds
+    'interval_step': 0.1, # Exponential backoff multiplier
+    'interval_max': 10, # Maximum retry delay in seconds
+    # 'result_expires': 1000, # Result expiration time in seconds
+}
 CELERY_BROKER_CONNECTION_RETRY = True
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_BROKER_CONNECTION_MAX_RETRIES = None   # None = infinite retries
 CELERY_BROKER_CONNECTION_TIMEOUT = 30    
+
+# Additional reliability settings
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1  # Better fairness for long-running tasks
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000  # Prevent memory leaks by restarting workers
+CELERY_BROKER_POOL_LIMIT = None  # Prevent connection pool issues under high load
+
+# Celery Beat settings
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'

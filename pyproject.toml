@@ -37,4 +37,6 @@ dependencies = [
     "redis>=7.4.0",
     "django-storages>=1.14.6",
     "boto3>=1.43.2",
+    "flower>=2.0.1",
+    "django-celery-beat>=2.9.0",
 ]
