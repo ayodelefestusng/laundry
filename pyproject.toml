@@ -39,4 +39,5 @@ dependencies = [
     "boto3>=1.43.2",
     "flower>=2.0.1",
     "django-celery-beat>=2.9.0",
+    "pytz>=2026.2",
 ]
