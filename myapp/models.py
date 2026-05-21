@@ -1325,4 +1325,27 @@ def create_commission_on_paid(sender, instance, created, **kwargs):
             net_dignity_commission=net_dig
         )
 
+class Feeder(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+    transformer_name = models.CharField(max_length=255, blank=True, null=True)
+    contact_phone = models.CharField(max_length=50, blank=True, null=True)
+    msisdn = models.CharField(max_length=50, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+class PowerStatus(models.Model):
+    feeder = models.ForeignKey(Feeder, on_delete=models.CASCADE, related_name='updates')
+    status = models.CharField(max_length=50) # e.g. "ON", "OFF"
+    timestamp = models.BigIntegerField() # device timestamp/uptime
+    peak_a0 = models.IntegerField(default=0)
+    server_time = models.DateTimeField(default=timezone.now)
+    contact_phone = models.CharField(max_length=50, blank=True, null=True)
+    msisdn = models.CharField(max_length=50, blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.feeder.name} - {self.status} at {self.server_time}"
+
 from .landing_models import *  # noqa: E402, F401, F403
+

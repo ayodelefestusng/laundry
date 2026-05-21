@@ -4,10 +4,16 @@ Django settings for myproject project.
 
 from pathlib import Path
 import os
+import sys
+# # Add the HR project's root to the Python path so its apps (e.g., org) can be imported.
+# HR_PROJECT_ROOT = r"c:\\Users\\Pro\\Desktop\\PROJECT\\Live\\HR\\myproject"
+# if HR_PROJECT_ROOT not in sys.path:
+#     sys.path.append(HR_PROJECT_ROOT)
 import ssl
 import django
 from dotenv import load_dotenv
 from yaml import compose
+
 
 # Load environment variables from a .env file
 load_dotenv()
@@ -68,7 +74,8 @@ INSTALLED_APPS = [
     'django_otp.plugins.otp_email',
     'django_htmx',   # optional, for enhanced HTMX support
     'django_celery_beat', # Added for celery beat admin
-  
+    "customer",  # Add the customer app to INSTALLED_APPS
+    # "org",  # Include org app for Location and related models
   
     # Allauth apps
     'django.contrib.sites',
@@ -146,7 +153,14 @@ if _db_config.get('ENGINE') == 'django.db.backends.postgresql':
         'connect_timeout': 10,
         'options': '-c statement_timeout=30000',
     })
-DATABASES = {'default': _db_config}
+DATABASES = {
+    'default': _db_config,
+    # Remote target database for migrated HR data
+    'remote': dj_database_url.parse(
+        "postgres://postgres:postgres@24.144.119.35:5439/laundry_db?connect_timeout=100",
+        conn_max_age=600,
+    ),
+}
 print("Using DB:", DATABASES['default']['ENGINE'], "at", DATABASES['default'].get('HOST', 'local SQLite'))
 DATABASES1 = {
     'default': {

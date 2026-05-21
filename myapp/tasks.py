@@ -125,24 +125,190 @@ from celery import shared_task
 import os
 import smtplib
 import logging
+import pytz
+from datetime import datetime, time, timedelta
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
-@shared_task(name="myapp.tasks.send_power_email")
-def send_power_email(status, device_time, server_time):
-    gmail_user = os.getenv("GMAIL_USER")
-    gmail_password = os.getenv("GMAIL_APP_PASSWORD")
-    to_email = os.getenv("ALERT_RECIPIENT")
+# Evolution API Credentials for Power Tracker Bot
+EVOLUTION_API_URLS = os.getenv("EVOLUTION_API_URL", "https://whatsapp-1-evolution-api.xqqhik.easypanel.host")
+EVOLUTION_API_KEY = os.getenv("EVOLUTION_API_KEY", "429683C4C977415CAAFCCE10F7D57E11")
+POWER_INSTANCE = os.getenv("POWER_INSTANCE", "power_max_bot")
 
-    subject = f"ALERT: Grid Power is {status.upper()}"
-    body = (
-        f"Grid Status: {status.upper()}\n"
-        f"Server Event Time: {server_time}\n"
-        f"Device Uptime (ms): {device_time}\n"
-        f"Location: Ikorodu Node"
-    )
+def format_time_dot(dt):
+    """
+    Format a datetime object to h.mmam/pm in Africa/Lagos timezone (e.g. 5.13am, 12.41pm).
+    """
+    lagos_tz = pytz.timezone("Africa/Lagos")
+    if timezone.is_aware(dt):
+        dt = dt.astimezone(lagos_tz)
+    else:
+        dt = lagos_tz.localize(dt)
+    h_12 = dt.strftime("%I")
+    minute = dt.strftime("%M")
+    ampm = dt.strftime("%p").lower()
+    h_12 = str(int(h_12))  # strip leading zero
+    return f"{h_12}.{minute}{ampm}"
+
+def format_duration(td):
+    """
+    Format a timedelta object to Xhr(s) Ymin(s) (e.g. 1hr 23mins, 4hrs 40mins).
+    """
+    total_seconds = int(td.total_seconds())
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    
+    parts = []
+    if hours > 0:
+        h_str = "hr" if hours == 1 else "hrs"
+        parts.append(f"{hours}{h_str}")
+    if minutes > 0 or not parts:
+        m_str = "min" if minutes == 1 else "mins"
+        parts.append(f"{minutes}{m_str}")
+    return " ".join(parts)
+
+def send_whatsapp_power_message(number: str, text: str):
+    """
+    Send a text message via Evolution API to the specified contact.
+    """
+    import requests
+    url = f"{EVOLUTION_API_URLS}/message/sendText/{POWER_INSTANCE}"
+    headers = {
+        "apikey": EVOLUTION_API_KEY,
+        "Content-Type": "application/json"
+    }
+    clean_number = number.replace("+", "").strip()
+    recipient = f"{clean_number}@s.whatsapp.net" if "@" not in clean_number else clean_number
+    
+    payload = {
+        "number": recipient,
+        "text": text,
+        "linkPreview": False
+    }
+    
+    try:
+        response = requests.post(url, json=payload, headers=headers, timeout=15)
+        logger.info(f"WhatsApp power alert sent to {recipient}. Status code: {response.status_code}")
+        return response.json()
+    except Exception as e:
+        logger.error(f"Failed to send WhatsApp power alert to {recipient}: {e}", exc_info=True)
+        return None
+
+def generate_power_report(feeder, target_date, is_today=True):
+    """
+    Query power status updates and reconstruct the power cycles on the target date.
+    """
+    from myapp.models import PowerStatus
+    lagos_tz = pytz.timezone("Africa/Lagos")
+    
+    start_naive = datetime.combine(target_date, time.min)
+    end_naive = datetime.combine(target_date, time.max)
+    
+    start_dt = timezone.make_aware(start_naive, lagos_tz)
+    end_dt = timezone.make_aware(end_naive, lagos_tz)
+    
+    # Query updates on target date
+    updates = list(PowerStatus.objects.filter(
+        feeder=feeder,
+        server_time__range=(start_dt, end_dt)
+    ).order_by('server_time'))
+    
+    # Query last update before target date to check starting state
+    pre_update = PowerStatus.objects.filter(
+        feeder=feeder,
+        server_time__lt=start_dt
+    ).order_by('-server_time').first()
+    
+    cycles = []
+    current_on = None
+    
+    if pre_update and pre_update.status.upper() == 'ON':
+        current_on = start_dt
+        
+    for u in updates:
+        status_upper = u.status.upper()
+        if status_upper == 'ON':
+            if current_on is None:
+                current_on = u.server_time
+        elif status_upper == 'OFF':
+            if current_on is not None:
+                cycles.append((current_on, u.server_time))
+                current_on = None
+                
+    if current_on is not None:
+        end_of_cycle = timezone.now().astimezone(lagos_tz) if is_today else end_dt
+        cycles.append((current_on, end_of_cycle))
+        
+    # Format cycles and compute supply duration
+    lines = []
+    total_supply = timedelta()
+    
+    date_str = target_date.strftime("%d/%m/%Y")
+    day_label = "today" if is_today else "yesterday"
+    lines.append(f"{feeder.name} as @ {day_label} {date_str}")
+    
+    for on_time, off_time in cycles:
+        duration = off_time - on_time
+        total_supply += duration
+        
+        on_str = format_time_dot(on_time)
+        off_str = format_time_dot(off_time)
+        dur_str = format_duration(duration)
+        
+        lines.append(f"Power on: {on_str}")
+        lines.append(f"Power off: {off_str}")
+        lines.append(f"Supply {dur_str}")
+        
+    lines.append("")
+    total_supply_str = format_duration(total_supply)
+    lines.append(f"Total Supply {total_supply_str}")
+    
+    if not is_today:
+        total_outage = timedelta(hours=24) - total_supply
+        if total_outage < timedelta():
+            total_outage = timedelta()
+        total_outage_str = format_duration(total_outage)
+        lines.append(f"Total Outage  {total_outage_str}")
+        
+    return "\n".join(lines)
+
+@shared_task(name="myapp.tasks.send_power_email")
+def send_power_email(feeder_name, status, device_time, server_time, contact_phone=None):
+    from myapp.models import Feeder
+    
+    logger.info(f"Processing real-time power update for Feeder {feeder_name} with status {status}")
+    
+    # 1. Fetch/Create Feeder
+    try:
+        feeder, created = Feeder.objects.get_or_create(
+            name=feeder_name,
+            defaults={"contact_phone": contact_phone}
+        )
+        if not created and contact_phone and feeder.contact_phone != contact_phone:
+            feeder.contact_phone = contact_phone
+            feeder.save(update_fields=["contact_phone"])
+    except Exception as e:
+        logger.error(f"Error retrieving or creating Feeder: {e}", exc_info=True)
+        feeder = Feeder(name=feeder_name, contact_phone=contact_phone)
+
+    # 2. Reconstruct today's log cycles report
+    try:
+        lagos_tz = pytz.timezone("Africa/Lagos")
+        today_date = timezone.now().astimezone(lagos_tz).date()
+        body = generate_power_report(feeder, today_date, is_today=True)
+    except Exception as e:
+        logger.error(f"Error generating power report: {e}", exc_info=True)
+        body = f"{feeder_name} status is {status}\nServer time: {server_time}"
+
+    # 3. Send Email Alert
+    gmail_user = os.getenv("GMAIL_USER") or "upwardwave.dignity@gmail.com"
+    gmail_password = os.getenv("GMAIL_APP_PASSWORD") or "ybccjzqmxxlalaal"
+    to_email = os.getenv("ALERT_RECIPIENT") or "ayodelefestusng@gmail.com"
+
+    subject = f"ALERT: Grid Power is {status.upper()} - {feeder_name}"
 
     msg = MIMEMultipart()
     msg['From'] = gmail_user
@@ -154,7 +320,60 @@ def send_power_email(status, device_time, server_time):
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
             server.login(gmail_user, gmail_password)
             server.sendmail(gmail_user, to_email, msg.as_string())
-        logger.info(f"Email sent successfully for status: {status}")
+        logger.info(f"Power alert email sent successfully to {to_email} for Feeder {feeder_name}")
     except Exception as e:
-        logger.error(f"Email failed in worker: {e}")
-        # Celery best practice: wrap in try-except to prevent worker crash
+        logger.error(f"Failed to send email alert for Feeder {feeder_name}: {e}", exc_info=True)
+
+    # 4. Send WhatsApp Alert
+    phone_to_use = contact_phone or feeder.contact_phone
+    if phone_to_use:
+        send_whatsapp_power_message(phone_to_use, body)
+    else:
+        logger.warning(f"No contact phone available to send WhatsApp message for Feeder {feeder_name}")
+
+@shared_task(name="myapp.tasks.send_daily_power_updates")
+def send_daily_power_updates():
+    from myapp.models import Feeder
+    
+    logger.info("Executing periodic daily power summary updates task")
+    
+    lagos_tz = pytz.timezone("Africa/Lagos")
+    yesterday = (timezone.now().astimezone(lagos_tz) - timedelta(days=1)).date()
+    
+    feeders = Feeder.objects.all()
+    if not feeders.exists():
+        logger.info("No feeders found in database for daily updates.")
+        return
+        
+    gmail_user = os.getenv("GMAIL_USER") or "upwardwave.dignity@gmail.com"
+    gmail_password = os.getenv("GMAIL_APP_PASSWORD") or "ybccjzqmxxlalaal"
+    to_email = os.getenv("ALERT_RECIPIENT") or "ayodelefestusng@gmail.com"
+    
+    for feeder in feeders:
+        try:
+            body = generate_power_report(feeder, yesterday, is_today=False)
+            subject = f"DAILY POWER SUMMARY: {feeder.name} - {yesterday.strftime('%d/%m/%Y')}"
+            
+            # Send Email
+            msg = MIMEMultipart()
+            msg['From'] = gmail_user
+            msg['To'] = to_email
+            msg['Subject'] = subject
+            msg.attach(MIMEText(body, 'plain'))
+            
+            try:
+                with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+                    server.login(gmail_user, gmail_password)
+                    server.sendmail(gmail_user, to_email, msg.as_string())
+                logger.info(f"Daily summary email sent for Feeder {feeder.name}")
+            except Exception as e:
+                logger.error(f"Failed to send daily summary email for Feeder {feeder.name}: {e}", exc_info=True)
+                
+            # Send WhatsApp
+            if feeder.contact_phone:
+                send_whatsapp_power_message(feeder.contact_phone, body)
+            else:
+                logger.info(f"No contact phone available to send daily summary WhatsApp for Feeder {feeder.name}")
+                
+        except Exception as e:
+            logger.error(f"Error generating daily summary report for Feeder {feeder.name}: {e}", exc_info=True)
