@@ -36,5 +36,9 @@ COPY --from=builder /app /app
 # Expose port
 EXPOSE 8000
 
-# Run FastAPI app using uv’s virtualenv
-CMD ["/app/.venv/bin/fastapi", "run", "main.py", "--port", "8000", "--host", "0.0.0.0"]
+
+CMD ["gunicorn", "myproject.wsgi:application", \
+     "--bind", "0.0.0.0:8000", \
+     "--workers", "3", \
+     "--timeout", "120"]
+
