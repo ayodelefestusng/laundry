@@ -1,32 +1,34 @@
 # Builder stage
-FROM python:3.12-slim AS builder
+FROM python:3.13-slim AS builder
 
+# Install uv binary
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+
+# Set environment variables for uv and Python stability
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+    PYTHONDONTWRITEBYTECODE=1 \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=never
 
 WORKDIR /app
 
-# Copy dependency files first
+# Copy dependency files first to leverage Docker layer caching
 COPY pyproject.toml uv.lock ./
 
-# Install uv binary directly from official image
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+# Install dependencies (will use system python 3.13 because UV_PYTHON_DOWNLOADS=never)
+RUN uv sync --frozen --no-cache --no-install-project
 
-# Install dependencies (isolated virtualenv)
+# Copy source code and install project
+COPY . .
 RUN uv sync --frozen --no-cache
 
-# Copy source code
-COPY . .
-
-# Install build tools only if needed for compiling deps
-RUN apt-get update && apt-get install -y --no-install-recommends build-essential \
-    && rm -rf /var/lib/apt/lists/*
-
 # Runtime stage
-FROM python:3.12-slim
+FROM python:3.13-slim
 
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+    PYTHONDONTWRITEBYTECODE=1 \
+    PATH="/app/.venv/bin:$PATH"
 
 WORKDIR /app
 
@@ -36,6 +38,5 @@ COPY --from=builder /app /app
 # Expose port
 EXPOSE 8000
 
-
-
-CMD ["/app/.venv/bin/gunicorn", "myproject.wsgi:application", "-b", "0.0.0.0:8000"]
+# Run FastAPI/Django app using uv’s virtualenv
+CMD ["gunicorn", "myproject.wsgi:application", "-b", "0.0.0.0:8000"]
