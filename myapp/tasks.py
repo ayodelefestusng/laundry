@@ -377,3 +377,53 @@ def send_daily_power_updates():
                 
         except Exception as e:
             logger.error(f"Error generating daily summary report for Feeder {feeder.name}: {e}", exc_info=True)
+
+
+@shared_task(name="myapp.tasks.send_security_alert_email")
+def send_security_alert_email(feeder_name, transformer_name, contact_phone, msisdn, server_time):
+    logger.warning(
+        f"🚨 SECURITY ALERT: Hardware SIM mismatch detected for Feeder: {feeder_name} "
+        f"({transformer_name}). Expected contact: {contact_phone}, received SIM: {msisdn} "
+        f"at {server_time}."
+    )
+    
+    # 1. Prepare email content
+    gmail_user = os.getenv("GMAIL_USER") or "upwardwave.dignity@gmail.com"
+    gmail_password = os.getenv("GMAIL_APP_PASSWORD") or "ybccjzqmxxlalaal"
+    to_email = os.getenv("ALERT_RECIPIENT") or "ayodelefestusng@gmail.com"
+
+    subject = f"🚨 SECURITY ALERT: SIM Mismatch for {feeder_name}"
+    
+    body = (
+        f"CRITICAL SECURITY ALERT\n"
+        f"=======================\n\n"
+        f"A hardware SIM card identity mismatch has been detected on the power tracker network.\n\n"
+        f"Feeder Name: {feeder_name}\n"
+        f"Transformer: {transformer_name}\n"
+        f"Designated Contact: {contact_phone}\n"
+        f"Active SIM MSISDN: {msisdn}\n"
+        f"Detection Server Time: {server_time}\n\n"
+        f"Please verify the hardware node immediately to prevent unauthorized access or tampering."
+    )
+
+    msg = MIMEMultipart()
+    msg['From'] = gmail_user
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    msg.attach(MIMEText(body, 'plain'))
+
+    # 2. Send email
+    try:
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(gmail_user, gmail_password)
+            server.sendmail(gmail_user, to_email, msg.as_string())
+        logger.info(f"Security alert email sent successfully to {to_email} for Feeder {feeder_name}")
+    except Exception as e:
+        logger.error(f"Failed to send security alert email: {e}", exc_info=True)
+
+    # 3. Send WhatsApp message if phone matches or target alert contact
+    phone_to_use = contact_phone
+    if phone_to_use:
+        send_whatsapp_power_message(phone_to_use, body)
+    else:
+        logger.warning("No contact phone available to send security alert WhatsApp.")
