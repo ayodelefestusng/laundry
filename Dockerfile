@@ -1,44 +1,40 @@
-FROM python:3.13-slim-bookworm AS builder
+# Builder stage
+FROM python:3.12-slim AS builder
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
 
 WORKDIR /app
 
 # Copy dependency files first
-COPY pyproject.toml  ./
+COPY pyproject.toml uv.lock ./
 
-# Install dependencies using pip directly from pyproject.toml
-RUN pip install --no-cache-dir -e .
+# Install uv binary directly from official image
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
-# ── Runtime image ──────────────────────────────────────────────
-FROM python:3.13-slim-bookworm
+# Install dependencies (isolated virtualenv)
+RUN uv sync --frozen --no-cache
+
+# Copy source code
+COPY . .
+
+# Install build tools only if needed for compiling deps
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Runtime stage
+FROM python:3.12-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
 
 WORKDIR /app
 
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PATH="/usr/local/bin:$PATH"
-
-# Install system libraries
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq5 \
-    libcairo2 \
-    libpango-1.0-0 \
-    libpangocairo-1.0-0 \
-    libgdk-pixbuf2.0-0 \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy installed packages from builder
-COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
+# Copy only the built app + venv from builder
 COPY --from=builder /app /app
-# Copy project source
-COPY . .
 
-# Collect static files (dummy DB just for collectstatic)
-RUN touch db.sqlite3 && python manage.py collectstatic --no-input --clear
-
+# Expose port
 EXPOSE 8000
 
-CMD ["gunicorn", "myproject.wsgi:application", \
-     "--bind", "0.0.0.0:8000", \
-     "--workers", "3", \
-     "--timeout", "120"]
+# Run FastAPI app using uv’s virtualenv
+CMD ["/app/.venv/bin/fastapi", "run", "main.py", "--port", "8000", "--host", "0.0.0.0"]
