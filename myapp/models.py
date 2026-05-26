@@ -1326,10 +1326,19 @@ def create_commission_on_paid(sender, instance, created, **kwargs):
         )
 
 class Feeder(models.Model):
+    BAND_CHOICES = [
+        ('A', 'Band A'),
+        ('B', 'Band B'),
+        ('C', 'Band C'),
+        ('D', 'Band D'),
+        ('E', 'Band E'),
+        ('F', 'Band F'),
+    ]
     name = models.CharField(max_length=255, unique=True)
     transformer_name = models.CharField(max_length=255, blank=True, null=True)
     contact_phone = models.CharField(max_length=50, blank=True, null=True)
     msisdn = models.CharField(max_length=50, blank=True, null=True)
+    band = models.CharField(max_length=1, choices=BAND_CHOICES, default='A')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
