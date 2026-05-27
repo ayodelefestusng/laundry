@@ -1,11 +1,12 @@
 # Register your models here.
+from myapp.models import Feeder
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
 
 from .models import (Comment, CustomUser, Order, OrderItem, Package,
                      ServiceCategory,Tenant, TenantAttribute, Workflow, WorkflowStage, WorkflowInstance, WorkflowHistory,
-                     ServiceChoices,PremiumClient,QR,DeliveryPricing, Color,Cluster, State, Town)
+                     ServiceChoices,PremiumClient,QR,DeliveryPricing, Color,Cluster, State, Town,Feeder,PowerStatus)
 
 from .landing_models import (
     LandingCarousel, LandingText, LandingValue, LandingCommitment, 
@@ -128,7 +129,8 @@ admin.site.register(PremiumClient, admin.ModelAdmin)
 admin.site.register(QR)
 admin.site.register(DeliveryPricing)
 
-
+admin.site.register(Feeder)
+admin.site.register(PowerStatus) 
 
 
 

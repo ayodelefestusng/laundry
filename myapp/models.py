@@ -1336,8 +1336,13 @@ class Feeder(models.Model):
     ]
     name = models.CharField(max_length=255, unique=True)
     transformer_name = models.CharField(max_length=255, blank=True, null=True)
-    contact_phone = models.CharField(max_length=50, blank=True, null=True)
+    # Renamed from contact_phone to registered_phone
+    registered_phone = models.CharField(max_length=50, blank=True, null=True)
     msisdn = models.CharField(max_length=50, blank=True, null=True)
+    # New fields for custodian information and SIM serial
+    custodian_name = models.CharField(max_length=255, blank=True, null=True)
+    custodian_phone = models.CharField(max_length=50, blank=True, null=True)
+    sim_serial = models.CharField(max_length=100, blank=True, null=True)
     band = models.CharField(max_length=1, choices=BAND_CHOICES, default='A')
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -1350,7 +1355,8 @@ class PowerStatus(models.Model):
     timestamp = models.BigIntegerField() # device timestamp/uptime
     peak_a0 = models.IntegerField(default=0)
     server_time = models.DateTimeField(default=timezone.now)
-    contact_phone = models.CharField(max_length=50, blank=True, null=True)
+    # Renamed from contact_phone to sim_serial
+    sim_serial = models.CharField(max_length=100, blank=True, null=True)
     msisdn = models.CharField(max_length=50, blank=True, null=True)
 
     def __str__(self):
