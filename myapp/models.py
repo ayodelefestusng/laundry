@@ -1336,6 +1336,8 @@ class Feeder(models.Model):
     ]
     name = models.CharField(max_length=255, unique=True)
     transformer_name = models.CharField(max_length=255, blank=True, null=True)
+    transformer_code = models.CharField(max_length=255, blank=True, null=True)
+    primary_recipient = models.TextField(blank=True, null=True, help_text="Comma-separated whatsapp numbers and/or group IDs")
     # Renamed from contact_phone to registered_phone
     registered_phone = models.CharField(max_length=50, blank=True, null=True)
     msisdn = models.CharField(max_length=50, blank=True, null=True)
