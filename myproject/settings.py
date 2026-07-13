@@ -229,6 +229,8 @@ def get_csrf_trusted_origins():
             if tenant.subdomain:
                 # Add common deployment patterns
                 origins.append(f"https://{tenant.subdomain}.xqqhik.easypanel.host")
+                origins.append(f"https://vectra-laundry-app.qgmg5v.easypanel.host")
+                origins.append(f"https://{tenant.subdomain}.localhost:8000")
                 origins.append(f"http://{tenant.subdomain}.localhost:8000")
                 origins.append(f"http://{tenant.subdomain}.127.0.0.1:8000")
                 origins.append(f"http://{tenant.subdomain}.127.0.0.1:8002")
@@ -253,6 +255,7 @@ CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in raw_origins.split(",") if o
 # Default CSRF_TRUSTED_ORIGINS (fallback until database is ready)
 CSRF_TRUSTED_ORIGINS.extend([
      "https://whatsapp-1-vectra-laundry-app.xqqhik.easypanel.host",
+     "https://vectra-laundry-app.qgmg5v.easypanel.host/",
     "http://dignityconcept.tech",
     "https://dignityconcept.tech",
     "http://www.dignityconcept.tech",

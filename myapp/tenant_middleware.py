@@ -18,6 +18,7 @@ class TenantMiddleware(MiddlewareMixin):
             "127.0.0.1",
             "127.0.0.0",
                "localhost",
+                "vectra-laundry-app.qgmg5v.easypanel.host",
             "whatsapp-1-vectra-laundry-app.xqqhik.easypanel.host",
             # "ayo.vectra.ng",
              "vectra.ng",

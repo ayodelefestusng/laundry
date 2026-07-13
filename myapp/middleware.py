@@ -97,6 +97,7 @@ class CSRFDynamicOriginMiddleware:
                 if tenant.subdomain:
                     # Production pattern
                     origins.append(f"https://{tenant.subdomain}.xqqhik.easypanel.host")
+                    origins.append(f"https://vectra-laundry-app.qgmg5v.easypanel.host")
                     # Local development patterns
                     origins.append(f"http://{tenant.subdomain}.localhost:8000")
                     origins.append(f"http://{tenant.subdomain}.127.0.0.1:8000")
