@@ -276,25 +276,99 @@ def generate_power_report(feeder, target_date, is_today=True):
     return "\n".join(lines)
 
 @shared_task(name="myapp.tasks.send_power_email")
-def send_power_email(feeder_name, status, device_time, server_time, contact_phone=None):
-    from myapp.models import Feeder
+def send_power_email(feeder_name, status, device_time, server_time, contact_phone=None, transformer_name="UNKNOWN_TRANSFORMER", peak_a0=0, msisdn="UNKNOWN", sim_serial="UNKNOWN"):
+    from myapp.models import Feeder, PowerStatus
     
     logger.info(f"Processing real-time power update for Feeder {feeder_name} with status {status}")
     
-    # 1. Fetch/Create Feeder
+    # Resolve the transformer name/code
+    resolved_transformer_name = "UNKNOWN_TRANSFORMER"
+    if transformer_name and transformer_name != "UNKNOWN_TRANSFORMER":
+        lookup_feeder = Feeder.objects.filter(transformer_code=transformer_name).first()
+        if lookup_feeder and lookup_feeder.transformer_name:
+            resolved_transformer_name = lookup_feeder.transformer_name
+        else:
+            resolved_transformer_name = transformer_name
+    else:
+        resolved_transformer_name = transformer_name
+
+    # 1. Fetch/Create/Update Feeder
     try:
+        sim_serial_val = sim_serial if sim_serial != "UNKNOWN" else (contact_phone or "UNKNOWN")
+        
         feeder, created = Feeder.objects.get_or_create(
             name=feeder_name,
-            defaults={"contact_phone": contact_phone}
+            defaults={
+                "transformer_name": resolved_transformer_name,
+                "transformer_code": transformer_name,
+                "sim_serial": sim_serial_val,
+                "msisdn": msisdn,
+                "registered_phone": contact_phone,
+                "band": 'A'
+            }
         )
-        if not created and contact_phone and feeder.contact_phone != contact_phone:
-            feeder.contact_phone = contact_phone
-            feeder.save(update_fields=["contact_phone"])
+        if not created:
+            updated_fields = []
+            if feeder.transformer_name != resolved_transformer_name:
+                feeder.transformer_name = resolved_transformer_name
+                updated_fields.append("transformer_name")
+            if feeder.transformer_code != transformer_name:
+                feeder.transformer_code = transformer_name
+                updated_fields.append("transformer_code")
+            if feeder.sim_serial != sim_serial_val:
+                feeder.sim_serial = sim_serial_val
+                updated_fields.append("sim_serial")
+            if feeder.msisdn != msisdn:
+                feeder.msisdn = msisdn
+                updated_fields.append("msisdn")
+            if contact_phone and feeder.registered_phone != contact_phone:
+                feeder.registered_phone = contact_phone
+                updated_fields.append("registered_phone")
+                
+            if updated_fields:
+                feeder.save(update_fields=updated_fields)
     except Exception as e:
         logger.error(f"Error retrieving or creating Feeder: {e}", exc_info=True)
-        feeder = Feeder(name=feeder_name, contact_phone=contact_phone)
+        sim_serial_val = sim_serial if sim_serial != "UNKNOWN" else (contact_phone or "UNKNOWN")
+        feeder = Feeder(
+            name=feeder_name, 
+            transformer_name=resolved_transformer_name,
+            transformer_code=transformer_name,
+            sim_serial=sim_serial_val,
+            msisdn=msisdn,
+            registered_phone=contact_phone
+        )
 
-    # 2. Reconstruct today's log cycles report
+    # 2. Save the PowerStatus record using Django ORM
+    try:
+        lagos_tz = pytz.timezone("Africa/Lagos")
+        try:
+            server_time_dt = datetime.strptime(server_time, "%Y-%m-%d %H:%M:%S.%f")
+        except ValueError:
+            try:
+                server_time_dt = datetime.strptime(server_time, "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                server_time_dt = timezone.now()
+                
+        if timezone.is_naive(server_time_dt):
+            server_time_dt = timezone.make_aware(server_time_dt, lagos_tz)
+
+        sim_serial_val = sim_serial if sim_serial != "UNKNOWN" else (contact_phone or "UNKNOWN")
+
+        PowerStatus.objects.create(
+            feeder=feeder,
+            status=status.upper(),
+            timestamp=int(device_time),
+            peak_a0=int(peak_a0),
+            server_time=server_time_dt,
+            sim_serial=sim_serial_val,
+            msisdn=msisdn
+        )
+        logger.info(f"Persisted power status update in database for feeder {feeder_name}")
+    except Exception as db_err:
+        logger.error(f"Failed to save PowerStatus record: {db_err}", exc_info=True)
+
+    # 3. Reconstruct today's log cycles report
     try:
         lagos_tz = pytz.timezone("Africa/Lagos")
         today_date = timezone.now().astimezone(lagos_tz).date()
@@ -303,7 +377,7 @@ def send_power_email(feeder_name, status, device_time, server_time, contact_phon
         logger.error(f"Error generating power report: {e}", exc_info=True)
         body = f"{feeder_name} status is {status}\nServer time: {server_time}"
 
-    # 3. Send Email Alert
+    # 4. Send Email Alert
     gmail_user = os.getenv("GMAIL_USER") or "upwardwave.dignity@gmail.com"
     gmail_password = os.getenv("GMAIL_APP_PASSWORD") or "ybccjzqmxxlalaal"
     to_email = os.getenv("ALERT_RECIPIENT") or "ayodelefestusng@gmail.com"
@@ -324,8 +398,8 @@ def send_power_email(feeder_name, status, device_time, server_time, contact_phon
     except Exception as e:
         logger.error(f"Failed to send email alert for Feeder {feeder_name}: {e}", exc_info=True)
 
-    # 4. Send WhatsApp Alert
-    phone_to_use = contact_phone or feeder.contact_phone
+    # 5. Send WhatsApp Alert
+    phone_to_use = contact_phone or feeder.registered_phone
     if phone_to_use:
         send_whatsapp_power_message(phone_to_use, body)
     else:
@@ -370,8 +444,8 @@ def send_daily_power_updates():
                 logger.error(f"Failed to send daily summary email for Feeder {feeder.name}: {e}", exc_info=True)
                 
             # Send WhatsApp
-            if feeder.contact_phone:
-                send_whatsapp_power_message(feeder.contact_phone, body)
+            if feeder.registered_phone:
+                send_whatsapp_power_message(feeder.registered_phone, body)
             else:
                 logger.info(f"No contact phone available to send daily summary WhatsApp for Feeder {feeder.name}")
                 

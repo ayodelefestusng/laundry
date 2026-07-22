@@ -1348,6 +1348,14 @@ class Feeder(models.Model):
     band = models.CharField(max_length=1, choices=BAND_CHOICES, default='A')
     created_at = models.DateTimeField(auto_now_add=True)
 
+    @property
+    def contact_phone(self):
+        return self.registered_phone
+
+    @contact_phone.setter
+    def contact_phone(self, value):
+        self.registered_phone = value
+
     def __str__(self):
         return self.name
 
@@ -1360,6 +1368,14 @@ class PowerStatus(models.Model):
     # Renamed from contact_phone to sim_serial
     sim_serial = models.CharField(max_length=100, blank=True, null=True)
     msisdn = models.CharField(max_length=50, blank=True, null=True)
+
+    @property
+    def contact_phone(self):
+        return self.sim_serial
+
+    @contact_phone.setter
+    def contact_phone(self, value):
+        self.sim_serial = value
 
     def __str__(self):
         return f"{self.feeder.name} - {self.status} at {self.server_time}"
