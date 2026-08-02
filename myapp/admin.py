@@ -6,7 +6,7 @@ from django.contrib.auth.admin import UserAdmin
 
 from .models import (Comment, CustomUser, Order, OrderItem, Package,
                      ServiceCategory,Tenant, TenantAttribute, Workflow, WorkflowStage, WorkflowInstance, WorkflowHistory,
-                     ServiceChoices,PremiumClient,QR,DeliveryPricing, Color,Cluster, State, Town,Feeder,PowerStatus)
+                     ServiceChoices,PremiumClient,QR,DeliveryPricing, Color,Cluster, State, Town,Feeder,PowerStatus,School_tenant,Student_profile,Attendance_log)
 
 from .landing_models import (
     LandingCarousel, LandingText, LandingValue, LandingCommitment, 
@@ -171,3 +171,23 @@ class WorkflowInstanceAdmin(admin.ModelAdmin):
     readonly_fields = ("stages",)
 
 
+
+@admin.register(School_tenant)
+class School_tenantAdmin(admin.ModelAdmin):
+    list_display = ("id", "tenant_name", "tenant_code", "evolution_instance", "evolution_api")
+    search_fields = ("tenant_name", "tenant_code")
+    ordering = ("tenant_name",)
+
+@admin.register(Attendance_log)
+class Attendance_logAdmin(admin.ModelAdmin):
+    list_display = ("id", "student", "status", "created")
+    list_filter = ("status", "created")
+    search_fields = ("student__student_firstname", "student__student_lastname", "student__student_id")
+    ordering = ("-created",)
+
+@admin.register(Student_profile)
+class Student_profileAdmin(admin.ModelAdmin):
+    list_display = ("id", "tenant_name", "student_firstname", "student_lastname", "student_id", "student_email", "phone_number")
+    list_filter = ("tenant_name", "created")
+    search_fields = ("student_firstname", "student_lastname", "student_id", "student_email")
+    ordering = ("student_lastname", "student_firstname")
