@@ -1337,11 +1337,25 @@ class Feeder(models.Model):
     name = models.CharField(max_length=255, unique=True)
     transformer_name = models.CharField(max_length=255, blank=True, null=True)
     transformer_code = models.CharField(max_length=255, blank=True, null=True)
-    primary_recipient = models.TextField(blank=True, null=True, help_text="Comma-separated whatsapp numbers and/or group IDs")
+    primary_recipient = models.TextField(
+        blank=True, null=True,
+        help_text="Comma-separated WhatsApp numbers and/or group IDs (legacy / fallback)"
+    )
+    # Dedicated WhatsApp recipients for power alerts
+    whatsapp_primary = models.CharField(
+        max_length=50, blank=True, null=True,
+        default="2348021299221",
+        help_text="Primary WhatsApp number to receive power alerts (e.g. 2348021299221)"
+    )
+    whatsapp_group = models.CharField(
+        max_length=100, blank=True, null=True,
+        default="120363410539285836@g.us",
+        help_text="WhatsApp group ID for power alerts (e.g. 120363410539285836@g.us)"
+    )
     # Renamed from contact_phone to registered_phone
     registered_phone = models.CharField(max_length=50, blank=True, null=True)
     msisdn = models.CharField(max_length=50, blank=True, null=True)
-    # New fields for custodian information and SIM serial
+    # Custodian information and SIM serial
     custodian_name = models.CharField(max_length=255, blank=True, null=True)
     custodian_phone = models.CharField(max_length=50, blank=True, null=True)
     sim_serial = models.CharField(max_length=100, blank=True, null=True)
@@ -1356,18 +1370,70 @@ class Feeder(models.Model):
     def contact_phone(self, value):
         self.registered_phone = value
 
+    def get_whatsapp_recipients(self):
+        """
+        Return a deduplicated list of WhatsApp recipient IDs.
+        Priority: whatsapp_primary + whatsapp_group fields.
+        Falls back to primary_recipient (legacy) if dedicated fields are empty.
+        """
+        recipients = []
+        if self.whatsapp_primary:
+            num = self.whatsapp_primary.replace("+", "").strip()
+            if num:
+                recipients.append(f"{num}@s.whatsapp.net" if "@" not in num else num)
+        if self.whatsapp_group:
+            group = self.whatsapp_group.strip()
+            if group and group not in recipients:
+                recipients.append(group)
+        # Legacy fallback
+        if not recipients and self.primary_recipient:
+            import re
+            for part in re.split(r'[,\s;]+', self.primary_recipient):
+                part = part.strip().replace("(", "").replace(")", "")
+                if not part:
+                    continue
+                if "@" in part:
+                    recipients.append(part)
+                else:
+                    clean = part.replace("+", "").strip()
+                    if clean:
+                        recipients.append(f"{clean}@s.whatsapp.net")
+        return recipients
+
     def __str__(self):
         return self.name
 
 class PowerStatus(models.Model):
     feeder = models.ForeignKey(Feeder, on_delete=models.CASCADE, related_name='updates')
-    status = models.CharField(max_length=50) # e.g. "ON", "OFF"
-    timestamp = models.BigIntegerField() # device timestamp/uptime
+    status = models.CharField(max_length=50)  # e.g. "ON", "OFF" (combined / legacy)
+    timestamp = models.BigIntegerField()       # device timestamp / uptime
     peak_a0 = models.IntegerField(default=0)
     server_time = models.DateTimeField(default=timezone.now)
-    # Renamed from contact_phone to sim_serial
     sim_serial = models.CharField(max_length=100, blank=True, null=True)
     msisdn = models.CharField(max_length=50, blank=True, null=True)
+
+    # ── Device / DT identifier ───────────────────────────────
+    dt = models.CharField(
+        max_length=100, blank=True, null=True,
+        help_text="Device type identifier, e.g. PEARL"
+    )
+
+    # ── Three-phase readings (populated for PEARL DT and future 3-phase nodes) ──
+    volt_r = models.FloatField(default=0.0, help_text="Red phase RMS voltage (V)")
+    stat_r = models.CharField(
+        max_length=10, blank=True, null=True,
+        help_text="Red phase status: ON or OFF"
+    )
+    volt_y = models.FloatField(default=0.0, help_text="Yellow phase RMS voltage (V)")
+    stat_y = models.CharField(
+        max_length=10, blank=True, null=True,
+        help_text="Yellow phase status: ON or OFF"
+    )
+    volt_b = models.FloatField(default=0.0, help_text="Blue phase RMS voltage (V)")
+    stat_b = models.CharField(
+        max_length=10, blank=True, null=True,
+        help_text="Blue phase status: ON or OFF"
+    )
 
     @property
     def contact_phone(self):
@@ -1377,7 +1443,20 @@ class PowerStatus(models.Model):
     def contact_phone(self, value):
         self.sim_serial = value
 
+    @property
+    def is_three_phase(self):
+        """True if this record carries three-phase data."""
+        return bool(self.dt and self.stat_r is not None)
+
     def __str__(self):
+        if self.is_three_phase:
+            return (
+                f"{self.feeder.name} [{self.dt}] "
+                f"R:{self.stat_r}/{self.volt_r:.1f}V "
+                f"Y:{self.stat_y}/{self.volt_y:.1f}V "
+                f"B:{self.stat_b}/{self.volt_b:.1f}V "
+                f"@ {self.server_time}"
+            )
         return f"{self.feeder.name} - {self.status} at {self.server_time}"
 
 
