@@ -1343,14 +1343,14 @@ class Feeder(models.Model):
     )
     # Dedicated WhatsApp recipients for power alerts
     whatsapp_primary = models.CharField(
-        max_length=50, blank=True, null=True,
-        default="2348021299221",
-        help_text="Primary WhatsApp number to receive power alerts (e.g. 2348021299221)"
+        max_length=255, blank=True, null=True,
+        default="2348021299221, 2348108383472",
+        help_text="Comma-separated primary WhatsApp numbers (e.g. 2348021299221, 2348108383472)"
     )
     whatsapp_group = models.CharField(
-        max_length=100, blank=True, null=True,
-        default="120363410539285836@g.us",
-        help_text="WhatsApp group ID for power alerts (e.g. 120363410539285836@g.us)"
+        max_length=255, blank=True, null=True,
+        default="120363410539285836@g.us, 120363429032532411@g.us",
+        help_text="Comma-separated WhatsApp group IDs (e.g. 120363410539285836@g.us, 120363429032532411@g.us)"
     )
     # Renamed from contact_phone to registered_phone
     registered_phone = models.CharField(max_length=50, blank=True, null=True)
