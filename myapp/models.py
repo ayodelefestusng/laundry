@@ -1344,12 +1344,12 @@ class Feeder(models.Model):
     # Dedicated WhatsApp recipients for power alerts
     whatsapp_primary = models.CharField(
         max_length=255, blank=True, null=True,
-        default="2348021299221, 2348108383472",
-        help_text="Comma-separated primary WhatsApp numbers (e.g. 2348021299221, 2348108383472)"
+        default="2348021299221, 2349068770054",
+        help_text="Comma-separated primary WhatsApp numbers (e.g. 2348021299221, 2349068770054)"
     )
     whatsapp_group = models.CharField(
         max_length=255, blank=True, null=True,
-        default="120363410539285836@g.us, 120363429032532411@g.us",
+        default="120363410539285836@g.us, 120363429032532411@g.us, 120363429460546485@g.us",
         help_text="Comma-separated WhatsApp group IDs (e.g. 120363410539285836@g.us, 120363429032532411@g.us)"
     )
     # Renamed from contact_phone to registered_phone
@@ -1370,34 +1370,78 @@ class Feeder(models.Model):
     def contact_phone(self, value):
         self.registered_phone = value
 
+    def clean(self):
+        super().clean()
+        import re
+        if self.whatsapp_primary:
+            primaries = []
+            for part in re.split(r'[,\n;\r]+', str(self.whatsapp_primary)):
+                p = part.strip()
+                if not p:
+                    continue
+                p_clean = re.sub(r'[\+\s\-\(\)]', '', p)
+                if p_clean.startswith('0') and len(p_clean) == 11 and p_clean.isdigit():
+                    p_clean = '234' + p_clean[1:]
+                if p_clean and p_clean not in primaries:
+                    primaries.append(p_clean)
+            self.whatsapp_primary = ', '.join(primaries)
+
+        if self.whatsapp_group:
+            groups = []
+            for part in re.split(r'[,\n;\r]+', str(self.whatsapp_group)):
+                g = part.strip()
+                if g and g not in groups:
+                    groups.append(g)
+            self.whatsapp_group = ', '.join(groups)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
     def get_whatsapp_recipients(self):
         """
         Return a deduplicated list of WhatsApp recipient IDs.
         Priority: whatsapp_primary + whatsapp_group fields.
         Falls back to primary_recipient (legacy) if dedicated fields are empty.
         """
+        import re
         recipients = []
         if self.whatsapp_primary:
-            num = self.whatsapp_primary.replace("+", "").strip()
-            if num:
-                recipients.append(f"{num}@s.whatsapp.net" if "@" not in num else num)
+            for part in re.split(r'[,\n;\r]+', str(self.whatsapp_primary)):
+                p = part.strip()
+                if not p:
+                    continue
+                p_clean = re.sub(r'[\+\s\-\(\)]', '', p)
+                if p_clean.startswith('0') and len(p_clean) == 11 and p_clean.isdigit():
+                    p_clean = '234' + p_clean[1:]
+                if p_clean:
+                    formatted = f"{p_clean}@s.whatsapp.net" if "@" not in p_clean else p_clean
+                    if formatted not in recipients:
+                        recipients.append(formatted)
+
         if self.whatsapp_group:
-            group = self.whatsapp_group.strip()
-            if group and group not in recipients:
-                recipients.append(group)
+            for part in re.split(r'[,\n;\r]+', str(self.whatsapp_group)):
+                g = part.strip()
+                if g and g not in recipients:
+                    recipients.append(g)
+
         # Legacy fallback
         if not recipients and self.primary_recipient:
-            import re
-            for part in re.split(r'[,\s;]+', self.primary_recipient):
+            for part in re.split(r'[,\n;\r]+', str(self.primary_recipient)):
                 part = part.strip().replace("(", "").replace(")", "")
                 if not part:
                     continue
                 if "@" in part:
-                    recipients.append(part)
+                    if part not in recipients:
+                        recipients.append(part)
                 else:
-                    clean = part.replace("+", "").strip()
+                    clean = re.sub(r'[\+\s\-\(\)]', '', part)
+                    if clean.startswith('0') and len(clean) == 11 and clean.isdigit():
+                        clean = '234' + clean[1:]
                     if clean:
-                        recipients.append(f"{clean}@s.whatsapp.net")
+                        formatted = f"{clean}@s.whatsapp.net"
+                        if formatted not in recipients:
+                            recipients.append(formatted)
         return recipients
 
     def __str__(self):

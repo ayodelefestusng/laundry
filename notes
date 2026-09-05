@@ -13,3 +13,5 @@ uv run celery -A myproject beat -l info
 
 
 uv run python manage.py runserver 8001    
+uv run python manage.py makemigrations
+uv run python manage.py migrate

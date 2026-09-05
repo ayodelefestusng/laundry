@@ -426,22 +426,58 @@ PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY")  # ⚠️ REPLACE THIS WI
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "YOUR_PLACEHOLDER_KEY")
 
 # ==============================================================================
-#  Redis & Celery Configuration
+#  Redis & Celery Configuration (RabbitMQ as Default)
 # ==============================================================================
 
 import os
 import re
+import urllib.parse
 
-WORKER_URL = os.getenv("WORKER_URL", "redis://redis:6379")
-# WORKER_URL = "amqp://akanni:@Ajibandele23$03$@whatsapp-1-rabbitmq.xqqhik.easypanel.host:5672/"
+def get_rabbitmq_broker_url():
+    rmq_user = os.getenv("RABBITMQ_DEFAULT_USER", "agobadaniel")
+    rmq_pass = os.getenv("RABBITMQ_DEFAULT_PASS", "@Ajibandele13&")
+    rmq_host = os.getenv("RABBITMQ_HOST", "vectra-rabbitmq")
+    rmq_port = os.getenv("RABBITMQ_PORT", "5672")
+    rmq_vhost = os.getenv("RABBITMQ_DEFAULT_VHOST", "/")
+    quoted_user = urllib.parse.quote(rmq_user, safe='')
+    quoted_pass = urllib.parse.quote(rmq_pass, safe='')
+    vhost_part = "%2F" if rmq_vhost == "/" else urllib.parse.quote(rmq_vhost.lstrip("/"), safe='')
+    return f"amqp://{quoted_user}:{quoted_pass}@{rmq_host}:{rmq_port}/{vhost_part}"
 
-if WORKER_URL.startswith("redis://"):
-    # Strip trailing /db number for clean base
+BROKER_TYPE = os.getenv("BROKER_TYPE", "rabbitmq").strip().lower()
+WORKER_URL = os.getenv("WORKER_URL", "").strip()
+REDIS_URL = os.getenv("REDIS_URL", "").strip()
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "").strip()
+
+# Determine broker: defaults to RabbitMQ
+if BROKER_TYPE == "rabbitmq" or WORKER_URL.startswith("amqp://") or (not WORKER_URL and bool(os.getenv("RABBITMQ_HOST") or os.getenv("RABBITMQ_DEFAULT_USER"))):
+    CELERY_BROKER_URL = WORKER_URL if WORKER_URL.startswith("amqp://") else get_rabbitmq_broker_url()
+    CELERY_RESULT_BACKEND = CELERY_RESULT_BACKEND or "rpc://"
+
+    # RabbitMQ cannot serve as Django cache; use Redis if REDIS_URL is provided, otherwise fallback to LocMemCache
+    if REDIS_URL and REDIS_URL.startswith("redis://"):
+        base_redis_url = re.sub(r'/[0-9]*$', '', REDIS_URL)
+        CACHES = {
+            "default": {
+                "BACKEND": "django_redis.cache.RedisCache",
+                "LOCATION": f"{base_redis_url}/1",
+                "OPTIONS": {
+                    "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                }
+            }
+        }
+    else:
+        CACHES = {
+            "default": {
+                "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+                "LOCATION": "unique-snowflake",
+            }
+        }
+
+elif WORKER_URL.startswith("redis://"):
     base_redis_url = re.sub(r'/[0-9]*$', '', WORKER_URL)
-
     CELERY_BROKER_URL = f"{base_redis_url}/0"
-    CELERY_RESULT_BACKEND = f"{base_redis_url}/0"
-
+    CELERY_RESULT_BACKEND = CELERY_RESULT_BACKEND or f"{base_redis_url}/0"
     CACHES = {
         "default": {
             "BACKEND": "django_redis.cache.RedisCache",
@@ -452,22 +488,14 @@ if WORKER_URL.startswith("redis://"):
         }
     }
 
-elif WORKER_URL.startswith("amqp://"):
-    # RabbitMQ broker
-    CELERY_BROKER_URL = WORKER_URL
-    # CELERY_RESULT_BACKEND = "rpc://"
-    CELERY_RESULT_BACKEND = os.getenv("REDIS_URL", "redis://redis:6379/0")
-    # RabbitMQ cannot serve as a Django cache backend.
-    # Use a safe fallback like LocMemCache or keep Redis separately for caching.
+else:
+    # Default fallback to RabbitMQ
+    CELERY_BROKER_URL = get_rabbitmq_broker_url()
+    CELERY_RESULT_BACKEND = CELERY_RESULT_BACKEND or "rpc://"
     CACHES = {
         "default": {
-            # "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-            # "LOCATION": "unique-snowflake",
-            "BACKEND": "django_redis.cache.RedisCache",
-            "LOCATION": os.getenv("REDIS_URL", "redis://redis:6379/1"),
-            "OPTIONS": {
-                "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            }
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "unique-snowflake",
         }
     }
 
