@@ -2748,3 +2748,8 @@ def export_commission_csv(request):
             c.dsa_commission_amount
         ])
     return response
+
+
+def utility(request):
+    return HttpResponse("this is a utility page")
+

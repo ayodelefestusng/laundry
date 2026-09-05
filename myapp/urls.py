@@ -123,4 +123,8 @@ path('paystack/success/', views.paystack_success, name='paystack_success'),
     
     # QR Code Generation
     path('generate-qr-codes/', tenant_admin_views.generate_qr_codes, name='generate_qr_codes'),
+
+    # Utility endpoint
+    path('utility/', views.utility, name='utility'),
 ]
+
