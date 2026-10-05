@@ -2,6 +2,7 @@
 from myapp.models import Feeder
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.utils.html import format_html
 
 
 from .models import (Comment, CustomUser, Order, OrderItem, Package,
@@ -129,8 +130,215 @@ admin.site.register(PremiumClient, admin.ModelAdmin)
 admin.site.register(QR)
 admin.site.register(DeliveryPricing)
 
-admin.site.register(Feeder)
-admin.site.register(PowerStatus) 
+@admin.register(Feeder)
+class FeederAdmin(admin.ModelAdmin):
+    list_display = (
+        'name',
+        'band',
+        'live_status_badge',
+        'transformer_name',
+        'transformer_code',
+        'registered_phone',
+        'sim_serial',
+        'whatsapp_primary',
+        'whatsapp_group',
+        'view_logs_link',
+        'created_at',
+    )
+    list_filter = ('band', 'created_at')
+    search_fields = (
+        'name',
+        'transformer_name',
+        'transformer_code',
+        'registered_phone',
+        'msisdn',
+        'custodian_name',
+        'custodian_phone',
+        'sim_serial',
+        'whatsapp_primary',
+        'whatsapp_group',
+    )
+    ordering = ('name',)
+    readonly_fields = ('created_at',)
+    fieldsets = (
+        ('Feeder Information', {
+            'fields': ('name', 'band', 'created_at')
+        }),
+        ('Transformer & Hardware', {
+            'fields': ('transformer_name', 'transformer_code', 'registered_phone', 'msisdn', 'sim_serial')
+        }),
+        ('Custodian Info', {
+            'fields': ('custodian_name', 'custodian_phone')
+        }),
+        ('WhatsApp Alerts & Notification Recipients', {
+            'fields': ('whatsapp_primary', 'whatsapp_group', 'primary_recipient'),
+            'description': 'Comma-separated WhatsApp phone numbers (with country code, e.g. 23480...) and group JIDs (e.g. 1203...@g.us).'
+        }),
+    )
+
+    @admin.display(description="Live Status")
+    def live_status_badge(self, obj):
+        latest = obj.updates.order_by('-server_time').first()
+        if not latest:
+            return format_html('<span style="color: #9ca3af; font-size: 11px;">No Data</span>')
+        s = (latest.status or "").upper()
+        if s == "ON":
+            bg = "#d1fae5"
+            color = "#065f46"
+            icon = "🟢"
+        elif s == "OFF":
+            bg = "#fee2e2"
+            color = "#991b1b"
+            icon = "🔴"
+        else:
+            bg = "#fef3c7"
+            color = "#92400e"
+            icon = "🟡"
+        time_str = latest.server_time.strftime("%H:%M:%S") if latest.server_time else ""
+        return format_html(
+            '<span style="background-color: {}; color: {}; padding: 3px 8px; border-radius: 9999px; font-weight: 600; font-size: 11px;" title="Last update: {}">{} {}</span>',
+            bg, color, time_str, icon, s
+        )
+
+    @admin.display(description="Power Logs")
+    def view_logs_link(self, obj):
+        from django.urls import reverse
+        url = reverse("admin:myapp_powerstatus_changelist") + f"?feeder__id__exact={obj.id}"
+        return format_html('<a class="button" style="padding: 2px 8px; font-size: 11px;" href="{}">⚡ View Logs</a>', url)
+
+
+@admin.register(PowerStatus)
+class PowerStatusAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'event_id_display',
+        'feeder',
+        'status_badge',
+        'whatsapp_status_badge',
+        'three_phase_display',
+        'peak_a0',
+        'dt_display',
+        'server_time',
+        'timestamp',
+    )
+    list_filter = (
+        'status',
+        'whatsapp_status',
+        'dt',
+        'feeder',
+        ('server_time', admin.DateFieldListFilter),
+    )
+    date_hierarchy = 'server_time'
+    search_fields = (
+        'event_id',
+        'feeder__name',
+        'feeder__transformer_name',
+        'feeder__transformer_code',
+        'status',
+        'sim_serial',
+        'msisdn',
+        'dt',
+    )
+    ordering = ('-server_time',)
+    list_select_related = ('feeder',)
+    list_per_page = 50
+    readonly_fields = (
+        'event_id',
+        'feeder',
+        'status',
+        'whatsapp_status',
+        'timestamp',
+        'server_time',
+        'peak_a0',
+        'sim_serial',
+        'msisdn',
+        'dt',
+        'volt_r',
+        'stat_r',
+        'volt_y',
+        'stat_y',
+        'volt_b',
+        'stat_b',
+    )
+    fieldsets = (
+        ('Event Information', {
+            'fields': ('event_id', 'feeder', 'status', 'whatsapp_status')
+        }),
+        ('Telemetry & Device Info', {
+            'fields': ('server_time', 'timestamp', 'dt', 'peak_a0', 'sim_serial', 'msisdn')
+        }),
+        ('Three-Phase Telemetry (PEARL DT)', {
+            'fields': (
+                ('stat_r', 'volt_r'),
+                ('stat_y', 'volt_y'),
+                ('stat_b', 'volt_b'),
+            )
+        }),
+    )
+
+    @admin.display(description="Event ID", ordering="event_id")
+    def event_id_display(self, obj):
+        if not obj.event_id:
+            return "-"
+        full_uuid = str(obj.event_id)
+        short_uuid = full_uuid[:8] + "..."
+        return format_html('<code title="{}" style="font-size: 11px; cursor: pointer;">{}</code>', full_uuid, short_uuid)
+
+    @admin.display(description="Power Status", ordering="status")
+    def status_badge(self, obj):
+        s = (obj.status or "").upper()
+        if s == "ON":
+            bg = "#d1fae5"
+            color = "#065f46"
+            icon = "🟢"
+        elif s == "OFF":
+            bg = "#fee2e2"
+            color = "#991b1b"
+            icon = "🔴"
+        else:
+            bg = "#fef3c7"
+            color = "#92400e"
+            icon = "🟡"
+        return format_html(
+            '<span style="background-color: {}; color: {}; padding: 3px 8px; border-radius: 9999px; font-weight: 600; font-size: 11px;">{} {}</span>',
+            bg, color, icon, s
+        )
+
+    @admin.display(description="WhatsApp Status", ordering="whatsapp_status")
+    def whatsapp_status_badge(self, obj):
+        ws = (obj.whatsapp_status or "undelivered").lower()
+        if ws == "delivered":
+            bg = "#d1fae5"
+            color = "#047857"
+            icon = "✓"
+        else:
+            bg = "#ffedd5"
+            color = "#c2410c"
+            icon = "⏳"
+        return format_html(
+            '<span style="background-color: {}; color: {}; padding: 3px 8px; border-radius: 9999px; font-weight: 600; font-size: 11px;">{} {}</span>',
+            bg, color, icon, ws.capitalize()
+        )
+
+    @admin.display(description="Three-Phase Telemetry")
+    def three_phase_display(self, obj):
+        if not obj.is_three_phase:
+            return format_html('<span style="color: #9ca3af; font-size: 11px;">1-Phase</span>')
+        return format_html(
+            '<span style="font-size: 11px; font-family: monospace;">'
+            '<strong style="color: #dc2626;">R:</strong>{:.0f}V ({}) '
+            '<strong style="color: #d97706;">Y:</strong>{:.0f}V ({}) '
+            '<strong style="color: #2563eb;">B:</strong>{:.0f}V ({})'
+            '</span>',
+            obj.volt_r, obj.stat_r or "-",
+            obj.volt_y, obj.stat_y or "-",
+            obj.volt_b, obj.stat_b or "-"
+        )
+
+    @admin.display(description="Device", ordering="dt")
+    def dt_display(self, obj):
+        return obj.dt or "Standard"
+ 
 
 
 
