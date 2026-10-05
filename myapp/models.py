@@ -1448,6 +1448,13 @@ class Feeder(models.Model):
         return self.name
 
 class PowerStatus(models.Model):
+    event_id = models.UUIDField(default=uuid.uuid4, unique=True, null=True, editable=False, db_index=True)
+    whatsapp_status = models.CharField(
+        max_length=20,
+        choices=[('delivered', 'Delivered'), ('undelivered', 'Undelivered')],
+        default='undelivered',
+        db_index=True
+    )
     feeder = models.ForeignKey(Feeder, on_delete=models.CASCADE, related_name='updates')
     status = models.CharField(max_length=50)  # e.g. "ON", "OFF" (combined / legacy)
     timestamp = models.BigIntegerField()       # device timestamp / uptime
