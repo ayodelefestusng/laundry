@@ -3,6 +3,7 @@ from myapp.models import Feeder
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 
 
 from .models import (Comment, CustomUser, Order, OrderItem, Package,
@@ -180,7 +181,7 @@ class FeederAdmin(admin.ModelAdmin):
     def live_status_badge(self, obj):
         latest = obj.updates.order_by('-server_time').first()
         if not latest:
-            return format_html('<span style="color: #9ca3af; font-size: 11px;">No Data</span>')
+            return mark_safe('<span style="color: #9ca3af; font-size: 11px;">No Data</span>')
         s = (latest.status or "").upper()
         if s == "ON":
             bg = "#d1fae5"
@@ -323,7 +324,7 @@ class PowerStatusAdmin(admin.ModelAdmin):
     @admin.display(description="Three-Phase Telemetry")
     def three_phase_display(self, obj):
         if not obj.is_three_phase:
-            return format_html('<span style="color: #9ca3af; font-size: 11px;">1-Phase</span>')
+            return mark_safe('<span style="color: #9ca3af; font-size: 11px;">1-Phase</span>')
         return format_html(
             '<span style="font-size: 11px; font-family: monospace;">'
             '<strong style="color: #dc2626;">R:</strong>{:.0f}V ({}) '
