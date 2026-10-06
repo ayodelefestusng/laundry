@@ -243,24 +243,24 @@ class PowerStatusAdmin(admin.ModelAdmin):
     ordering = ('-server_time',)
     list_select_related = ('feeder',)
     list_per_page = 50
-    readonly_fields = (
-        'event_id',
-        'feeder',
-        'status',
-        'whatsapp_status',
-        'timestamp',
-        'server_time',
-        'peak_a0',
-        'sim_serial',
-        'msisdn',
-        'dt',
-        'volt_r',
-        'stat_r',
-        'volt_y',
-        'stat_y',
-        'volt_b',
-        'stat_b',
-    )
+    # readonly_fields = (
+    #     'event_id',
+    #     'feeder',
+    #     'status',
+    #     'whatsapp_status',
+    #     'timestamp',
+    #     'server_time',
+    #     'peak_a0',
+    #     'sim_serial',
+    #     'msisdn',
+    #     'dt',
+    #     'volt_r',
+    #     'stat_r',
+    #     'volt_y',
+    #     'stat_y',
+    #     'volt_b',
+    #     'stat_b',
+    # )
     fieldsets = (
         ('Event Information', {
             'fields': ('event_id', 'feeder', 'status', 'whatsapp_status')
