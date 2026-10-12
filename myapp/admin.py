@@ -345,27 +345,10 @@ class PowerStatusAdmin(admin.ModelAdmin):
             safe_voltage(obj.volt_b), obj.stat_b or "-"
         )
 
-        def safe_voltage(val):
-            try:
-                return f"{float(val):.0f}"
-            except (TypeError, ValueError):
-                return "-"
+    @admin.display(description="Device", ordering="dt")
+    def dt_display(self, obj):
+        return obj.dt or "Standard"
 
-        return format_html(
-            '<span style="font-size: 11px; font-family: monospace;">'
-            '<strong style="color: #dc2626;">R:</strong>{}V ({}) '
-            '<strong style="color: #d97706;">Y:</strong>{}V ({}) '
-            '<strong style="color: #2563eb;">B:</strong>{}V ({})'
-            '</span>',
-            safe_voltage(obj.volt_r), obj.stat_r or "-",
-            safe_voltage(obj.volt_y), obj.stat_y or "-",
-            safe_voltage(obj.volt_b), obj.stat_b or "-"
-        )
-
-        @admin.display(description="Device", ordering="dt")
-        def dt_display(self, obj):
-            return obj.dt or "Standard"
-    
 
 
 
