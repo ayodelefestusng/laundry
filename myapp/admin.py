@@ -1,4 +1,6 @@
 # Register your models here.
+from opentelemetry.metrics import obj
+
 from myapp.models import Feeder
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
@@ -323,18 +325,25 @@ class PowerStatusAdmin(admin.ModelAdmin):
 
     @admin.display(description="Three-Phase Telemetry")
     def three_phase_display(self, obj):
-        if not obj.is_three_phase:
-            return mark_safe('<span style="color: #9ca3af; font-size: 11px;">1-Phase</span>')
-        return format_html(
-            '<span style="font-size: 11px; font-family: monospace;">'
-            '<strong style="color: #dc2626;">R:</strong>{:.0f}V ({}) '
-            '<strong style="color: #d97706;">Y:</strong>{:.0f}V ({}) '
-            '<strong style="color: #2563eb;">B:</strong>{:.0f}V ({})'
-            '</span>',
-            obj.volt_r, obj.stat_r or "-",
-            obj.volt_y, obj.stat_y or "-",
-            obj.volt_b, obj.stat_b or "-"
-        )
+    if not obj.is_three_phase:
+        return mark_safe('<span style="color: #9ca3af; font-size: 11px;">1-Phase</span>')
+
+    def safe_voltage(val):
+        try:
+            return f"{float(val):.0f}"
+        except (TypeError, ValueError):
+            return "-"
+
+    return format_html(
+        '<span style="font-size: 11px; font-family: monospace;">'
+        '<strong style="color: #dc2626;">R:</strong>{}V ({}) '
+        '<strong style="color: #d97706;">Y:</strong>{}V ({}) '
+        '<strong style="color: #2563eb;">B:</strong>{}V ({})'
+        '</span>',
+        safe_voltage(obj.volt_r), obj.stat_r or "-",
+        safe_voltage(obj.volt_y), obj.stat_y or "-",
+        safe_voltage(obj.volt_b), obj.stat_b or "-"
+    )
 
     @admin.display(description="Device", ordering="dt")
     def dt_display(self, obj):
