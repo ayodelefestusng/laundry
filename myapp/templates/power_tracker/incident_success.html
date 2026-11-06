@@ -21,10 +21,10 @@
         </p>
 
         <div class="mt-8 flex flex-col sm:flex-row gap-3">
-            <a href="{% url 'report_incident' %}" class="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition text-center">
+            <a href="{% url 'laundry:report_incident' %}" class="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition text-center">
                 ← Log Another Fault
             </a>
-            <a href="{% url 'incident_dashboard' %}" class="flex-1 py-2.5 px-4 bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-semibold rounded-lg transition text-center shadow-sm">
+            <a href="{% url 'laundry:incident_dashboard' %}" class="flex-1 py-2.5 px-4 bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-semibold rounded-lg transition text-center shadow-sm">
                 View Incident Board →
             </a>
         </div>

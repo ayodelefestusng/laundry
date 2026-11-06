@@ -2752,7 +2752,7 @@ def export_commission_csv(request):
 
 
 def utility(request):
-    return HttpResponse("this is a utility page 06112026C agoba admin revert")
+    return HttpResponse("this is a utility page 06112026C agoba admin  revert resolved")
 
 import calendar
 import pytz
@@ -3024,6 +3024,7 @@ from .services.notifications import send_admin_approval_request
 from django.shortcuts import redirect
 
 logger = logging.getLogger(__name__)
+CACHE_KEY_DASHBOARD = "cache:dashboard:published_feeders"
 CACHE_TTL_SECONDS = 60
 
 def availability_dashboard_view(request):
