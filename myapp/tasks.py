@@ -415,7 +415,7 @@ def send_daily_power_updates():
     lagos_tz = pytz.timezone("Africa/Lagos")
     yesterday = (timezone.now().astimezone(lagos_tz) - timedelta(days=1)).date()
     
-    feeders = Feeder.objects.all()
+    feeders = Feeder.objects.filter(publication_status='publish')
     if not feeders.exists():
         logger.info("No feeders found in database for daily updates.")
         return

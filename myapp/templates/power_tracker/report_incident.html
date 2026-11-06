@@ -1,22 +1,31 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Report Power Incident | Grid Portal</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <style>
-        .hp-field { display: none !important; }
-    </style>
-</head>
-<body class="bg-slate-100 min-h-screen py-10 px-4">
-    <div class="max-w-2xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden"
-         x-data="incidentReporter()">
+{% extends 'power_tracker/base_power.html' %}
+
+{% block title %}PowerVoice — Report Power Outage or Transformer Fault{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hp-field { display: none !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-10" x-data="incidentReporter()">
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         
-        <div class="bg-blue-900 px-6 py-6 text-white">
-            <h1 class="text-xl font-bold">Log an Outage or Fault</h1>
-            <p class="text-sm text-blue-200 mt-1">Submit power disturbances directly to regional operations.</p>
+        <div class="bg-gradient-to-r from-slate-900 via-blue-900 to-cyan-900 px-6 py-6 text-white flex items-center justify-between">
+            <div>
+                <div class="flex items-center space-x-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
+                    <span class="text-xs uppercase font-mono tracking-wider text-cyan-300">Public Fault Portal</span>
+                </div>
+                <h1 class="text-xl font-bold mt-1 text-white">Log an Outage or Fault</h1>
+                <p class="text-xs text-slate-300 mt-1">Submit power disturbances directly for real-time tracking and public grid accountability.</p>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
+                <svg class="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+            </div>
         </div>
 
         <form method="POST" action="" class="p-6 space-y-5">
@@ -136,7 +145,10 @@
             </button>
         </form>
     </div>
+</div>
+{% endblock %}
 
+{% block extra_js %}
     <script>
         function incidentReporter() {
             return {
@@ -176,5 +188,4 @@
             };
         }
     </script>
-</body>
-</html>
+{% endblock %}

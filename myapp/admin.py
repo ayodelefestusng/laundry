@@ -136,13 +136,13 @@ admin.site.register(DeliveryPricing)
 class TransformerInline(admin.TabularInline):
     model = Transformer
     extra = 1
-    fields = ('transformer_code', 'name', 'admin_main', 'admin_secondary', 'is_active')
+    fields = ('transformer_code', 'name', 'publication_status', 'is_active', 'admin_main', 'admin_secondary')
 
 @admin.register(Transformer)
 class TransformerAdmin(admin.ModelAdmin):
-    list_display = ('transformer_code', 'name', 'feeder', 'admin_main', 'is_active')
+    list_display = ('transformer_code', 'name', 'feeder', 'publication_status', 'is_active', 'admin_main')
     search_fields = ('name', 'transformer_code', 'feeder__name')
-    list_filter = ('is_active', 'feeder')
+    list_filter = ('publication_status', 'is_active', 'feeder')
 
 @admin.register(Feeder)
 class FeederAdmin(admin.ModelAdmin):
@@ -150,6 +150,7 @@ class FeederAdmin(admin.ModelAdmin):
     list_display = (
         'name',
         'band',
+        'publication_status',
         'live_status_badge',
         'transformer_name',
         'transformer_code',
@@ -160,7 +161,7 @@ class FeederAdmin(admin.ModelAdmin):
         'view_logs_link',
         'created_at',
     )
-    list_filter = ('band', 'created_at')
+    list_filter = ('publication_status', 'band', 'created_at')
     search_fields = (
         'name',
         'transformers__name',
@@ -177,7 +178,7 @@ class FeederAdmin(admin.ModelAdmin):
     readonly_fields = ('created_at',)
     fieldsets = (
         ('Feeder Information', {
-            'fields': ('name', 'band', 'created_at')
+            'fields': ('name', 'band', 'publication_status', 'created_at')
         }),
         ('Hardware Info', {
             'fields': ('registered_phone', 'msisdn', 'sim_serial')

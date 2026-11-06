@@ -1,14 +1,10 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Incident Review | {{ incident.tracking_id }}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-</head>
-<body class="bg-slate-50 min-h-screen py-10 px-4">
-    <div class="max-w-2xl mx-auto bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden" x-data="{ actionType: 'APPROVE' }">
+{% extends 'power_tracker/base_power.html' %}
+
+{% block title %}PowerVoice — Review Incident {{ incident.tracking_id }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-10" x-data="{ actionType: 'APPROVE' }">
+    <div class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
         <div class="bg-slate-900 px-6 py-4 text-white flex justify-between items-center">
             <div>
                 <p class="text-xs uppercase tracking-wider text-slate-400">Incident Review</p>
@@ -82,5 +78,5 @@
             </form>
         </div>
     </div>
-</body>
-</html>
+</div>
+{% endblock %}

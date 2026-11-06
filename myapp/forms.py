@@ -607,21 +607,31 @@ class IncidentReportForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Only show published feeders to public submitters
-        self.fields['feeder'].queryset = Feeder.objects.filter(is_published=True)
-        self.fields['transformer'].queryset = Transformer.objects.filter(is_active=True)
+        self.fields['feeder'].queryset = Feeder.objects.filter(publication_status='publish').order_by('name')
+        self.fields['transformer'].queryset = Transformer.objects.filter(
+            publication_status='publish',
+            feeder__publication_status='publish',
+            is_active=True
+        ).order_by('name')
 
-        # If feeder is selected (POST or bound form), limit transformer choices
+        # If feeder is selected (POST or bound form), limit transformer choices to published ones
         if 'feeder' in self.data:
             try:
                 feeder_id = int(self.data.get('feeder'))
                 self.fields['transformer'].queryset = Transformer.objects.filter(
-                    feeder_id=feeder_id, is_active=True
-                )
+                    feeder_id=feeder_id,
+                    publication_status='publish',
+                    feeder__publication_status='publish',
+                    is_active=True
+                ).order_by('name')
             except (ValueError, TypeError) as e:
                 logger.warning(f"[Form Init] Invalid feeder ID passed in form data: {e}")
                 self.fields['transformer'].queryset = Transformer.objects.none()
         elif self.instance.pk and self.instance.feeder:
-            self.fields['transformer'].queryset = self.instance.feeder.transformers.filter(is_active=True)
+            self.fields['transformer'].queryset = self.instance.feeder.transformers.filter(
+                publication_status='publish',
+                is_active=True
+            ).order_by('name')
         else:
             self.fields['transformer'].queryset = Transformer.objects.none()
 
@@ -640,9 +650,14 @@ class IncidentReportForm(forms.ModelForm):
         custom_desc = cleaned_data.get('custom_description')
         incident_date = cleaned_data.get('incident_date')
 
-        # 1. Enforce feeder-transformer relational integrity
-        if feeder and transformer:
-            if transformer.feeder_id != feeder.id:
+        # 1. Enforce feeder-transformer relational integrity and publication status
+        if feeder:
+            if getattr(feeder, 'publication_status', 'publish') != 'publish':
+                self.add_error('feeder', 'Selected feeder is not available for reporting.')
+        if transformer:
+            if getattr(transformer, 'publication_status', 'publish') != 'publish':
+                self.add_error('transformer', 'Selected transformer is not available for reporting.')
+            if feeder and transformer.feeder_id != feeder.id:
                 self.add_error(
                     'transformer',
                     f"Selected transformer does not belong to Feeder '{feeder.name}'."

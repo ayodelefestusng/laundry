@@ -30,7 +30,8 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # DEBUG = os.getenv("DEBUG", "True") == "True"
-DEBUG="true"
+DEBUG = os.getenv("DEBUG", "False").lower() == "true"
+# DEBUG="false"
 
 # ALLOWED_HOSTS = ['*'] # Change to specific domain names in production
 ALLOWED_HOSTS = [

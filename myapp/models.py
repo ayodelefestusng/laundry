@@ -1341,6 +1341,10 @@ class Feeder(models.Model):
         ('E', 'Band E'),
         ('F', 'Band F'),
     ]
+    PUBLICATION_CHOICES = [
+        ('publish', 'Publish'),
+        ('unpublish', 'Unpublish'),
+    ]
     name = models.CharField(max_length=255, unique=True)
     primary_recipient = models.TextField(
         blank=True, null=True,
@@ -1365,7 +1369,26 @@ class Feeder(models.Model):
     custodian_phone = models.CharField(max_length=50, blank=True, null=True)
     sim_serial = models.CharField(max_length=100, blank=True, null=True)
     band = models.CharField(max_length=1, choices=BAND_CHOICES, default='A')
+    publication_status = models.CharField(
+        max_length=20,
+        choices=PUBLICATION_CHOICES,
+        default='publish',
+        db_index=True,
+        help_text="Controls public visibility across dashboards and reporting forms"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def is_published(self):
+        return self.publication_status == 'publish'
+
+    @property
+    def publication(self):
+        return self.publication_status
+
+    @publication.setter
+    def publication(self, value):
+        self.publication_status = value
 
     @property
     def transformer_name(self):
@@ -1530,12 +1553,35 @@ class PowerStatus(models.Model):
 PowerStatusLog = PowerStatus
 
 class Transformer(models.Model):
+    PUBLICATION_CHOICES = [
+        ('publish', 'Publish'),
+        ('unpublish', 'Unpublish'),
+    ]
     feeder = models.ForeignKey(Feeder, related_name='transformers', on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
     transformer_code = models.CharField(max_length=100, help_text="e.g., DT01")
     admin_main = models.EmailField(blank=True, null=True)
     admin_secondary = models.EmailField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
+    publication_status = models.CharField(
+        max_length=20,
+        choices=PUBLICATION_CHOICES,
+        default='publish',
+        db_index=True,
+        help_text="Controls public visibility across dashboards and reporting forms"
+    )
+
+    @property
+    def is_published(self):
+        return self.publication_status == 'publish'
+
+    @property
+    def publication(self):
+        return self.publication_status
+
+    @publication.setter
+    def publication(self, value):
+        self.publication_status = value
 
     class Meta:
         unique_together = ('feeder', 'transformer_code')

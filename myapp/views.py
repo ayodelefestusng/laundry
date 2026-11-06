@@ -60,6 +60,7 @@ from .landing_models import (
 )
 from django.core.cache import cache
 from django.views.decorators.cache import cache_page
+from .cache_keys import CACHE_KEY_DASHBOARD
 
 from math import radians, cos, sin, asin, sqrt
 
@@ -2751,7 +2752,7 @@ def export_commission_csv(request):
 
 
 def utility(request):
-    return HttpResponse("this is a utility page 06102026C")
+    return HttpResponse("this is a utility page 06112026C")
 
 import calendar
 import pytz
@@ -2763,7 +2764,7 @@ from .models import Feeder, PowerStatus
 
 
 def power_analytics_view(request):
-  feeders = Feeder.objects.all()
+  feeders = Feeder.objects.filter(publication_status='publish').order_by('name')
 
   # Get filter parameters from GET request
   feeder_id = request.GET.get('feeder')
@@ -2790,14 +2791,19 @@ def power_analytics_view(request):
   else:
     max_day = num_days
 
-  # Target feeders
+  # Target published feeders only
+  published_ids = list(feeders.values_list('id', flat=True))
   if feeder_id:
     try:
-      target_feeders = [int(feeder_id)]
+      requested_id = int(feeder_id)
+      if requested_id in published_ids:
+        target_feeders = [requested_id]
+      else:
+        target_feeders = published_ids
     except (ValueError, TypeError):
-      target_feeders = list(feeders.values_list('id', flat=True))
+      target_feeders = published_ids
   else:
-    target_feeders = list(feeders.values_list('id', flat=True))
+    target_feeders = published_ids
 
   block_titles = [
       'Business Hour (Mon–Fri, 7 AM – 6 PM)',
@@ -2994,43 +3000,24 @@ from django.shortcuts import render
 from django.core.cache import cache
 from django.db.models import Sum
 from django.utils import timezone
-from .models import Feeder, DailyFeederMetric
+from .models import Feeder, DailyFeederMetric, PowerStatus
 import logging
 from datetime import datetime, date
 from django.shortcuts import render, get_object_or_404
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models.functions import ExtractYear, ExtractMonth, ExtractDay
-
-from .models import Feeder, PowerStatusLog
-        
-import logging
-from django.shortcuts import render
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models.functions import ExtractYear, ExtractMonth
-
-from .models import Incident, Feeder, Transformer
+from .models import Incident, Transformer
 from .utils import mask_email
-        
-import logging
-from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.db import transaction
 from django.contrib import messages
 from django_ratelimit.decorators import ratelimit
-
-from .models import Feeder, Transformer, Incident
 from .forms import IncidentReportForm
 from .services.tracking import generate_incident_tracking_id
 from .services.notifications import send_admin_approval_request
+from django.shortcuts import redirect
 
 logger = logging.getLogger(__name__)
-logger = logging.getLogger(__name__)
-
-logger = logging.getLogger(__name__)
-
-
-logger = logging.getLogger(__name__)
-CACHE_KEY_DASHBOARD = "cache:dashboard:published_feeders"
 CACHE_TTL_SECONDS = 60
 
 def availability_dashboard_view(request):
@@ -3040,11 +3027,16 @@ def availability_dashboard_view(request):
     Cached via Redis to absorb traffic during widespread grid failures.
     """
     try:
-        cached_data = cache.get(CACHE_KEY_DASHBOARD)
-        if cached_data:
-            return render(request, "dashboard.html", cached_data)
+        # Redis cache - gracefully degrade if unavailable
+        try:
+            cached_data = cache.get(CACHE_KEY_DASHBOARD)
+            if cached_data:
+                return render(request, "power_tracker/dashboard.html", cached_data)
+        except Exception as cache_err:
+            logger.warning(f"[Dashboard View] Redis cache unavailable, proceeding without cache: {cache_err}")
 
-        published_feeders = Feeder.objects.filter(is_published=True).prefetch_related('status_logs')
+        published_feeders = Feeder.objects.filter(publication_status='publish').prefetch_related('updates')
+        logger.info(f"[Dashboard View] Found {published_feeders.count()} published feeders")
         now = timezone.now()
         start_of_month = now.date().replace(day=1)
 
@@ -3062,7 +3054,7 @@ def availability_dashboard_view(request):
         }
 
         for feeder in published_feeders:
-            latest_log = feeder.status_logs.order_by('-server_time').first()
+            latest_log = feeder.updates.order_by('-server_time').first()
             current_status = latest_log.status if latest_log else "OFF"
             last_ping = latest_log.server_time if latest_log else None
 
@@ -3136,12 +3128,15 @@ def availability_dashboard_view(request):
             'generated_at': now,
         }
 
-        cache.set(CACHE_KEY_DASHBOARD, context, CACHE_TTL_SECONDS)
-        return render(request, "dashboard.html", context)
+        try:
+            cache.set(CACHE_KEY_DASHBOARD, context, CACHE_TTL_SECONDS)
+        except Exception as cache_set_err:
+            logger.warning(f"[Dashboard View] Redis cache.set failed: {cache_set_err}")
+        return render(request, "power_tracker/dashboard.html", context)
 
     except Exception as e:
         logger.error(f"[Dashboard View] Failed rendering dashboard: {e}", exc_info=True)
-        return render(request, "dashboard.html", {
+        return render(request, "power_tracker/dashboard.html", {
             'feeders_data': [],
             'network_summary': {},
             'error': 'System metrics are momentarily unavailable.'
@@ -3151,14 +3146,14 @@ def availability_dashboard_view(request):
 
 def feeder_history_view(request, feeder_id: int):
     """
-    Renders filterable chronological power telemetry logs for a specific feeder.
+    Renders filterable chronological power telemetry logs for a specific published feeder.
     Supports Year, Month, Day, and Status filters (defaulting to ALL).
     """
     try:
-        feeder = get_object_or_404(Feeder, id=feeder_id)
+        feeder = get_object_or_404(Feeder, id=feeder_id, publication_status='publish')
 
         # Base query for the specific feeder ordered newest first
-        logs_queryset = PowerStatusLog.objects.filter(feeder=feeder).order_by('-server_time')
+        logs_queryset = PowerStatus.objects.filter(feeder=feeder).order_by('-server_time')
 
         # Retrieve Query Params
         selected_year = request.GET.get('year', '').strip()
@@ -3207,7 +3202,7 @@ def feeder_history_view(request, feeder_id: int):
 
         # Filter choices for dropdown menus
         available_years = (
-            PowerStatusLog.objects.filter(feeder=feeder)
+            PowerStatus.objects.filter(feeder=feeder)
             .annotate(year=ExtractYear('server_time'))
             .values_list('year', flat=True)
             .distinct()
@@ -3242,11 +3237,11 @@ def feeder_history_view(request, feeder_id: int):
             'querystring': query_params.urlencode(),
         }
 
-        return render(request, 'feeder_history.html', context)
+        return render(request, 'power_tracker/feeder_history.html', context)
 
     except Exception as e:
         logger.error(f"[Feeder History] Error loading history for Feeder {feeder_id}: {e}", exc_info=True)
-        return render(request, 'feeder_history.html', {
+        return render(request, 'power_tracker/feeder_history.html', {
             'feeder': None,
             'logs': [],
             'error': 'Telemetry logs could not be retrieved at this time.'
@@ -3260,12 +3255,17 @@ def incident_dashboard_view(request):
     """
     Filterable incident tracking board.
     Supports Year, Month, Incident Type, Feeder, Transformer, and Status filters.
+    Restricted strictly to published Feeders and Transformers.
     """
     try:
-        # Base QuerySet with optimizations to avoid N+1 queries
+        # Base QuerySet with optimizations to avoid N+1 queries, filtering to published lines
         queryset = (
             Incident.objects
             .select_related('feeder', 'transformer')
+            .filter(
+                feeder__publication_status='publish',
+                transformer__publication_status='publish'
+            )
             .order_by('-incident_date')
         )
 
@@ -3313,20 +3313,31 @@ def incident_dashboard_view(request):
 
         # Extract Available Years for the Filter Dropdown
         available_years = (
-            Incident.objects.annotate(year=ExtractYear('incident_date'))
+            Incident.objects
+            .filter(feeder__publication_status='publish', transformer__publication_status='publish')
+            .annotate(year=ExtractYear('incident_date'))
             .values_list('year', flat=True)
             .distinct()
             .order_by('-year')
         )
 
-        # Feeder & Transformer options
-        feeders = Feeder.objects.filter(is_published=True).order_by('name')
+        # Feeder & Transformer options - strictly published only
+        feeders = Feeder.objects.filter(publication_status='publish').order_by('name')
         
         # If feeder is filtered, restrict transformers dropdown accordingly
         if selected_feeder and selected_feeder.isdigit():
-            transformers = Transformer.objects.filter(feeder_id=int(selected_feeder), is_active=True).order_by('name')
+            transformers = Transformer.objects.filter(
+                feeder_id=int(selected_feeder),
+                feeder__publication_status='publish',
+                publication_status='publish',
+                is_active=True
+            ).order_by('name')
         else:
-            transformers = Transformer.objects.filter(is_active=True).order_by('name')
+            transformers = Transformer.objects.filter(
+                feeder__publication_status='publish',
+                publication_status='publish',
+                is_active=True
+            ).order_by('name')
 
         month_choices = [
             (1, 'January'), (2, 'February'), (3, 'March'), (4, 'April'),
@@ -3358,11 +3369,11 @@ def incident_dashboard_view(request):
             'querystring': query_params.urlencode(),
         }
 
-        return render(request, 'incident_dashboard.html', context)
+        return render(request, 'power_tracker/incident_dashboard.html', context)
 
     except Exception as e:
         logger.error(f"[Incident Dashboard] Failed to load incidents: {e}", exc_info=True)
-        return render(request, 'incident_dashboard.html', {
+        return render(request, 'power_tracker/incident_dashboard.html', {
             'error': 'Unable to load incident reports at this time.',
             'incidents': []
         })
@@ -3371,7 +3382,7 @@ def incident_dashboard_view(request):
 
 def api_get_transformers_for_feeder(request):
     """
-    Returns active transformers for a specified feeder ID for dynamic dropdowns.
+    Returns active and published transformers for a specified published feeder ID for dynamic dropdowns.
     """
     feeder_id = request.GET.get('feeder_id')
     if not feeder_id:
@@ -3380,8 +3391,10 @@ def api_get_transformers_for_feeder(request):
     try:
         transformers = Transformer.objects.filter(
             feeder_id=feeder_id, 
+            feeder__publication_status='publish',
+            publication_status='publish',
             is_active=True
-        ).values('id', 'name', 'transformer_code')
+        ).order_by('transformer_code').values('id', 'name', 'transformer_code')
         
         data = [
             {
@@ -3423,7 +3436,7 @@ def report_incident_view(request):
                 except Exception as mail_err:
                     logger.error(f"[Incident Reporter] Email notification failed for {incident.tracking_id}: {mail_err}", exc_info=True)
 
-                return render(request, 'incident_success.html', {
+                return render(request, 'power_tracker/incident_success.html', {
                     'tracking_id': incident.tracking_id,
                     'contact_email': incident.contact_email,
                 })
@@ -3436,7 +3449,7 @@ def report_incident_view(request):
     else:
         form = IncidentReportForm()
 
-    return render(request, 'report_incident.html', {'form': form})
+    return render(request, 'power_tracker/report_incident.html', {'form': form})
 
 
 
@@ -3477,7 +3490,7 @@ def incident_action_review_view(request, token: str):
 
     # BOT-SAFE: GET only renders confirmation UI
     if request.method == "GET":
-        return render(request, "review_incident.html", {
+        return render(request, "power_tracker/review_incident.html", {
             "incident": incident,
             "token": token
         })
@@ -3488,7 +3501,7 @@ def incident_action_review_view(request, token: str):
 
     if action not in ["APPROVE", "REJECT"]:
         messages.error(request, "Invalid action selected.")
-        return render(request, "review_incident.html", {"incident": incident, "token": token})
+        return render(request, "power_tracker/review_incident.html", {"incident": incident, "token": token})
 
     try:
         with transaction.atomic():
