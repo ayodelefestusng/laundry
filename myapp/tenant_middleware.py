@@ -17,20 +17,31 @@ class TenantMiddleware(MiddlewareMixin):
         allowed_dmc_hosts = [
             "127.0.0.1",
             "127.0.0.0",
-               "localhost",
-                "vectra-laundry-app.qgmg5v.easypanel.host",
+            "localhost",
+            "vectra-laundry-app.qgmg5v.easypanel.host",
             "whatsapp-1-vectra-laundry-app.xqqhik.easypanel.host",
             # "ayo.vectra.ng",
-             "vectra.ng",
+            "vectra.ng",
+            "www.vectra.ng",
             "laundry.dignityconcept.tech",
-           "laundry.vectra.ng",
+            "laundry.vectra.ng",
             "dignityconcept.tech",
+            "www.dignityconcept.tech",
             "laundryhub.dignityconcept.tech",
             "whatsapp-1-laundry-2-compose.xqqhik.easypanel.host",
-            "http://localhost:8000/"
+            "powervoice.ng",
+            "www.powervoice.ng",
+            "powerheart.ng",
+            "www.powerheart.ng",
         ]
 
-        if host in allowed_dmc_hosts or host.endswith(".dignityconcepts.tech"):
+        if (
+            host in allowed_dmc_hosts
+            or host.endswith(".dignityconcept.tech")
+            or host.endswith(".dignityconcepts.tech")
+            or host.endswith(".powervoice.ng")
+            or host.endswith(".powerheart.ng")
+        ):
             try:
                 request.tenant = Tenant.objects.get(code='DMC')
             except Tenant.DoesNotExist:

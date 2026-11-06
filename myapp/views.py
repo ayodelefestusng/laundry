@@ -2752,7 +2752,7 @@ def export_commission_csv(request):
 
 
 def utility(request):
-    return HttpResponse("this is a utility page 06112026C agoba mail power hear")
+    return HttpResponse("this is a utility page 06112026C power voice")
 
 import calendar
 import pytz

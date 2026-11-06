@@ -42,14 +42,24 @@ ALLOWED_HOSTS = [
     "yourmainapp.com",
     "whatsapp-1-laundry-2-compose.xqqhik.easypanel.host",
     "powervoice.ng",
-        "powerheart.ng",
-    
-    
+    "www.powervoice.ng",
+    ".powervoice.ng",
+    "powerheart.ng",
+    "www.powerheart.ng",
+    ".powerheart.ng",
 ]
 
 # CSRF trusted origins for cross-site requests
 CSRF_TRUSTED_ORIGINS = [
     "https://whatsapp-1-laundry-2-compose.xqqhik.easypanel.host",
+    "https://powervoice.ng",
+    "http://powervoice.ng",
+    "https://www.powervoice.ng",
+    "http://www.powervoice.ng",
+    "https://powerheart.ng",
+    "http://powerheart.ng",
+    "https://www.powerheart.ng",
+    "http://www.powerheart.ng",
 ]
 
 # ==============================================================================
@@ -276,7 +286,14 @@ CSRF_TRUSTED_ORIGINS.extend([
     "https://whatsapp-1-laundry-2-compose.xqqhik.easypanel.host",
     "https://whatsapp-1-laundry-2-compose.xqqhik.easypanel.host",
     "https://laundry-combo-celery-laundry-combo-suite.cn2yy4.easypanel.host",
-
+    "https://powervoice.ng",
+    "http://powervoice.ng",
+    "https://www.powervoice.ng",
+    "http://www.powervoice.ng",
+    "https://powerheart.ng",
+    "http://powerheart.ng",
+    "https://www.powerheart.ng",
+    "http://www.powerheart.ng",
 ])
 
 

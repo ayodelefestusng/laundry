@@ -108,13 +108,9 @@ admin.site.register(Comment, CommentAdmin)
 admin.site.site_header = "Laundry Service Admin"
 admin.site.site_title = "Laundry Service Admin Portal"
 admin.site.index_title = "Welcome to the Laundry Service Admin Portal"
-admin.site.register(CustomUser)
-admin.site.register(WorkflowHistory)
-admin.site.register(ServiceChoices)
-admin.site.register(Color)
-admin.site.register(IncidentSequence)
-admin.site.register(Incident)
-admin.site.register(DailyFeederMetric)
+for _m in [CustomUser, WorkflowHistory, ServiceChoices, Color, IncidentSequence, Incident, DailyFeederMetric]:
+    if not admin.site.is_registered(_m):
+        admin.site.register(_m)
 
 
 class TenantAttributeInline(admin.StackedInline):

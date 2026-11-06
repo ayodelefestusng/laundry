@@ -81,6 +81,14 @@ class CSRFDynamicOriginMiddleware:
             base_origins = [
                 "https://whatsapp-1-vectra-laundry-app.xqqhik.easypanel.host",
                 "https://whatsapp-1-laundry-2-compose.xqqhik.easypanel.host",
+                "https://powervoice.ng",
+                "http://powervoice.ng",
+                "https://www.powervoice.ng",
+                "http://www.powervoice.ng",
+                "https://powerheart.ng",
+                "http://powerheart.ng",
+                "https://www.powerheart.ng",
+                "http://www.powerheart.ng",
             ]
             origins.extend(base_origins)
 
