@@ -2753,3 +2753,777 @@ def export_commission_csv(request):
 def utility(request):
     return HttpResponse("this is a utility page 06102026C")
 
+import calendar
+import pytz
+from collections import defaultdict
+from datetime import date, datetime, time, timedelta
+from django.shortcuts import get_object_or_404, render
+from django.utils import timezone
+from .models import Feeder, PowerStatus
+
+
+def power_analytics_view(request):
+  feeders = Feeder.objects.all()
+
+  # Get filter parameters from GET request
+  feeder_id = request.GET.get('feeder')
+  selected_year = request.GET.get('year')
+  selected_month = request.GET.get('month')
+
+  lagos_tz = pytz.timezone("Africa/Lagos")
+  now_lagos = timezone.now().astimezone(lagos_tz)
+
+  # Defaults to current year and month if not provided
+  year = int(selected_year) if selected_year else now_lagos.year
+  month = int(selected_month) if selected_month else now_lagos.month
+
+  # Number of days in selected month
+  num_days = calendar.monthrange(year, month)[1]
+  m_start = lagos_tz.localize(datetime(year, month, 1, 0, 0, 0))
+  m_end = lagos_tz.localize(datetime(year, month, num_days, 23, 59, 59, 999999))
+
+  # Determine max day to display
+  if (year > now_lagos.year) or (year == now_lagos.year and month > now_lagos.month):
+    max_day = 0
+  elif year == now_lagos.year and month == now_lagos.month:
+    max_day = min(num_days, now_lagos.day)
+  else:
+    max_day = num_days
+
+  # Target feeders
+  if feeder_id:
+    try:
+      target_feeders = [int(feeder_id)]
+    except (ValueError, TypeError):
+      target_feeders = list(feeders.values_list('id', flat=True))
+  else:
+    target_feeders = list(feeders.values_list('id', flat=True))
+
+  block_titles = [
+      'Business Hour (Mon–Fri, 7 AM – 6 PM)',
+      'Family Time (Mon–Fri, 6 PM – 10 PM)',
+      'Weekend (Sat–Sun, 7 AM – 10 PM)',
+      'Overnight (Mon–Sun, 10 PM – 7 AM)',
+  ]
+
+  def compute_single_feeder(f_id):
+    pre_ev = PowerStatus.objects.filter(
+        feeder_id=f_id, server_time__lt=m_start
+    ).order_by('-server_time').first()
+
+    initial_on = False
+    if pre_ev:
+      initial_on = (pre_ev.status.upper() == 'ON' or (
+          getattr(pre_ev, 'is_three_phase', False) and getattr(pre_ev, 'stat_r', None) == 'ON'
+      ))
+
+    events_qs = PowerStatus.objects.filter(
+        feeder_id=f_id,
+        server_time__gte=m_start,
+        server_time__lte=m_end + timedelta(days=1),
+    ).order_by('server_time')
+
+    all_events = []
+    for ev in events_qs:
+      ev_dt = ev.server_time.astimezone(lagos_tz)
+      is_on = ev.status.upper() == 'ON' or (
+          getattr(ev, 'is_three_phase', False) and getattr(ev, 'stat_r', None) == 'ON'
+      )
+      all_events.append((ev_dt, is_on))
+
+    def get_uptime_sec(t_start, t_end):
+      cur_state = initial_on
+      for ev_dt, is_on in all_events:
+        if ev_dt <= t_start:
+          cur_state = is_on
+        else:
+          break
+      cur_t = t_start
+      uptime = 0.0
+      sub_events = [
+          (ev_dt, is_on) for ev_dt, is_on in all_events if t_start < ev_dt < t_end
+      ]
+      for ev_dt, is_on in sub_events:
+        if cur_state:
+          uptime += (ev_dt - cur_t).total_seconds()
+        cur_state = is_on
+        cur_t = ev_dt
+      if cur_state:
+        uptime += (t_end - cur_t).total_seconds()
+      return uptime
+
+    f_daily = []
+    f_blocks = {b: {'available': 0.0, 'outage': 0.0} for b in block_titles}
+
+    for day in range(1, max_day + 1):
+      d_date = date(year, month, day)
+      d_start = lagos_tz.localize(datetime(year, month, day, 0, 0, 0))
+      if year == now_lagos.year and month == now_lagos.month and day == now_lagos.day:
+        d_end = now_lagos
+        day_dur_hrs = (now_lagos - d_start).total_seconds() / 3600.0
+      else:
+        d_end = d_start + timedelta(days=1)
+        day_dur_hrs = 24.0
+
+      up_sec = get_uptime_sec(d_start, d_end)
+      avail = round(up_sec / 3600.0, 2)
+      outage = round(max(0.0, day_dur_hrs - avail), 2)
+      f_daily.append({
+          'date': d_date,
+          'availability': avail,
+          'outage': outage,
+          'total': round(day_dur_hrs, 2),
+      })
+
+      is_weekend = d_date.weekday() >= 5
+      t7 = lagos_tz.localize(datetime(year, month, day, 7, 0, 0))
+      t18 = lagos_tz.localize(datetime(year, month, day, 18, 0, 0))
+      t22 = lagos_tz.localize(datetime(year, month, day, 22, 0, 0))
+      t24 = d_start + timedelta(days=1)
+
+      raw_slices = [
+          (d_start, t7, 'Overnight (Mon–Sun, 10 PM – 7 AM)'),
+          (t7, t22, 'Weekend (Sat–Sun, 7 AM – 10 PM)')
+          if is_weekend
+          else (t7, t18, 'Business Hour (Mon–Fri, 7 AM – 6 PM)'),
+      ]
+      if not is_weekend:
+        raw_slices.append((t18, t22, 'Family Time (Mon–Fri, 6 PM – 10 PM)'))
+      raw_slices.append((t22, t24, 'Overnight (Mon–Sun, 10 PM – 7 AM)'))
+
+      for s_start, s_end, b_name in raw_slices:
+        act_start = max(s_start, d_start)
+        act_end = min(s_end, d_end)
+        if act_end > act_start:
+          s_dur = (act_end - act_start).total_seconds()
+          s_up = get_uptime_sec(act_start, act_end)
+          f_blocks[b_name]['available'] += s_up / 3600.0
+          f_blocks[b_name]['outage'] += (s_dur - s_up) / 3600.0
+
+    return f_daily, f_blocks
+
+  if target_feeders:
+    if len(target_feeders) == 1:
+      table1_rows, b_stats = compute_single_feeder(target_feeders[0])
+      table2_rows = []
+      for b_title in block_titles:
+        vals = b_stats[b_title]
+        avail = round(vals['available'], 2)
+        outage = round(vals['outage'], 2)
+        table2_rows.append({
+            'block': b_title,
+            'availability': avail,
+            'outage': outage,
+            'total_available_hours': round(avail + outage, 2),
+        })
+    else:
+      n = len(target_feeders)
+      accum_daily = []
+      accum_blocks = {b: {'available': 0.0, 'outage': 0.0} for b in block_titles}
+      for f_id in target_feeders:
+        f_daily, f_blocks = compute_single_feeder(f_id)
+        if not accum_daily:
+          accum_daily = [
+              {
+                  'date': r['date'],
+                  'availability': 0.0,
+                  'outage': 0.0,
+                  'total': r['total'],
+              }
+              for r in f_daily
+          ]
+        for idx, r in enumerate(f_daily):
+          accum_daily[idx]['availability'] += r['availability']
+          accum_daily[idx]['outage'] += r['outage']
+        for b in block_titles:
+          accum_blocks[b]['available'] += f_blocks[b]['available']
+          accum_blocks[b]['outage'] += f_blocks[b]['outage']
+
+      table1_rows = [
+          {
+              'date': r['date'],
+              'availability': round(r['availability'] / n, 2),
+              'outage': round(r['outage'] / n, 2),
+              'total': r['total'],
+          }
+          for r in accum_daily
+      ]
+      table2_rows = [
+          {
+              'block': b,
+              'availability': round(accum_blocks[b]['available'] / n, 2),
+              'outage': round(accum_blocks[b]['outage'] / n, 2),
+              'total_available_hours': round(
+                  (accum_blocks[b]['available'] + accum_blocks[b]['outage']) / n, 2
+              ),
+          }
+          for b in block_titles
+      ]
+  else:
+    table1_rows = []
+    table2_rows = []
+
+  context = {
+      'feeders': feeders,
+      'selected_feeder': feeder_id,
+      'selected_year': year,
+      'selected_month': month,
+      'years': range(2024, now_lagos.year + 2),
+      'months': [
+          (1, 'January'),
+          (2, 'February'),
+          (3, 'March'),
+          (4, 'April'),
+          (5, 'May'),
+          (6, 'June'),
+          (7, 'July'),
+          (8, 'August'),
+          (9, 'September'),
+          (10, 'October'),
+          (11, 'November'),
+          (12, 'December'),
+      ],
+      'table1_rows': table1_rows,
+      'table2_rows': table2_rows,
+  }
+
+  return render(request, 'power_tracker/power_analytics.html', context)
+
+import logging
+from django.shortcuts import render
+from django.core.cache import cache
+from django.db.models import Sum
+from django.utils import timezone
+from .models import Feeder, DailyFeederMetric
+import logging
+from datetime import datetime, date
+from django.shortcuts import render, get_object_or_404
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.db.models.functions import ExtractYear, ExtractMonth, ExtractDay
+
+from .models import Feeder, PowerStatusLog
+        
+import logging
+from django.shortcuts import render
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.db.models.functions import ExtractYear, ExtractMonth
+
+from .models import Incident, Feeder, Transformer
+from .utils import mask_email
+        
+import logging
+from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from django.db import transaction
+from django.contrib import messages
+from django_ratelimit.decorators import ratelimit
+
+from .models import Feeder, Transformer, Incident
+from .forms import IncidentReportForm
+from .services.tracking import generate_incident_tracking_id
+from .services.notifications import send_admin_approval_request
+
+logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
+
+logger = logging.getLogger(__name__)
+
+
+logger = logging.getLogger(__name__)
+CACHE_KEY_DASHBOARD = "cache:dashboard:published_feeders"
+CACHE_TTL_SECONDS = 60
+
+def availability_dashboard_view(request):
+    """
+    Renders public availability metrics for published feeders.
+    Calculates operational slot statistics (Business, Family, Weekend, Overnight).
+    Cached via Redis to absorb traffic during widespread grid failures.
+    """
+    try:
+        cached_data = cache.get(CACHE_KEY_DASHBOARD)
+        if cached_data:
+            return render(request, "dashboard.html", cached_data)
+
+        published_feeders = Feeder.objects.filter(is_published=True).prefetch_related('status_logs')
+        now = timezone.now()
+        start_of_month = now.date().replace(day=1)
+
+        feeders_data = []
+        
+        # System-wide rollup accumulator
+        network_totals = {
+            'total_uptime_sec': 0,
+            'total_outage_sec': 0,
+            'total_outage_count': 0,
+            'biz_uptime_sec': 0,
+            'fam_uptime_sec': 0,
+            'wknd_uptime_sec': 0,
+            'overnight_uptime_sec': 0,
+        }
+
+        for feeder in published_feeders:
+            latest_log = feeder.status_logs.order_by('-server_time').first()
+            current_status = latest_log.status if latest_log else "OFF"
+            last_ping = latest_log.server_time if latest_log else None
+
+            # Aggregate monthly rollup from pre-calculated DailyFeederMetric table
+            metrics = DailyFeederMetric.objects.filter(
+                feeder=feeder,
+                date__gte=start_of_month
+            ).aggregate(
+                uptime=Sum('total_uptime_seconds'),
+                outage=Sum('total_outage_seconds'),
+                outages=Sum('outage_count'),
+                biz_uptime=Sum('business_uptime_seconds'),
+                fam_uptime=Sum('family_uptime_seconds'),
+                wknd_uptime=Sum('weekend_uptime_seconds'),
+                overnight_uptime=Sum('overnight_uptime_seconds'),
+            )
+
+            uptime_sec = metrics['uptime'] or 0
+            outage_sec = metrics['outage'] or 0
+            outage_cnt = metrics['outages'] or 0
+            biz_sec = metrics['biz_uptime'] or 0
+            fam_sec = metrics['fam_uptime'] or 0
+            wknd_sec = metrics['wknd_uptime'] or 0
+            overnight_sec = metrics['overnight_uptime'] or 0
+
+            total_sec = uptime_sec + outage_sec
+            pct = round((uptime_sec / total_sec) * 100, 1) if total_sec > 0 else 0.0
+
+            # Accumulate into overall network totals
+            network_totals['total_uptime_sec'] += uptime_sec
+            network_totals['total_outage_sec'] += outage_sec
+            network_totals['total_outage_count'] += outage_cnt
+            network_totals['biz_uptime_sec'] += biz_sec
+            network_totals['fam_uptime_sec'] += fam_sec
+            network_totals['wknd_uptime_sec'] += wknd_sec
+            network_totals['overnight_uptime_sec'] += overnight_sec
+
+            feeders_data.append({
+                'feeder': feeder,
+                'status': current_status,
+                'last_ping': last_ping,
+                'uptime_hours': round(uptime_sec / 3600, 1),
+                'outage_hours': round(outage_sec / 3600, 1),
+                'outage_count': outage_cnt,
+                'availability_pct': pct,
+                'business_uptime_hours': round(biz_sec / 3600, 1),
+                'family_uptime_hours': round(fam_sec / 3600, 1),
+                'weekend_uptime_hours': round(wknd_sec / 3600, 1),
+                'overnight_uptime_hours': round(overnight_sec / 3600, 1),
+            })
+
+        # Calculate network-wide uptime percentage
+        net_total_sec = network_totals['total_uptime_sec'] + network_totals['total_outage_sec']
+        net_availability_pct = round(
+            (network_totals['total_uptime_sec'] / net_total_sec) * 100, 1
+        ) if net_total_sec > 0 else 0.0
+
+        context = {
+            'feeders_data': feeders_data,
+            'network_summary': {
+                'availability_pct': net_availability_pct,
+                'total_uptime_hours': round(network_totals['total_uptime_sec'] / 3600, 1),
+                'total_outage_hours': round(network_totals['total_outage_sec'] / 3600, 1),
+                'total_outage_count': network_totals['total_outage_count'],
+                'business_hours': round(network_totals['biz_uptime_sec'] / 3600, 1),
+                'family_hours': round(network_totals['fam_uptime_sec'] / 3600, 1),
+                'weekend_hours': round(network_totals['wknd_uptime_sec'] / 3600, 1),
+                'overnight_hours': round(network_totals['overnight_uptime_sec'] / 3600, 1),
+            },
+            'current_month_name': now.strftime('%B %Y'),
+            'generated_at': now,
+        }
+
+        cache.set(CACHE_KEY_DASHBOARD, context, CACHE_TTL_SECONDS)
+        return render(request, "dashboard.html", context)
+
+    except Exception as e:
+        logger.error(f"[Dashboard View] Failed rendering dashboard: {e}", exc_info=True)
+        return render(request, "dashboard.html", {
+            'feeders_data': [],
+            'network_summary': {},
+            'error': 'System metrics are momentarily unavailable.'
+        })
+        
+        
+
+def feeder_history_view(request, feeder_id: int):
+    """
+    Renders filterable chronological power telemetry logs for a specific feeder.
+    Supports Year, Month, Day, and Status filters (defaulting to ALL).
+    """
+    try:
+        feeder = get_object_or_404(Feeder, id=feeder_id)
+
+        # Base query for the specific feeder ordered newest first
+        logs_queryset = PowerStatusLog.objects.filter(feeder=feeder).order_by('-server_time')
+
+        # Retrieve Query Params
+        selected_year = request.GET.get('year', '').strip()
+        selected_month = request.GET.get('month', '').strip()
+        selected_day = request.GET.get('day', '').strip()
+        selected_status = request.GET.get('status', 'ALL').strip().upper()
+
+        # Dynamic Date Filtering
+        if selected_year and selected_year.isdigit():
+            logs_queryset = logs_queryset.filter(server_time__year=int(selected_year))
+
+        if selected_month and selected_month.isdigit():
+            logs_queryset = logs_queryset.filter(server_time__month=int(selected_month))
+
+        if selected_day and selected_day.isdigit():
+            logs_queryset = logs_queryset.filter(server_time__day=int(selected_day))
+
+        # Status Filtering
+        if selected_status in ['ON', 'OFF']:
+            logs_queryset = logs_queryset.filter(status=selected_status)
+        else:
+            selected_status = 'ALL'
+
+        # Pagination (50 logs per page)
+        paginator = Paginator(logs_queryset, 50)
+        page_number = request.GET.get('page', 1)
+
+        try:
+            page_obj = paginator.page(page_number)
+        except PageNotAnInteger:
+            page_obj = paginator.page(1)
+        except EmptyPage:
+            page_obj = paginator.page(paginator.num_pages)
+
+        # Compute intervals between adjacent logs for readable duration display
+        logs_list = list(page_obj.object_list)
+        for i, current_log in enumerate(logs_list):
+            # If there's an older log available on this page, compute interval
+            if i + 1 < len(logs_list):
+                delta = current_log.server_time - logs_list[i + 1].server_time
+                hours, remainder = divmod(int(delta.total_seconds()), 3600)
+                minutes, seconds = divmod(remainder, 60)
+                current_log.duration_display = f"{hours}h {minutes}m"
+            else:
+                current_log.duration_display = "—"
+
+        # Filter choices for dropdown menus
+        available_years = (
+            PowerStatusLog.objects.filter(feeder=feeder)
+            .annotate(year=ExtractYear('server_time'))
+            .values_list('year', flat=True)
+            .distinct()
+            .order_by('-year')
+        )
+
+        month_choices = [
+            (1, 'Jan'), (2, 'Feb'), (3, 'Mar'), (4, 'Apr'),
+            (5, 'May'), (6, 'Jun'), (7, 'Jul'), (8, 'Aug'),
+            (9, 'Sep'), (10, 'Oct'), (11, 'Nov'), (12, 'Dec')
+        ]
+
+        days_choices = list(range(1, 32))
+
+        # Preserve query string parameters across pagination
+        query_params = request.GET.copy()
+        if 'page' in query_params:
+            del query_params['page']
+
+        context = {
+            'feeder': feeder,
+            'page_obj': page_obj,
+            'logs': logs_list,
+            'total_logs_count': paginator.count,
+            'available_years': available_years,
+            'month_choices': month_choices,
+            'days_choices': days_choices,
+            'selected_year': selected_year,
+            'selected_month': selected_month,
+            'selected_day': selected_day,
+            'selected_status': selected_status,
+            'querystring': query_params.urlencode(),
+        }
+
+        return render(request, 'feeder_history.html', context)
+
+    except Exception as e:
+        logger.error(f"[Feeder History] Error loading history for Feeder {feeder_id}: {e}", exc_info=True)
+        return render(request, 'feeder_history.html', {
+            'feeder': None,
+            'logs': [],
+            'error': 'Telemetry logs could not be retrieved at this time.'
+        })
+        
+        
+    
+
+
+def incident_dashboard_view(request):
+    """
+    Filterable incident tracking board.
+    Supports Year, Month, Incident Type, Feeder, Transformer, and Status filters.
+    """
+    try:
+        # Base QuerySet with optimizations to avoid N+1 queries
+        queryset = (
+            Incident.objects
+            .select_related('feeder', 'transformer')
+            .order_by('-incident_date')
+        )
+
+        # Retrieve Filter Parameters
+        selected_year = request.GET.get('year', '').strip()
+        selected_month = request.GET.get('month', '').strip()
+        selected_type = request.GET.get('incident_type', '').strip()
+        selected_feeder = request.GET.get('feeder', '').strip()
+        selected_transformer = request.GET.get('transformer', '').strip()
+        selected_status = request.GET.get('status', '').strip()
+
+        # Apply Filters Dynamically
+        if selected_year and selected_year.isdigit():
+            queryset = queryset.filter(incident_date__year=int(selected_year))
+
+        if selected_month and selected_month.isdigit():
+            queryset = queryset.filter(incident_date__month=int(selected_month))
+
+        if selected_type and selected_type != 'ALL':
+            queryset = queryset.filter(incident_type=selected_type)
+
+        if selected_feeder and selected_feeder.isdigit():
+            queryset = queryset.filter(feeder_id=int(selected_feeder))
+
+        if selected_transformer and selected_transformer.isdigit():
+            queryset = queryset.filter(transformer_id=int(selected_transformer))
+
+        if selected_status and selected_status != 'ALL':
+            queryset = queryset.filter(status=selected_status)
+
+        # Pagination: 20 incidents per page
+        paginator = Paginator(queryset, 20)
+        page_number = request.GET.get('page', 1)
+
+        try:
+            page_obj = paginator.page(page_number)
+        except PageNotAnInteger:
+            page_obj = paginator.page(1)
+        except EmptyPage:
+            page_obj = paginator.page(paginator.num_pages)
+
+        # Attach masked email dynamically
+        for incident in page_obj:
+            incident.masked_email = mask_email(incident.contact_email)
+
+        # Extract Available Years for the Filter Dropdown
+        available_years = (
+            Incident.objects.annotate(year=ExtractYear('incident_date'))
+            .values_list('year', flat=True)
+            .distinct()
+            .order_by('-year')
+        )
+
+        # Feeder & Transformer options
+        feeders = Feeder.objects.filter(is_published=True).order_by('name')
+        
+        # If feeder is filtered, restrict transformers dropdown accordingly
+        if selected_feeder and selected_feeder.isdigit():
+            transformers = Transformer.objects.filter(feeder_id=int(selected_feeder), is_active=True).order_by('name')
+        else:
+            transformers = Transformer.objects.filter(is_active=True).order_by('name')
+
+        month_choices = [
+            (1, 'January'), (2, 'February'), (3, 'March'), (4, 'April'),
+            (5, 'May'), (6, 'June'), (7, 'July'), (8, 'August'),
+            (9, 'September'), (10, 'October'), (11, 'November'), (12, 'December')
+        ]
+
+        # Preserve query string parameters for pagination links
+        query_params = request.GET.copy()
+        if 'page' in query_params:
+            del query_params['page']
+
+        context = {
+            'page_obj': page_obj,
+            'incidents': page_obj.object_list,
+            'total_incidents_count': paginator.count,
+            'available_years': available_years,
+            'month_choices': month_choices,
+            'incident_type_choices': Incident.INCIDENT_TYPES,
+            'status_choices': Incident.STATUS_CHOICES,
+            'feeders': feeders,
+            'transformers': transformers,
+            'selected_year': selected_year,
+            'selected_month': selected_month,
+            'selected_type': selected_type,
+            'selected_feeder': selected_feeder,
+            'selected_transformer': selected_transformer,
+            'selected_status': selected_status,
+            'querystring': query_params.urlencode(),
+        }
+
+        return render(request, 'incident_dashboard.html', context)
+
+    except Exception as e:
+        logger.error(f"[Incident Dashboard] Failed to load incidents: {e}", exc_info=True)
+        return render(request, 'incident_dashboard.html', {
+            'error': 'Unable to load incident reports at this time.',
+            'incidents': []
+        })
+        
+
+
+def api_get_transformers_for_feeder(request):
+    """
+    Returns active transformers for a specified feeder ID for dynamic dropdowns.
+    """
+    feeder_id = request.GET.get('feeder_id')
+    if not feeder_id:
+        return JsonResponse({'transformers': []})
+
+    try:
+        transformers = Transformer.objects.filter(
+            feeder_id=feeder_id, 
+            is_active=True
+        ).values('id', 'name', 'transformer_code')
+        
+        data = [
+            {
+                'id': item['id'],
+                'label': f"{item['transformer_code']} - {item['name']}"
+            }
+            for item in transformers
+        ]
+        return JsonResponse({'transformers': data})
+    except Exception as e:
+        logger.error(f"[API Transformers] Error fetching transformers for feeder {feeder_id}: {e}", exc_info=True)
+        return JsonResponse({'error': 'Unable to retrieve transformers.'}, status=400)
+
+
+@ratelimit(key='ip', rate='5/10m', method='POST', block=True)
+def report_incident_view(request):
+    """
+    Public reporting endpoint protected by IP rate limiting, honeypot, and atomic generation.
+    """
+    if request.method == 'POST':
+        form = IncidentReportForm(request.POST)
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    incident = form.save(commit=False)
+                    
+                    # 1. Generate atomic thread-safe tracking ID
+                    incident.tracking_id = generate_incident_tracking_id(
+                        feeder_code=incident.feeder.code,
+                        transformer_code=incident.transformer.transformer_code
+                    )
+                    incident.save()
+
+                logger.info(f"[Incident Reporter] Registered {incident.tracking_id} successfully.")
+
+                # 2. Dispatch email to admins for review
+                try:
+                    send_admin_approval_request(incident, request=request)
+                except Exception as mail_err:
+                    logger.error(f"[Incident Reporter] Email notification failed for {incident.tracking_id}: {mail_err}", exc_info=True)
+
+                return render(request, 'incident_success.html', {
+                    'tracking_id': incident.tracking_id,
+                    'contact_email': incident.contact_email,
+                })
+
+            except Exception as e:
+                logger.error(f"[Incident Reporter] Database transaction failed: {e}", exc_info=True)
+                messages.error(request, "Failed to submit incident. Please try again.")
+        else:
+            logger.warning("[Incident Reporter] Form validation errors: %s", form.errors.as_json())
+    else:
+        form = IncidentReportForm()
+
+    return render(request, 'report_incident.html', {'form': form})
+
+
+
+
+import logging
+from django.shortcuts import render, get_object_or_404, redirect
+from django.views.decorators.http import require_http_methods
+from django.db import transaction
+from django.contrib import messages
+from django.utils import timezone
+from .models import Incident
+from .services.notifications import decode_approval_token, send_user_status_update
+
+logger = logging.getLogger(__name__)
+
+@require_http_methods(["GET", "POST"])
+def incident_action_review_view(request, token: str):
+    """
+    GET:  Renders review dashboard for admins (Safe against email pre-fetching bots).
+    POST: Processes the actual state transition with CSRF protection.
+    """
+    incident_id, error_message = decode_approval_token(token)
+    if error_message:
+        return render(request, "approval_status.html", {
+            "success": False,
+            "message": error_message
+        }, status=400)
+
+    incident = get_object_or_404(Incident, id=incident_id)
+
+    # Check if already processed
+    if incident.approval != 'PENDING':
+        return render(request, "approval_status.html", {
+            "success": False,
+            "incident": incident,
+            "message": f"This incident has already been processed as {incident.get_approval_display()}."
+        })
+
+    # BOT-SAFE: GET only renders confirmation UI
+    if request.method == "GET":
+        return render(request, "review_incident.html", {
+            "incident": incident,
+            "token": token
+        })
+
+    # POST: Mutates state
+    action = request.POST.get("action")
+    rejection_reason = request.POST.get("rejection_reason", "").strip()
+
+    if action not in ["APPROVE", "REJECT"]:
+        messages.error(request, "Invalid action selected.")
+        return render(request, "review_incident.html", {"incident": incident, "token": token})
+
+    try:
+        with transaction.atomic():
+            # Lock the incident to prevent double execution
+            locked_incident = Incident.objects.select_for_update().get(id=incident.id)
+
+            if locked_incident.approval != 'PENDING':
+                return render(request, "approval_status.html", {
+                    "success": False,
+                    "incident": locked_incident,
+                    "message": "Action ignored: Incident was already resolved by another administrator."
+                })
+
+            if action == "APPROVE":
+                locked_incident.approval = 'APPROVED'
+                locked_incident.status = 'IN_PROGRESS'
+            elif action == "REJECT":
+                locked_incident.approval = 'REJECTED'
+                locked_incident.rejection_reason = rejection_reason or "Rejected by area administrator."
+
+            locked_incident.save()
+            logger.info(f"[Approval View] Incident {locked_incident.tracking_id} updated to {locked_incident.approval}")
+
+        # Send notification to the user after committing the transaction
+        send_user_status_update(locked_incident)
+
+        return render(request, "approval_status.html", {
+            "success": True,
+            "incident": locked_incident,
+            "message": f"Incident successfully {locked_incident.get_approval_display().lower()}."
+        })
+
+    except Exception as e:
+        logger.error(f"[Approval View] State transition error on Incident {incident.id}: {e}", exc_info=True)
+        return render(request, "approval_status.html", {
+            "success": False,
+            "message": "An internal error occurred while updating the incident."
+        }, status=500)

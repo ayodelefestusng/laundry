@@ -36,6 +36,13 @@ from logging.handlers import RotatingFileHandler
 
 
 
+import logging
+from django.db import models
+from django.utils import timezone
+
+import logging
+from django.db import models
+from django.utils import timezone
 
 
 
@@ -1335,8 +1342,6 @@ class Feeder(models.Model):
         ('F', 'Band F'),
     ]
     name = models.CharField(max_length=255, unique=True)
-    transformer_name = models.CharField(max_length=255, blank=True, null=True)
-    transformer_code = models.CharField(max_length=255, blank=True, null=True)
     primary_recipient = models.TextField(
         blank=True, null=True,
         help_text="Comma-separated WhatsApp numbers and/or group IDs (legacy / fallback)"
@@ -1361,6 +1366,16 @@ class Feeder(models.Model):
     sim_serial = models.CharField(max_length=100, blank=True, null=True)
     band = models.CharField(max_length=1, choices=BAND_CHOICES, default='A')
     created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def transformer_name(self):
+        t = self.transformers.first()
+        return t.name if t else None
+
+    @property
+    def transformer_code(self):
+        t = self.transformers.first()
+        return t.transformer_code if t else None
 
     @property
     def contact_phone(self):
@@ -1509,6 +1524,163 @@ class PowerStatus(models.Model):
                 f"@ {self.server_time}"
             )
         return f"{self.feeder.name} - {self.status} at {self.server_time}"
+
+
+# Alias for backward compatibility with status logging views
+PowerStatusLog = PowerStatus
+
+class Transformer(models.Model):
+    feeder = models.ForeignKey(Feeder, related_name='transformers', on_delete=models.CASCADE)
+    name = models.CharField(max_length=255)
+    transformer_code = models.CharField(max_length=100, help_text="e.g., DT01")
+    admin_main = models.EmailField(blank=True, null=True)
+    admin_secondary = models.EmailField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ('feeder', 'transformer_code')
+
+    def __str__(self):
+        return f"{self.transformer_code} - {self.name} ({self.feeder.name})"
+
+
+class IncidentSequence(models.Model):
+    date = models.DateField(unique=True)
+    last_sequence = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return f"Sequence for {self.date}: {self.last_sequence}"
+
+class Incident(models.Model):
+    INCIDENT_TYPES = [
+        ('LOSS_OF_PHASE', 'Loss of Phase'),
+        ('LOW_VOLTAGE', 'Low Voltage'),
+        ('VANDALISM', 'Vandalism'),
+        ('FAULTY_TRANSFORMER', 'Faulty Transformer'),
+        ('CABLE_CUT', 'Cable Cut'),
+        ('LOAD_SHEDDING', 'Load Shedding'),
+        ('OTHERS', 'Others'),
+    ]
+
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('IN_PROGRESS', 'Work in Progress'),
+        ('RESOLVED', 'Resolved'),
+    ]
+
+    APPROVAL_CHOICES = [
+        ('PENDING', 'Pending Review'),
+        ('APPROVED', 'Approved'),
+        ('REJECTED', 'Rejected'),
+    ]
+
+    tracking_id = models.CharField(max_length=64, unique=True, db_index=True, editable=False)
+    feeder = models.ForeignKey(Feeder, on_delete=models.PROTECT)
+    transformer = models.ForeignKey(Transformer, on_delete=models.PROTECT)
+    contact_email = models.EmailField()
+    incident_date = models.DateTimeField()
+    incident_type = models.CharField(max_length=30, choices=INCIDENT_TYPES)
+    custom_description = models.TextField(blank=True, null=True)
+    
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    approval = models.CharField(max_length=20, choices=APPROVAL_CHOICES, default='PENDING')
+    rejection_reason = models.TextField(blank=True, null=True)
+    
+    # Stores the raw signature portion to guarantee one-time usage
+    approval_token_signature = models.CharField(max_length=255, blank=True, null=True, unique=True)
+    
+    date_created = models.DateTimeField(auto_now_add=True)
+    date_resolved = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['-date_created']
+
+    def __str__(self):
+        return f"Incident {self.tracking_id} - {self.approval}"
+
+
+
+
+
+class DailyFeederMetric(models.Model):
+    feeder = models.ForeignKey(
+        'Feeder',
+        related_name='daily_metrics',
+        on_delete=models.CASCADE
+    )
+    date = models.DateField(db_index=True)
+
+    # Durations stored in raw seconds
+    total_uptime_seconds = models.PositiveIntegerField(default=0)
+    total_outage_seconds = models.PositiveIntegerField(default=0)
+    outage_count = models.PositiveIntegerField(default=0)
+
+    # Time-slot segmented uptimes (in seconds)
+    business_uptime_seconds = models.PositiveIntegerField(
+        default=0,
+        help_text="Mon-Fri 07:00-18:00 uptime in seconds"
+    )
+    family_uptime_seconds = models.PositiveIntegerField(
+        default=0,
+        help_text="Mon-Fri 18:00-22:00 uptime in seconds"
+    )
+    weekend_uptime_seconds = models.PositiveIntegerField(
+        default=0,
+        help_text="Sat-Sun 07:00-22:00 uptime in seconds"
+    )
+    overnight_uptime_seconds = models.PositiveIntegerField(
+        default=0,
+        help_text="Mon-Sun 22:00-07:00 uptime in seconds"
+    )
+
+    last_calculated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-date']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['feeder', 'date'],
+                name='unique_feeder_daily_metric'
+            )
+        ]
+        indexes = [
+            models.Index(fields=['feeder', 'date']),
+        ]
+
+    def __str__(self):
+        return f"{self.feeder.name} - {self.date} ({self.availability_percentage}%)"
+
+    # Convenience helper properties for templates & serializers
+    @property
+    def total_uptime_hours(self) -> float:
+        return round(self.total_uptime_seconds / 3600, 2)
+
+    @property
+    def total_outage_hours(self) -> float:
+        return round(self.total_outage_seconds / 3600, 2)
+
+    @property
+    def availability_percentage(self) -> float:
+        total_tracked = self.total_uptime_seconds + self.total_outage_seconds
+        if total_tracked == 0:
+            return 0.0
+        return round((self.total_uptime_seconds / total_tracked) * 100, 2)
+
+    @property
+    def business_uptime_hours(self) -> float:
+        return round(self.business_uptime_seconds / 3600, 2)
+
+    @property
+    def family_uptime_hours(self) -> float:
+        return round(self.family_uptime_seconds / 3600, 2)
+
+    @property
+    def weekend_uptime_hours(self) -> float:
+        return round(self.weekend_uptime_seconds / 3600, 2)
+
+    @property
+    def overnight_uptime_hours(self) -> float:
+        return round(self.overnight_uptime_seconds / 3600, 2)
 
 
 class School_tenant(models.Model):

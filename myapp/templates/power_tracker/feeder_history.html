@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feeder History | {{ feeder.name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen">
+
+    <!-- Navbar -->
+    <header class="bg-slate-900 border-b border-slate-800 text-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+                <span class="font-bold tracking-tight text-lg">Power Tracking Portal</span>
+            </div>
+            <nav class="flex items-center space-x-4">
+                <a href="{% url 'dashboard' %}" class="text-sm font-medium text-slate-300 hover:text-white transition">Availability</a>
+                <a href="{% url 'incident_dashboard' %}" class="text-sm font-medium text-slate-300 hover:text-white transition">Incident Log</a>
+                <a href="{% url 'report_incident' %}" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition">
+                    + Log Fault
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- Breadcrumbs -->
+        <nav class="flex items-center text-xs text-slate-500 mb-4 space-x-2">
+            <a href="{% url 'dashboard' %}" class="hover:text-slate-800 transition">Availability Dashboard</a>
+            <span>/</span>
+            <span class="text-slate-800 font-medium">{{ feeder.name }} Telemetry Log</span>
+        </nav>
+
+        <!-- Header -->
+        <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <div class="flex items-center space-x-3">
+                    <h1 class="text-2xl font-bold tracking-tight text-slate-900">{{ feeder.name }}</h1>
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-200 text-slate-700">
+                        {{ feeder.code }}
+                    </span>
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+                        Band {{ feeder.band }}
+                    </span>
+                </div>
+                <p class="text-sm text-slate-500 mt-1">Detailed state transitions and raw power availability log.</p>
+            </div>
+            <div class="bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm text-sm">
+                <span class="text-slate-400">Total Entries:</span>
+                <span class="font-bold text-slate-900 ml-1">{{ total_logs_count }}</span>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 mb-6">
+            <form method="GET" action="" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                
+                <!-- Year Filter -->
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Year</label>
+                    <select name="year" class="w-full text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-600 focus:outline-none">
+                        <option value="">All</option>
+                        {% for yr in available_years %}
+                            <option value="{{ yr }}" {% if selected_year == yr|stringformat:"i" %}selected{% endif %}>{{ yr }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Month Filter -->
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Month</label>
+                    <select name="month" class="w-full text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-600 focus:outline-none">
+                        <option value="">All</option>
+                        {% for num, name in month_choices %}
+                            <option value="{{ num }}" {% if selected_month == num|stringformat:"i" %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Day Filter -->
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Day</label>
+                    <select name="day" class="w-full text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-600 focus:outline-none">
+                        <option value="">All</option>
+                        {% for d in days_choices %}
+                            <option value="{{ d }}" {% if selected_day == d|stringformat:"i" %}selected{% endif %}>{{ d }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Status Filter -->
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Power Status</label>
+                    <select name="status" class="w-full text-sm border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-600 focus:outline-none">
+                        <option value="ALL" {% if selected_status == 'ALL' %}selected{% endif %}>All</option>
+                        <option value="ON" {% if selected_status == 'ON' %}selected{% endif %}>Power ON</option>
+                        <option value="OFF" {% if selected_status == 'OFF' %}selected{% endif %}>Power OFF</option>
+                    </select>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="sm:col-span-2 md:col-span-4 lg:col-span-1 flex items-end gap-2">
+                    <button type="submit" class="flex-1 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold transition shadow-sm">
+                        Filter
+                    </button>
+                    <a href="{% url 'feeder_history' feeder.id %}" class="px-3 py-2 text-xs font-medium text-slate-500 hover:text-slate-800 border border-slate-300 rounded-lg transition bg-slate-50">
+                        Reset
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Logs Table -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-slate-600">
+                    <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold border-b border-slate-200">
+                        <tr>
+                            <th scope="col" class="px-6 py-3.5">Timestamp (Server Time)</th>
+                            <th scope="col" class="px-6 py-3.5">Status</th>
+                            <th scope="col" class="px-6 py-3.5">Span Since Previous Ping</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 font-mono text-xs">
+                        {% for log in logs %}
+                        <tr class="hover:bg-slate-50/70 transition">
+                            <!-- Server Time -->
+                            <td class="px-6 py-4 font-sans text-sm text-slate-900">
+                                {{ log.server_time|date:"D, M d, Y — H:i:s" }}
+                            </td>
+
+                            <!-- Status Badge -->
+                            <td class="px-6 py-4">
+                                {% if log.status == 'ON' %}
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
+                                        POWER ON
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500 mr-1.5"></span>
+                                        POWER OFF
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Interval Duration -->
+                            <td class="px-6 py-4 text-slate-500 font-sans text-xs">
+                                {{ log.duration_display }}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="px-6 py-12 text-center text-slate-400 font-sans text-sm">
+                                No power logs found matching the filter criteria.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination Bar -->
+            {% if page_obj.has_other_pages %}
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+                <div class="text-xs text-slate-500">
+                    Showing page <span class="font-semibold text-slate-700">{{ page_obj.number }}</span> of <span class="font-semibold text-slate-700">{{ page_obj.paginator.num_pages }}</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}{% if querystring %}&{{ querystring }}{% endif %}"
+                           class="px-3 py-1 bg-white border border-slate-200 rounded-md text-xs font-medium text-slate-600 hover:bg-slate-100">
+                            Previous
+                        </a>
+                    {% endif %}
+                    
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}{% if querystring %}&{{ querystring }}{% endif %}"
+                           class="px-3 py-1 bg-white border border-slate-200 rounded-md text-xs font-medium text-slate-600 hover:bg-slate-100">
+                            Next
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+</body>
+</html>

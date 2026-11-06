@@ -277,16 +277,16 @@ def generate_power_report(feeder, target_date, is_today=True):
 
 @shared_task(name="myapp.tasks.send_power_email")
 def send_power_email(feeder_name, status, device_time, server_time, contact_phone=None, transformer_name="UNKNOWN_TRANSFORMER", peak_a0=0, msisdn="UNKNOWN", sim_serial="UNKNOWN"):
-    from myapp.models import Feeder, PowerStatus
+    from myapp.models import Feeder, Transformer, PowerStatus
     
     logger.info(f"Processing real-time power update for Feeder {feeder_name} with status {status}")
     
     # Resolve the transformer name/code
     resolved_transformer_name = "UNKNOWN_TRANSFORMER"
     if transformer_name and transformer_name != "UNKNOWN_TRANSFORMER":
-        lookup_feeder = Feeder.objects.filter(transformer_code=transformer_name).first()
-        if lookup_feeder and lookup_feeder.transformer_name:
-            resolved_transformer_name = lookup_feeder.transformer_name
+        lookup_tf = Transformer.objects.filter(transformer_code=transformer_name).first()
+        if lookup_tf and lookup_tf.name:
+            resolved_transformer_name = lookup_tf.name
         else:
             resolved_transformer_name = transformer_name
     else:
@@ -299,8 +299,6 @@ def send_power_email(feeder_name, status, device_time, server_time, contact_phon
         feeder, created = Feeder.objects.get_or_create(
             name=feeder_name,
             defaults={
-                "transformer_name": resolved_transformer_name,
-                "transformer_code": transformer_name,
                 "sim_serial": sim_serial_val,
                 "msisdn": msisdn,
                 "registered_phone": contact_phone,
@@ -309,12 +307,6 @@ def send_power_email(feeder_name, status, device_time, server_time, contact_phon
         )
         if not created:
             updated_fields = []
-            if feeder.transformer_name != resolved_transformer_name:
-                feeder.transformer_name = resolved_transformer_name
-                updated_fields.append("transformer_name")
-            if feeder.transformer_code != transformer_name:
-                feeder.transformer_code = transformer_name
-                updated_fields.append("transformer_code")
             if feeder.sim_serial != sim_serial_val:
                 feeder.sim_serial = sim_serial_val
                 updated_fields.append("sim_serial")
@@ -327,13 +319,22 @@ def send_power_email(feeder_name, status, device_time, server_time, contact_phon
                 
             if updated_fields:
                 feeder.save(update_fields=updated_fields)
+
+        # Upsert Transformer linked to this Feeder
+        if transformer_name and transformer_name != "UNKNOWN_TRANSFORMER":
+            Transformer.objects.update_or_create(
+                feeder=feeder,
+                transformer_code=transformer_name,
+                defaults={
+                    "name": resolved_transformer_name,
+                    "is_active": True,
+                }
+            )
     except Exception as e:
-        logger.error(f"Error retrieving or creating Feeder: {e}", exc_info=True)
+        logger.error(f"Error retrieving or creating Feeder / Transformer: {e}", exc_info=True)
         sim_serial_val = sim_serial if sim_serial != "UNKNOWN" else (contact_phone or "UNKNOWN")
         feeder = Feeder(
             name=feeder_name, 
-            transformer_name=resolved_transformer_name,
-            transformer_code=transformer_name,
             sim_serial=sim_serial_val,
             msisdn=msisdn,
             registered_phone=contact_phone

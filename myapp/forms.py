@@ -570,3 +570,93 @@ class OrderFormv1(forms.ModelForm):
             # 'pickup_date': forms.DateInput(attrs={'type': 'date'}),
              'pickup_date': forms.DateInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
         }
+
+
+
+
+import logging
+from django import forms
+from django.utils import timezone
+from .models import Incident, Feeder, Transformer
+
+logger = logging.getLogger(__name__)
+
+class IncidentReportForm(forms.ModelForm):
+    # Honeypot field (hidden via CSS; bots will typically fill it out)
+    website_hp = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'tabindex': '-1', 'autocomplete': 'off'})
+    )
+
+    class Meta:
+        model = Incident
+        fields = [
+            'feeder',
+            'transformer',
+            'contact_email',
+            'incident_date',
+            'incident_type',
+            'custom_description',
+        ]
+        widgets = {
+            'incident_date': forms.DateTimeInput(
+                attrs={'type': 'datetime-local', 'class': 'form-input'}
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Only show published feeders to public submitters
+        self.fields['feeder'].queryset = Feeder.objects.filter(is_published=True)
+        self.fields['transformer'].queryset = Transformer.objects.filter(is_active=True)
+
+        # If feeder is selected (POST or bound form), limit transformer choices
+        if 'feeder' in self.data:
+            try:
+                feeder_id = int(self.data.get('feeder'))
+                self.fields['transformer'].queryset = Transformer.objects.filter(
+                    feeder_id=feeder_id, is_active=True
+                )
+            except (ValueError, TypeError) as e:
+                logger.warning(f"[Form Init] Invalid feeder ID passed in form data: {e}")
+                self.fields['transformer'].queryset = Transformer.objects.none()
+        elif self.instance.pk and self.instance.feeder:
+            self.fields['transformer'].queryset = self.instance.feeder.transformers.filter(is_active=True)
+        else:
+            self.fields['transformer'].queryset = Transformer.objects.none()
+
+    def clean_website_hp(self):
+        hp_value = self.cleaned_data.get('website_hp')
+        if hp_value:
+            logger.warning("[Spam Defense] Honeypot triggered with value: %s", hp_value)
+            raise forms.ValidationError("Spam detected.")
+        return hp_value
+
+    def clean(self):
+        cleaned_data = super().clean()
+        feeder = cleaned_data.get('feeder')
+        transformer = cleaned_data.get('transformer')
+        incident_type = cleaned_data.get('incident_type')
+        custom_desc = cleaned_data.get('custom_description')
+        incident_date = cleaned_data.get('incident_date')
+
+        # 1. Enforce feeder-transformer relational integrity
+        if feeder and transformer:
+            if transformer.feeder_id != feeder.id:
+                self.add_error(
+                    'transformer',
+                    f"Selected transformer does not belong to Feeder '{feeder.name}'."
+                )
+
+        # 2. Require note if incident type is OTHERS
+        if incident_type == 'OTHERS' and not (custom_desc and custom_desc.strip()):
+            self.add_error(
+                'custom_description',
+                "Please describe the incident when selecting 'Others'."
+            )
+
+        # 3. Disallow dates in the future
+        if incident_date and incident_date > timezone.now():
+            self.add_error('incident_date', "Incident date cannot be in the future.")
+
+        return cleaned_data

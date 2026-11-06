@@ -147,6 +147,10 @@ logger = logging.getLogger(__name__)
 from django.utils.dateparse import parse_date
 from datetime import datetime, time
 
+    
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class GeocodingService:
@@ -290,3 +294,29 @@ class WorkflowBI:
             )
         
         return top_coords
+    
+    
+
+def mask_email(email: str) -> str:
+    """
+    Masks an email address for public display.
+    Examples:
+      - 'johndoe@gmail.com' -> 'j***e@gmail.com'
+      - 'ab@test.com'       -> 'a***b@test.com'
+      - 'a@test.com'        -> 'a***@test.com'
+    """
+    if not email or '@' not in email:
+        return email or "N/A"
+
+    try:
+        user, domain = email.split('@', 1)
+        if len(user) <= 1:
+            masked_user = f"{user}***"
+        elif len(user) == 2:
+            masked_user = f"{user[0]}***{user[1]}"
+        else:
+            masked_user = f"{user[0]}***{user[-1]}"
+        return f"{masked_user}@{domain}"
+    except Exception as e:
+        logger.error(f"[Privacy] Error masking email '{email}': {e}", exc_info=True)
+        return "Protected"

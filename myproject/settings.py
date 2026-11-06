@@ -40,6 +40,7 @@ ALLOWED_HOSTS = [
     "tenant3.com",
     "yourmainapp.com",
     "whatsapp-1-laundry-2-compose.xqqhik.easypanel.host",
+    "powervoice.ng",
 ]
 
 # CSRF trusted origins for cross-site requests

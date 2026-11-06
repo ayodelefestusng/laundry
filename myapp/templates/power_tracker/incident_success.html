@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Incident Logged Successfully</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-md w-full bg-white rounded-xl shadow-md border border-slate-200 p-8 text-center">
+        <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
+            ✓
+        </div>
+        <h1 class="text-xl font-bold text-slate-800">Incident Reported</h1>
+        <p class="text-sm text-slate-500 mt-1">Your report has been received and routed for regional review.</p>
+
+        <div class="my-6 p-4 bg-slate-50 border border-slate-200 rounded-lg">
+            <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Your Tracking ID</p>
+            <p class="text-lg font-mono font-bold text-blue-900 mt-1 select-all">{{ tracking_id }}</p>
+        </div>
+
+        <p class="text-xs text-slate-500">
+            A confirmation link and updates will be dispatched to <span class="font-semibold text-slate-700">{{ contact_email }}</span> once the area administrators review the report.
+        </p>
+
+        <a href="{% url 'report_incident' %}" class="inline-block mt-6 text-sm text-blue-600 hover:text-blue-800 font-medium">
+            ← Log another incident
+        </a>
+    </div>
+</body>
+</html>

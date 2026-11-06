@@ -40,4 +40,5 @@ dependencies = [
     "flower>=2.0.1",
     "django-celery-beat>=2.9.0",
     "pytz>=2026.2",
+    "django-ratelimit>=4.1.0",
 ]

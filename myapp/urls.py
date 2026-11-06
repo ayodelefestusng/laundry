@@ -27,7 +27,7 @@ urlpatterns = [
 
 
 
-    path('', views.customer_order, name='customer_order'),
+    path('main/', views.customer_order, name='customer_order'),
     # path('customer/dashboard/', views.customer_dashboard, name='customer_dashboard'),
     path('customer/order/<uuid:order_id>/', views.order_detail, name='order_detail'),
     path('customer/order/<uuid:order_id>/review/', views.customer_review, name='customer_review'),
@@ -126,5 +126,19 @@ path('paystack/success/', views.paystack_success, name='paystack_success'),
 
     # Utility endpoint
     path('utility/', views.utility, name='utility'),
+    path('analytics/', views.power_analytics_view, name='power_analytics'),
+    
+     # power_tracker endpoint
+    path('', views.availability_dashboard_view, name='dashboard'),
+    path('feeders/<int:feeder_id>/history/', views.feeder_history_view, name='feeder_history'),
+    path('incidents/', views.incident_dashboard_view, name='incident_dashboard'),
+    path('incidents/report/', views.report_incident_view, name='report_incident'),
+    path('api/transformers/', views.api_get_transformers_for_feeder, name='api_transformers'),
+    path('incidents/review/<str:token>/', views.incident_action_review_view, name='incident_action_review'),
+    
+    
+    
+    path('incidents/review/<str:token>/', views.incident_action_review_view, name='incident_action_review'),
+
 ]
 

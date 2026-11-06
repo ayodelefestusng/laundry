@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Feeder Power Analytics Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans p-6">
+    <div class="max-w-7xl mx-auto space-y-8">
+        
+        <!-- Header & Filters -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <h1 class="text-2xl font-bold text-gray-800 mb-4">Feeder Power Reliability Analytics</h1>
+            
+            <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <!-- Feeder Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Feeder Name</label>
+                    <select name="feeder" class="w-full border-gray-300 rounded-lg shadow-sm p-2 border">
+                        <option value="">All Feeders</option>
+                        {% for f in feeders %}
+                            <option value="{{ f.id }}" {% if selected_feeder == f.id|stringformat:"s" %}selected{% endif %}>{{ f.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Year Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Year</label>
+                    <select name="year" class="w-full border-gray-300 rounded-lg shadow-sm p-2 border">
+                        {% for y in years %}
+                            <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Month Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Month</label>
+                    <select name="month" class="w-full border-gray-300 rounded-lg shadow-sm p-2 border">
+                        {% for m_num, m_name in months %}
+                            <option value="{{ m_num }}" {% if selected_month == m_num %}selected{% endif %}>{{ m_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Submit Button -->
+                <div>
+                    <button type="submit" class="w-full bg-blue-600 text-white font-medium py-2 px-4 rounded-lg hover:bg-blue-700 transition">
+                        Apply Filters
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Table 2: Time Block Summary (Placed first for executive insight priority) -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Time-Block Impact Summary</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time Block Category</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total Availability (hrs)</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total Outage (hrs)</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total Tracked Hours</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for row in table2_rows %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ row.block }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-green-600 font-semibold">{{ row.availability }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-red-600 font-semibold">{{ row.outage }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-700">{{ row.total_available_hours }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">No data available for the selected filters.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Table 1: Daily Breakdown -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Daily Breakdown</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total Availability (hrs)</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total Outage (hrs)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for row in table1_rows %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ row.date }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-green-600 font-semibold">{{ row.availability }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-red-600 font-semibold">{{ row.outage }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="px-6 py-4 text-center text-sm text-gray-500">No data records found for this period.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>

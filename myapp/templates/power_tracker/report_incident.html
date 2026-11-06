@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Power Incident | Grid Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        .hp-field { display: none !important; }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen py-10 px-4">
+    <div class="max-w-2xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden"
+         x-data="incidentReporter()">
+        
+        <div class="bg-blue-900 px-6 py-6 text-white">
+            <h1 class="text-xl font-bold">Log an Outage or Fault</h1>
+            <p class="text-sm text-blue-200 mt-1">Submit power disturbances directly to regional operations.</p>
+        </div>
+
+        <form method="POST" action="" class="p-6 space-y-5">
+            {% csrf_token %}
+
+            <!-- Invisible Honeypot Field -->
+            <div class="hp-field">
+                <input type="text" name="website_hp" tabindex="-1" autocomplete="off">
+            </div>
+
+            {% if form.non_field_errors %}
+                <div class="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-lg">
+                    {{ form.non_field_errors.0 }}
+                </div>
+            {% endif %}
+
+            <!-- Feeder Selection -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Feeder Line *
+                </label>
+                <select name="feeder" 
+                        x-model="selectedFeeder" 
+                        @change="fetchTransformers()"
+                        required
+                        class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none">
+                    <option value="">-- Choose Feeder --</option>
+                    {% for feeder in form.fields.feeder.queryset %}
+                        <option value="{{ feeder.id }}">{{ feeder.name }} ({{ feeder.code }}) - {{ feeder.get_band_display }}</option>
+                    {% endfor %}
+                </select>
+                {% if form.feeder.errors %}
+                    <p class="text-xs text-rose-600 mt-1">{{ form.feeder.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Transformer Dropdown (Reactive) -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Distribution Transformer (DT) *
+                </label>
+                <select name="transformer" 
+                        x-model="selectedTransformer" 
+                        :disabled="loadingTransformers || transformers.length === 0"
+                        required
+                        class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none disabled:bg-slate-50 disabled:text-slate-400">
+                    <option value="" x-text="loadingTransformers ? 'Fetching transformers...' : (transformers.length === 0 ? '-- Select Feeder First --' : '-- Choose Transformer --')"></option>
+                    <template x-for="dt in transformers" :key="dt.id">
+                        <option :value="dt.id" x-text="dt.label"></option>
+                    </template>
+                </select>
+                {% if form.transformer.errors %}
+                    <p class="text-xs text-rose-600 mt-1">{{ form.transformer.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Contact Email -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Your Contact Email *
+                    </label>
+                    <input type="email" name="contact_email" value="{{ form.contact_email.value|default:'' }}" required
+                           placeholder="you@domain.com"
+                           class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none">
+                    {% if form.contact_email.errors %}
+                        <p class="text-xs text-rose-600 mt-1">{{ form.contact_email.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Incident Date -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Incident Date & Time *
+                    </label>
+                    <input type="datetime-local" name="incident_date" value="{{ form.incident_date.value|default:'' }}" required
+                           class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none">
+                    {% if form.incident_date.errors %}
+                        <p class="text-xs text-rose-600 mt-1">{{ form.incident_date.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Incident Type -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Incident Classification *
+                </label>
+                <select name="incident_type" x-model="incidentType" required
+                        class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none">
+                    <option value="">-- Select Nature of Fault --</option>
+                    {% for code, label in form.fields.incident_type.choices %}
+                        <option value="{{ code }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+                {% if form.incident_type.errors %}
+                    <p class="text-xs text-rose-600 mt-1">{{ form.incident_type.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Conditional Details (Revealed only if OTHERS selected) -->
+            <div x-show="incidentType === 'OTHERS'" x-transition class="space-y-1.5">
+                <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                    Provide Further Details *
+                </label>
+                <textarea name="custom_description" rows="3"
+                          placeholder="Please provide details describing the nature of the issue..."
+                          class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-600 focus:outline-none"></textarea>
+                {% if form.custom_description.errors %}
+                    <p class="text-xs text-rose-600">{{ form.custom_description.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <button type="submit"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg shadow-sm transition duration-150">
+                Submit Incident Report
+            </button>
+        </form>
+    </div>
+
+    <script>
+        function incidentReporter() {
+            return {
+                selectedFeeder: '{{ form.feeder.value|default:"" }}',
+                selectedTransformer: '{{ form.transformer.value|default:"" }}',
+                incidentType: '{{ form.incident_type.value|default:"" }}',
+                transformers: [],
+                loadingTransformers: false,
+
+                init() {
+                    if (this.selectedFeeder) {
+                        this.fetchTransformers(this.selectedTransformer);
+                    }
+                },
+
+                fetchTransformers(presetId = null) {
+                    if (!this.selectedFeeder) {
+                        this.transformers = [];
+                        this.selectedTransformer = '';
+                        return;
+                    }
+
+                    this.loadingTransformers = true;
+                    fetch(`/api/transformers/?feeder_id=${this.selectedFeeder}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            this.transformers = data.transformers || [];
+                            if (presetId) {
+                                this.selectedTransformer = presetId;
+                            }
+                        })
+                        .catch(err => console.error("Error fetching transformers:", err))
+                        .finally(() => {
+                            this.loadingTransformers = false;
+                        });
+                }
+            };
+        }
+    </script>
+</body>
+</html>

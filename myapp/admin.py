@@ -10,7 +10,7 @@ from django.utils.safestring import mark_safe
 
 from .models import (Comment, CustomUser, Order, OrderItem, Package,
                      ServiceCategory,Tenant, TenantAttribute, Workflow, WorkflowStage, WorkflowInstance, WorkflowHistory,
-                     ServiceChoices,PremiumClient,QR,DeliveryPricing, Color,Cluster, State, Town,Feeder,PowerStatus,School_tenant,Student_profile,Attendance_log)
+                     ServiceChoices,PremiumClient,QR,DeliveryPricing, Color,Cluster, State, Town,Feeder,Transformer,PowerStatus,School_tenant,Student_profile,Attendance_log)
 
 from .landing_models import (
     LandingCarousel, LandingText, LandingValue, LandingCommitment, 
@@ -133,8 +133,20 @@ admin.site.register(PremiumClient, admin.ModelAdmin)
 admin.site.register(QR)
 admin.site.register(DeliveryPricing)
 
+class TransformerInline(admin.TabularInline):
+    model = Transformer
+    extra = 1
+    fields = ('transformer_code', 'name', 'admin_main', 'admin_secondary', 'is_active')
+
+@admin.register(Transformer)
+class TransformerAdmin(admin.ModelAdmin):
+    list_display = ('transformer_code', 'name', 'feeder', 'admin_main', 'is_active')
+    search_fields = ('name', 'transformer_code', 'feeder__name')
+    list_filter = ('is_active', 'feeder')
+
 @admin.register(Feeder)
 class FeederAdmin(admin.ModelAdmin):
+    inlines = [TransformerInline]
     list_display = (
         'name',
         'band',
@@ -151,8 +163,8 @@ class FeederAdmin(admin.ModelAdmin):
     list_filter = ('band', 'created_at')
     search_fields = (
         'name',
-        'transformer_name',
-        'transformer_code',
+        'transformers__name',
+        'transformers__transformer_code',
         'registered_phone',
         'msisdn',
         'custodian_name',
@@ -167,8 +179,8 @@ class FeederAdmin(admin.ModelAdmin):
         ('Feeder Information', {
             'fields': ('name', 'band', 'created_at')
         }),
-        ('Transformer & Hardware', {
-            'fields': ('transformer_name', 'transformer_code', 'registered_phone', 'msisdn', 'sim_serial')
+        ('Hardware Info', {
+            'fields': ('registered_phone', 'msisdn', 'sim_serial')
         }),
         ('Custodian Info', {
             'fields': ('custodian_name', 'custodian_phone')
@@ -235,8 +247,8 @@ class PowerStatusAdmin(admin.ModelAdmin):
     search_fields = (
         'event_id',
         'feeder__name',
-        'feeder__transformer_name',
-        'feeder__transformer_code',
+        'feeder__transformers__name',
+        'feeder__transformers__transformer_code',
         'status',
         'sim_serial',
         'msisdn',
