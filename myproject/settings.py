@@ -42,6 +42,7 @@ ALLOWED_HOSTS = [
     "yourmainapp.com",
     "whatsapp-1-laundry-2-compose.xqqhik.easypanel.host",
     "powervoice.ng",
+    
 ]
 
 # CSRF trusted origins for cross-site requests
@@ -144,17 +145,21 @@ import dj_database_url
 #     }
 # }
 
-# Uncomment below to use remote PostgreSQL (when server is accessible)
-_db_config = dj_database_url.config(
-    default=os.getenv("DATABASE_URI", f"sqlite:///{os.path.join(BASE_DIR, 'db.sqlite3')}"),
+# Use DATABASE_URI env var if set and non-empty; otherwise fall back to local SQLite
+_database_uri = os.getenv("DATABASE_URI", "").strip()
+if not _database_uri:
+    _database_uri = f"sqlite:///{os.path.join(BASE_DIR, 'db.sqlite3')}"
+
+_db_config = dj_database_url.parse(
+    _database_uri,
     conn_max_age=600,
     conn_health_checks=True,
 )
 if _db_config.get('ENGINE') == 'django.db.backends.postgresql':
-    _db_config.setdefault('OPTIONS', {}).update({
-        'connect_timeout': 10,
-        'options': '-c statement_timeout=30000',
-    })
+    _opts = _db_config.setdefault('OPTIONS', {})
+    if 'connect_timeout' not in _opts:
+        _opts['connect_timeout'] = 30
+    _opts['options'] = '-c statement_timeout=30000'
 DATABASES = {
     'default': _db_config,
     # Remote target database for migrated HR data

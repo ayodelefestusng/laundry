@@ -2752,7 +2752,7 @@ def export_commission_csv(request):
 
 
 def utility(request):
-    return HttpResponse("this is a utility page 06112026C agoba admin")
+    return HttpResponse("this is a utility page 06112026C agoba admin revert")
 
 import calendar
 import pytz
@@ -3011,7 +3011,13 @@ from .utils import mask_email
 from django.http import JsonResponse
 from django.db import transaction
 from django.contrib import messages
-from django_ratelimit.decorators import ratelimit
+try:
+    from django_ratelimit.decorators import ratelimit
+except ImportError:
+    def ratelimit(*args, **kwargs):
+        def decorator(f):
+            return f
+        return decorator
 from .forms import IncidentReportForm
 from .services.tracking import generate_incident_tracking_id
 from .services.notifications import send_admin_approval_request

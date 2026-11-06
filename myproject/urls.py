@@ -10,7 +10,7 @@ from django.conf.urls.static import static
 from django.urls import re_path
 from websockets import serve
 urlpatterns = [
-    path('adminagoba/', admin.site.urls),
+    path('admin/', admin.site.urls),
     # path('accounts/', include('django.contrib.auth.urls')),
     path('', include('myapp.urls')),
     path('', include('django.contrib.auth.urls')),  # Built-in login/logout/password views
