@@ -10,7 +10,7 @@ from django.utils.safestring import mark_safe
 
 from .models import (Comment, CustomUser, Order, OrderItem, Package,
                      ServiceCategory,Tenant, TenantAttribute, Workflow, WorkflowStage, WorkflowInstance, WorkflowHistory,
-                     ServiceChoices,PremiumClient,QR,DeliveryPricing, Color,Cluster, State, Town,Feeder,Transformer,PowerStatus,School_tenant,Student_profile,Attendance_log)
+                     ServiceChoices,PremiumClient,QR,DeliveryPricing, Color,Cluster, State, Town,Feeder,Transformer,PowerStatus,IncidentSequence,Incident,DailyFeederMetric,School_tenant,Student_profile,Attendance_log)
 
 from .landing_models import (
     LandingCarousel, LandingText, LandingValue, LandingCommitment, 
@@ -112,6 +112,10 @@ admin.site.register(CustomUser)
 admin.site.register(WorkflowHistory)
 admin.site.register(ServiceChoices)
 admin.site.register(Color)
+admin.site.register(IncidentSequence)
+admin.site.register(Incident)
+admin.site.register(DailyFeederMetric)
+
 
 class TenantAttributeInline(admin.StackedInline):
     model = TenantAttribute
