@@ -1401,6 +1401,22 @@ class Feeder(models.Model):
         return t.transformer_code if t else None
 
     @property
+    def code(self):
+        """Concise alphanumeric code (3-6 chars) for tracking IDs and references."""
+        import re
+        clean = re.sub(r'[^A-Za-z0-9\s]', ' ', self.name).strip()
+        words = clean.split()
+        if len(words) >= 3:
+            return ''.join(w[0] for w in words).upper()[:6]
+        elif len(words) == 2:
+            w1 = words[0][:2] if len(words[0]) >= 2 else words[0]
+            w2 = words[1][:2] if len(words[1]) >= 2 else words[1]
+            return (w1 + w2).upper()
+        elif len(words) == 1:
+            return words[0][:4].upper()
+        return f"FDR{self.id}"
+
+    @property
     def contact_phone(self):
         return self.registered_phone
 

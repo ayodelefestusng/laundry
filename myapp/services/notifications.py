@@ -46,7 +46,10 @@ def send_admin_approval_request(incident: Incident, request=None) -> bool:
         incident.approval_token_signature = signature_part
         incident.save(update_fields=['approval_token_signature'])
 
-        path = reverse('incident_action_review', kwargs={'token': token})
+        try:
+            path = reverse('laundry:incident_action_review', kwargs={'token': token})
+        except Exception:
+            path = reverse('incident_action_review', kwargs={'token': token})
         
         # Build absolute URL
         if request:

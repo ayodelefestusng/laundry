@@ -2752,7 +2752,7 @@ def export_commission_csv(request):
 
 
 def utility(request):
-    return HttpResponse("this is a utility page 06112026C agoba admin  revert resolved")
+    return HttpResponse("this is a utility page 06112026C agoba mail delibvery")
 
 import calendar
 import pytz
@@ -3429,9 +3429,14 @@ def report_incident_view(request):
                     incident = form.save(commit=False)
                     
                     # 1. Generate atomic thread-safe tracking ID
+                    feeder_code = getattr(incident.feeder, 'code', None) or incident.feeder.name[:4].upper()
+                    transformer_code = (
+                        getattr(incident.transformer, 'transformer_code', None)
+                        or getattr(incident.transformer, 'name', 'DT01')
+                    )
                     incident.tracking_id = generate_incident_tracking_id(
-                        feeder_code=incident.feeder.code,
-                        transformer_code=incident.transformer.transformer_code
+                        feeder_code=feeder_code,
+                        transformer_code=transformer_code
                     )
                     incident.save()
 
