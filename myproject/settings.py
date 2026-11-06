@@ -42,6 +42,8 @@ ALLOWED_HOSTS = [
     "yourmainapp.com",
     "whatsapp-1-laundry-2-compose.xqqhik.easypanel.host",
     "powervoice.ng",
+        "powerheart.ng",
+    
     
 ]
 
