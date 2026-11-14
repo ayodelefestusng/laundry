@@ -1372,7 +1372,7 @@ class Feeder(models.Model):
     publication_status = models.CharField(
         max_length=20,
         choices=PUBLICATION_CHOICES,
-        default='publish',
+        default='unpublish',
         db_index=True,
         help_text="Controls public visibility across dashboards and reporting forms"
     )
